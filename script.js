@@ -15,7 +15,7 @@ const FIREBASE_CONFIG = {
 };
 const ALLOWED_DOMAINS = ["smvdu.ac.in"];   // <-- only these email domains can log in
 const GOAL = 1740;
-const RAZORPAY_KEY_ID = "rzp_test_Sxw3ZogrIQRq4A";   // Razorpay Key ID (test). Live key replaces this later. NEVER put the Key Secret here.
+const RAZORPAY_KEY_ID = "rzp_test_Sy3RPG1Q1JAf3e";   // Razorpay Key ID (test). Live key replaces this later. NEVER put the Key Secret here.
 
 const LIVE = !!FIREBASE_CONFIG.apiKey;
 let user = null;            // { email, name }
