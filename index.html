@@ -213,7 +213,9 @@ section{padding:90px 26px;max-width:1180px;margin:0 auto}
 .dot.r{background:#e05656;box-shadow:0 0 8px rgba(224,86,86,.45)}
 .dot.y{background:#e7b73a;box-shadow:0 0 8px rgba(231,183,58,.45)}
 .dot.g{background:#3fbf6a;box-shadow:0 0 8px rgba(63,191,106,.45)}
-.pe{flex:1;color:var(--silver);font-family:'Jost';font-size:13px}
+.pe{flex:1;display:flex;flex-direction:column;gap:1px;font-family:'Jost'}
+.pn{color:var(--ink);font-size:13px}
+.pem{color:var(--muted);font-size:11px}
 .pa{color:var(--gold-soft);font-variant-numeric:tabular-nums;font-size:13px}
 .legend{display:flex;align-items:center;gap:6px;margin-top:14px;font-size:12px;color:var(--muted)}
 .legend .dot{margin:0 4px 0 10px}
@@ -448,16 +450,19 @@ function repaint(){
 }
 
 /* ---------- payments roster ---------- */
-const ROSTER = Array.from({length:90}, (_,i)=> "25bec" + String(i+1).padStart(3,"0") + "@smvdu.ac.in");
+const NAMES = ["AAYUSH MONDAL","ABHIJEET GOYAL","ABHINANDAN KUMAR","ABHIRAJ BADHAN","ADITI SINGH","ADITYA ATHMIA","ADITYA KUMAR","ADITYA SHARMA","ADITYA SONKAR","ADVAIT KHAJURIA","AJAY KUMAR","AJAY KUMAR","AKASH KUMAR","AKSHAT SHIRSHWAR","ALISHA GANDOTRA","ALOK KUMAR","AMICHAND KUMHAR","AMIT SHARMA","ANANAYA BHAGAT","ANIKET KUMAR","ANKIT GANGWAR","ANKIT KUMAR SINGH","ANKIT VERMA","ANSH ANDOTRA","ANUBHAV SHARMA","ARYAN CHATURVEDI","ARYAN VERMA","ASHISH RANJAN","AVNISH RAJ","AYUSH SINGH YADAV","AYUSHMAN SINGH","BANTI KUMAR","CHAITANYA SHARMA","CHENNOJU HARSHITH KUMAR","CHINTALA RAM CHARAN TEJA","DEEPAK KUMAR","DHIRAJ KUMAR","DIPIKA SINHA","DIVYA RANI","HARSH RAJ","HARSH RAJ","JATIN SHARMA","KARTIK CHAUHAN","KRISHNA KRISHNANSHU BALI","LAKSHYA SACHDEVA","MANISH BAGOTIA","MANSI","MD GULAM MURSHID","MILIND WAGDRE","MOHD YUSUF IMRAN","MRIGAANKA BHAGAT","NITIN KUMAR","PATTIMI HEMANTHKUMAR","PIYUSH KUMAR","PIYUSH KUMAR","PRAGATI VERMA","PRAGYA SINGH","PRANAV KALOTRA","PRIYANSHU SHARMA","RAGHAV TIWARI","RAJ HARSH KUMAR","RAKESH KUMAR","RAMLEEN KAUR RANA","RITU RAJ","SAKSH SHARMA","SAMBHAV GUPTA","SAMEER KUMAR YADAV","SANDEEP KUMAR YADAV","SANJAN KUMAR","SARVAJEET SONKAR","SAURAV SINGH RAWAT","SHALWI KUMARI","SHANTANU PANDA","SHAURYA VEER ARORA","SHIVAM KUMAR","SHUBHAM KASHAV","SONAM","SOURYA GUPTA","SUJIT KUMAR","SUMIT RAJ","SUMIT VERMA","SURAJ BHARGAV","TANISH SHARMA","UTKARSH CHANDRAVANSHI","VANSH ABROL","VANSH PRATAP SINGH","VIDHAN PRAKASH SAIN","VINAMRATA","VISHNU KUMAR DIXIT","YOGESH"];
+const EXCLUDE = [1,46,84];
+const ROSTER = [];
+for(let n=1;n<=90;n++){ if(EXCLUDE.includes(n)) continue; ROSTER.push({ email:"25bec"+String(n).padStart(3,"0")+"@smvdu.ac.in", name:NAMES[n-1] }); }
 function renderPayments(){
   const q = ($("#paySearch").value||"").toLowerCase();
   let full=0, part=0, none=0;
-  ROSTER.forEach(e=>{ const a=data[e]||0; if(a>=GOAL) full++; else if(a>0) part++; else none++; });
+  ROSTER.forEach(p=>{ const a=data[p.email]||0; if(a>=GOAL) full++; else if(a>0) part++; else none++; });
   $("#paySummary").innerHTML = '<span class="s-g">'+full+' full</span> · <span class="s-y">'+part+' partial</span> · <span class="s-r">'+none+' pending</span>';
-  const rows = ROSTER.filter(e=> e.includes(q)).map(email=>{
-    const amt = data[email]||0;
+  const rows = ROSTER.filter(p=> p.email.includes(q) || p.name.toLowerCase().includes(q)).map(p=>{
+    const amt = data[p.email]||0;
     const cls = amt>=GOAL ? "g" : (amt>0 ? "y" : "r");
-    return '<div class="prow"><span class="dot '+cls+'"></span><span class="pe">'+email+'</span><span class="pa">'+money(amt)+'</span></div>';
+    return '<div class="prow"><span class="dot '+cls+'"></span><span class="pe"><span class="pn">'+p.name+'</span><span class="pem">'+p.email+'</span></span><span class="pa">'+money(amt)+'</span></div>';
   }).join("");
   $("#payList").innerHTML = rows || '<div class="prow" style="justify-content:center;color:var(--muted)">No matches</div>';
 }
