@@ -206,6 +206,21 @@ section{padding:90px 26px;max-width:1180px;margin:0 auto}
 .gbtn:hover{transform:translateY(-1px);box-shadow:0 10px 28px rgba(255,255,255,.16)}
 .gbtn:disabled{opacity:.55;cursor:not-allowed;transform:none;box-shadow:none}
 .note2{font-size:12px;color:var(--muted);margin-top:16px;text-align:center;line-height:1.5}
+.pay-list{max-height:48vh;overflow-y:auto;margin-top:10px;border:1px solid var(--line);border-radius:8px}
+.prow{display:flex;align-items:center;gap:12px;padding:10px 14px;border-bottom:1px solid rgba(212,175,55,.08);font-size:14px}
+.prow:last-child{border-bottom:none}
+.dot{width:10px;height:10px;border-radius:50%;flex:0 0 auto}
+.dot.r{background:#e05656;box-shadow:0 0 8px rgba(224,86,86,.45)}
+.dot.y{background:#e7b73a;box-shadow:0 0 8px rgba(231,183,58,.45)}
+.dot.g{background:#3fbf6a;box-shadow:0 0 8px rgba(63,191,106,.45)}
+.pe{flex:1;color:var(--silver);font-family:'Jost';font-size:13px}
+.pa{color:var(--gold-soft);font-variant-numeric:tabular-nums;font-size:13px}
+.legend{display:flex;align-items:center;gap:6px;margin-top:14px;font-size:12px;color:var(--muted)}
+.legend .dot{margin:0 4px 0 10px}
+.legend .dot:first-child{margin-left:0}
+.s-g{color:#3fbf6a}.s-y{color:#e7b73a}.s-r{color:#e05656}
+.pay-list::-webkit-scrollbar{width:8px}
+.pay-list::-webkit-scrollbar-thumb{background:rgba(212,175,55,.25);border-radius:4px}
 .toast{position:fixed;bottom:26px;left:50%;transform:translateX(-50%) translateY(40px);z-index:200;
   background:var(--grad-gold);color:#140f02;font-family:'Cinzel';font-size:13px;letter-spacing:1px;padding:14px 26px;border-radius:8px;
   opacity:0;transition:.4s;box-shadow:0 12px 40px rgba(212,175,55,.4)}
@@ -291,6 +306,9 @@ footer .script{font-size:30px;color:var(--gold);display:block;margin-bottom:8px}
       <div class="stat"><div class="v" id="yourTotal">₹0</div><div class="k">Your Contribution</div></div>
     </div>
   </div>
+  <div style="text-align:center;margin-top:24px">
+    <button class="btn ghost" id="seePaymentsBtn">See Payments</button>
+  </div>
 </section>
 
 <!-- DETAILS -->
@@ -355,6 +373,18 @@ footer .script{font-size:30px;color:var(--gold);display:block;margin-bottom:8px}
   </div>
 </div>
 
+<!-- PAYMENTS LIST MODAL -->
+<div class="overlay" id="payListOverlay">
+  <div class="modal" style="max-width:520px">
+    <span class="x" data-close>×</span>
+    <h3 class="gold-text">Payment Status</h3>
+    <p class="s" id="paySummary"></p>
+    <input id="paySearch" placeholder="Search email…" autocomplete="off" style="margin-bottom:4px">
+    <div class="pay-list" id="payList"></div>
+    <div class="legend"><span class="dot g"></span>Full <span class="dot y"></span>Partial <span class="dot r"></span>Pending</div>
+  </div>
+</div>
+
 <div class="toast" id="toast"></div>
 
 <script>
@@ -396,8 +426,8 @@ function domainOK(email){
   const dom = email.slice(at+1).toLowerCase();
   return ALLOWED_DOMAINS.some(d => dom===d || dom.endsWith("."+d));
 }
-document.querySelectorAll("[data-close]").forEach(x=>x.onclick=()=>{closeM(loginOverlay);closeM(payOverlay);});
-[loginOverlay,payOverlay].forEach(o=>o.addEventListener("click",e=>{ if(e.target===o) closeM(o); }));
+document.querySelectorAll("[data-close]").forEach(x=>x.onclick=()=>{ const o=x.closest(".overlay"); if(o) o.classList.remove("show"); });
+[loginOverlay,payOverlay,document.getElementById("payListOverlay")].forEach(o=>o&&o.addEventListener("click",e=>{ if(e.target===o) closeM(o); }));
 
 /* ---------- paint the bar + stats ---------- */
 function repaint(){
@@ -414,7 +444,25 @@ function repaint(){
   $("#contribCount").textContent = count;
   $("#yourTotal").textContent = money(mine);
   $("#contribBtn").textContent = !user ? "Login to contribute" : (mine>=GOAL ? "Add more" : "Contribute \u20b91,740");
+  if($("#payListOverlay").classList.contains("show")) renderPayments();
 }
+
+/* ---------- payments roster ---------- */
+const ROSTER = Array.from({length:90}, (_,i)=> "25bec" + String(i+1).padStart(3,"0") + "@smvdu.ac.in");
+function renderPayments(){
+  const q = ($("#paySearch").value||"").toLowerCase();
+  let full=0, part=0, none=0;
+  ROSTER.forEach(e=>{ const a=data[e]||0; if(a>=GOAL) full++; else if(a>0) part++; else none++; });
+  $("#paySummary").innerHTML = '<span class="s-g">'+full+' full</span> · <span class="s-y">'+part+' partial</span> · <span class="s-r">'+none+' pending</span>';
+  const rows = ROSTER.filter(e=> e.includes(q)).map(email=>{
+    const amt = data[email]||0;
+    const cls = amt>=GOAL ? "g" : (amt>0 ? "y" : "r");
+    return '<div class="prow"><span class="dot '+cls+'"></span><span class="pe">'+email+'</span><span class="pa">'+money(amt)+'</span></div>';
+  }).join("");
+  $("#payList").innerHTML = rows || '<div class="prow" style="justify-content:center;color:var(--muted)">No matches</div>';
+}
+$("#seePaymentsBtn").onclick = ()=>{ $("#paySearch").value=""; renderPayments(); openM($("#payListOverlay")); };
+$("#paySearch").addEventListener("input", renderPayments);
 
 /* ---------- user chip ---------- */
 function refreshUserUI(){
