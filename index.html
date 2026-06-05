@@ -5,6 +5,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;500;600;700&family=Great+Vibes&family=Jost:wght@300;400;500;600&display=swap" rel="stylesheet">
+<script src="https://checkout.razorpay.com/v1/checkout.js"></script>
 
 <style>
 :root{
@@ -380,6 +381,7 @@ const FIREBASE_CONFIG = {
 };
 const ALLOWED_DOMAINS = ["smvdu.ac.in"];   // <-- only these email domains can log in
 const GOAL = 1740;
+const RAZORPAY_KEY_ID = "rzp_test_Sxw3ZogrIQRq4A";   // Razorpay Key ID (test). Live key replaces this later. NEVER put the Key Secret here.
 
 const LIVE = !!FIREBASE_CONFIG.apiKey;
 let user = null;            // { email, name }
@@ -489,23 +491,51 @@ document.querySelectorAll(".pm").forEach(p=>p.onclick=()=>{
   p.classList.add("on"); payMethod=p.dataset.pm;
 });
 function updatePayBtn(){ $("#doPay").textContent = "Pay " + money(Number($("#inAmt").value)||0); }
+function saveContribution(amt, paymentId){
+  if(LIVE){
+    fb.setDoc(fb.doc(fb.db,"contributions",user.email), {
+      email: user.email, name: user.name,
+      amount: fb.increment(amt),
+      lastPaymentId: paymentId || "manual",
+      updatedAt: fb.serverTimestamp()
+    }, { merge:true })
+      .then(()=> showToast("Paid " + money(amt) + " \u2726"))
+      .catch(e=>{ showToast("Payment received, bar update failed: " + (e.code||e.message)); console.error(e); });
+  } else {
+    data[user.email] = (data[user.email]||0) + amt; repaint();
+    showToast("Paid " + money(amt) + " \u2726 (preview)");
+  }
+}
 $("#doPay").onclick = ()=>{
   const amt = Number($("#inAmt").value)||0;
   if(amt<1){ $("#inAmt").focus(); return; }
   if(!user){ closeM(payOverlay); openM(loginOverlay); return; }
-  if(LIVE){
-    // fire the write and close right away; the live listener fills the bar on commit
-    fb.setDoc(fb.doc(fb.db,"contributions",user.email), {
-      email: user.email, name: user.name,
-      amount: fb.increment(amt), updatedAt: fb.serverTimestamp()
-    }, { merge:true })
-      .then(()=> showToast("Paid " + money(amt) + " via " + payMethod + " \u2726"))
-      .catch(e=>{ showToast("Couldn't save: " + (e.code||e.message||e)); console.error(e); });
+
+  // Real payment via Razorpay when a Key ID is configured
+  if(RAZORPAY_KEY_ID && typeof Razorpay !== "undefined"){
+    const options = {
+      key: RAZORPAY_KEY_ID,
+      amount: Math.round(amt*100),         // amount in paise
+      currency: "INR",
+      name: "F\u00eate des Freshers '26",
+      description: "Freshers'26 contribution",
+      prefill: { name: user.name, email: user.email },
+      notes: { email: user.email },
+      theme: { color: "#d4af37" },
+      handler: function(response){ saveContribution(amt, response.razorpay_payment_id); },
+      modal: { ondismiss: function(){ showToast("Payment cancelled"); } }
+    };
+    const rzp = new Razorpay(options);
+    rzp.on("payment.failed", function(resp){
+      showToast("Payment failed: " + ((resp.error && resp.error.description) || ""));
+    });
+    closeM(payOverlay);
+    rzp.open();
   } else {
-    data[user.email] = (data[user.email]||0) + amt; repaint();
-    showToast("Paid " + money(amt) + " via " + payMethod + " \u2726 (preview)");
+    // No gateway configured yet -> record directly (demo / preview)
+    saveContribution(amt, null);
+    closeM(payOverlay);
   }
-  closeM(payOverlay);
 };
 
 /* ---------- Firebase ---------- */
