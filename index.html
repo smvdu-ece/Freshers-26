@@ -1,0 +1,568 @@
+<!-- Fiesta de Bienvenida — ECE Freshers Site -->
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Fête des Freshers · ECE</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;500;600;700&family=Great+Vibes&family=Jost:wght@300;400;500;600&display=swap" rel="stylesheet">
+
+<style>
+:root{
+  --black:#0a0a0c;
+  --black-2:#121214;
+  --panel:#16161a;
+  --panel-2:#1d1d22;
+  --gold:#d4af37;
+  --gold-soft:#e7c96a;
+  --gold-deep:#a9842a;
+  --silver:#c9ccd1;
+  --silver-soft:#e8eaee;
+  --ink:#eceae4;
+  --muted:#9a988f;
+  --line:rgba(212,175,55,.22);
+  --grad-gold:linear-gradient(135deg,#f3e08a 0%,#d4af37 38%,#a9842a 72%,#e7c96a 100%);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{
+  background:var(--black);
+  color:var(--ink);
+  font-family:'Jost',sans-serif;
+  font-weight:300;
+  letter-spacing:.2px;
+  overflow-x:hidden;
+  -webkit-font-smoothing:antialiased;
+}
+/* faint grain + radial glow atmosphere */
+body::before{
+  content:"";position:fixed;inset:0;pointer-events:none;z-index:0;
+  background:
+    radial-gradient(900px 500px at 80% -5%, rgba(212,175,55,.10), transparent 60%),
+    radial-gradient(700px 500px at -10% 30%, rgba(201,204,209,.06), transparent 55%);
+}
+.wrap{position:relative;z-index:1}
+h1,h2,h3,.cz{font-family:'Cinzel',serif;font-weight:600;letter-spacing:1px}
+.script{font-family:'Great Vibes',cursive;font-weight:400}
+.gold-text{background:var(--grad-gold);-webkit-background-clip:text;background-clip:text;color:transparent}
+a{color:inherit;text-decoration:none}
+section{padding:90px 26px;max-width:1180px;margin:0 auto}
+.eyebrow{font-family:'Cinzel',serif;font-size:12px;letter-spacing:5px;color:var(--gold);text-transform:uppercase;margin-bottom:14px}
+.sec-title{font-size:clamp(28px,4.4vw,46px);line-height:1.05}
+.sec-sub{color:var(--muted);max-width:620px;margin-top:14px;font-size:16px;line-height:1.7}
+.divider{display:flex;align-items:center;gap:14px;margin:26px 0 40px}
+.divider .l{height:1px;flex:1;background:linear-gradient(90deg,transparent,var(--line),transparent)}
+.divider .d{width:8px;height:8px;transform:rotate(45deg);background:var(--grad-gold);box-shadow:0 0 14px rgba(212,175,55,.5)}
+
+/* NAV */
+.nav{position:sticky;top:0;z-index:50;display:flex;align-items:center;justify-content:space-between;
+  padding:16px 26px;backdrop-filter:blur(12px);background:rgba(10,10,12,.72);border-bottom:1px solid var(--line)}
+.brand{display:flex;align-items:center;gap:12px;font-family:'Cinzel',serif;font-weight:700;letter-spacing:2px;font-size:15px}
+.brand .mark{width:30px;height:30px;border:1px solid var(--gold);transform:rotate(45deg);display:grid;place-items:center}
+.brand .mark span{transform:rotate(-45deg);font-size:13px;color:var(--gold)}
+.nav-links{display:flex;gap:26px;font-size:13px;letter-spacing:1.5px;text-transform:uppercase;color:var(--silver)}
+.nav-links a{position:relative;padding:4px 0;transition:color .25s}
+.nav-links a:hover{color:var(--gold)}
+.nav-links a::after{content:"";position:absolute;left:0;bottom:-2px;width:0;height:1px;background:var(--gold);transition:width .3s}
+.nav-links a:hover::after{width:100%}
+.nav-right{display:flex;align-items:center;gap:14px}
+#userTag{font-size:12px;letter-spacing:1px;color:var(--gold-soft);display:none;align-items:center;gap:8px}
+#userTag .av{width:24px;height:24px;border-radius:50%;background:var(--grad-gold);color:#1a1408;display:grid;place-items:center;font-weight:600;font-size:11px;font-family:'Jost'}
+@media(max-width:760px){.nav-links{display:none}}
+
+/* BUTTONS */
+.btn{font-family:'Cinzel',serif;font-size:12px;letter-spacing:2px;text-transform:uppercase;cursor:pointer;
+  border:1px solid var(--gold);background:transparent;color:var(--gold);padding:12px 22px;border-radius:2px;
+  transition:.25s;position:relative;overflow:hidden}
+.btn:hover{color:#140f02;background:var(--grad-gold);box-shadow:0 8px 30px rgba(212,175,55,.28)}
+.btn.solid{background:var(--grad-gold);color:#140f02;border:none}
+.btn.solid:hover{filter:brightness(1.08);box-shadow:0 10px 34px rgba(212,175,55,.4)}
+.btn.ghost{border-color:rgba(201,204,209,.35);color:var(--silver)}
+.btn.ghost:hover{background:rgba(201,204,209,.1);color:#fff;box-shadow:none}
+.btn:disabled{opacity:.45;cursor:not-allowed;border-color:var(--muted);color:var(--muted);background:transparent;box-shadow:none}
+
+/* HERO */
+.hero{min-height:92vh;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;
+  position:relative;padding:120px 26px 80px;overflow:hidden}
+.hero .photo-frame{position:absolute;inset:0;z-index:0}
+.hero .photo-frame img{width:100%;height:100%;object-fit:cover;opacity:.30;filter:grayscale(.25) contrast(1.05)}
+.hero .photo-frame::after{content:"";position:absolute;inset:0;
+  background:linear-gradient(180deg,rgba(10,10,12,.55) 0%,rgba(10,10,12,.78) 55%,var(--black) 100%)}
+.hero-inner{position:relative;z-index:2;max-width:860px}
+.hero .balloons{position:absolute;top:0;left:50%;transform:translateX(-50%);z-index:1;opacity:.9;width:min(92%,900px)}
+.hero .est{font-family:'Cinzel';letter-spacing:6px;font-size:12px;color:var(--silver);text-transform:uppercase}
+.hero .fiesta{font-size:clamp(46px,9vw,104px);line-height:.95;margin:6px 0 2px}
+.hero .ece{font-family:'Cinzel';font-weight:700;font-size:clamp(22px,4vw,40px);letter-spacing:8px;margin-top:4px}
+.hero .tag{color:var(--silver);margin:22px auto 0;max-width:520px;font-size:16px;line-height:1.7}
+.hero .cta-row{display:flex;gap:14px;justify-content:center;margin-top:38px;flex-wrap:wrap}
+.scroll-cue{position:absolute;bottom:26px;left:50%;transform:translateX(-50%);z-index:2;color:var(--muted);font-size:11px;letter-spacing:3px;text-transform:uppercase;animation:bob 2.4s ease-in-out infinite}
+@keyframes bob{0%,100%{transform:translate(-50%,0)}50%{transform:translate(-50%,8px)}}
+.reveal{opacity:0;transform:translateY(26px);transition:opacity .9s ease,transform .9s ease}
+.reveal.in{opacity:1;transform:none}
+.d1{transition-delay:.08s}.d2{transition-delay:.18s}.d3{transition-delay:.28s}.d4{transition-delay:.38s}
+
+/* GALLERY */
+.gallery{display:grid;grid-template-columns:repeat(12,1fr);gap:14px}
+.gtile{position:relative;border:1px solid var(--line);border-radius:4px;overflow:hidden;min-height:170px;background:var(--panel);
+  display:grid;place-items:center}
+.gtile img{width:100%;height:100%;object-fit:cover;display:block;transition:transform .6s}
+.gtile:hover img{transform:scale(1.05)}
+.gtile.big{grid-column:span 8;min-height:380px}
+.gtile.tall{grid-column:span 4;min-height:380px}
+.gtile.small{grid-column:span 4}
+.gtile .cap{position:absolute;left:0;bottom:0;right:0;padding:14px 16px;font-size:12px;letter-spacing:1px;
+  background:linear-gradient(180deg,transparent,rgba(0,0,0,.8));color:var(--silver-soft)}
+.gtile.placeholder{color:var(--muted);font-family:'Cinzel';font-size:12px;letter-spacing:2px;text-align:center;
+  border-style:dashed;flex-direction:column;gap:8px;padding:20px}
+.gtile.placeholder .plus{font-size:26px;color:var(--gold)}
+@media(max-width:760px){.gtile.big,.gtile.tall,.gtile.small{grid-column:span 12;min-height:240px}}
+
+/* DETAILS */
+.detail-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:18px}
+.dcard{border:1px solid var(--line);border-radius:6px;padding:26px;background:linear-gradient(180deg,var(--panel),var(--black-2));
+  transition:.3s}
+.dcard:hover{border-color:var(--gold);transform:translateY(-4px);box-shadow:0 16px 40px rgba(0,0,0,.5)}
+.dcard .ic{font-size:22px;margin-bottom:14px}
+.dcard h3{font-size:14px;letter-spacing:2px;color:var(--gold);margin-bottom:8px}
+.dcard p{color:var(--silver);font-size:15px;line-height:1.6}
+
+/* TEAM */
+.team-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:20px}
+.tcard{text-align:center;border:1px solid var(--line);border-radius:8px;padding:28px 18px;background:var(--panel);transition:.3s}
+.tcard:hover{transform:translateY(-6px);border-color:var(--gold);box-shadow:0 18px 44px rgba(0,0,0,.55)}
+.tcard .av{width:96px;height:96px;border-radius:50%;margin:0 auto 16px;display:grid;place-items:center;
+  font-family:'Cinzel';font-size:30px;color:#140f02;background:var(--grad-gold);
+  border:2px solid rgba(255,255,255,.15);box-shadow:0 0 0 6px rgba(212,175,55,.08)}
+.tcard .av img{width:100%;height:100%;border-radius:50%;object-fit:cover}
+.tcard .nm{font-family:'Cinzel';font-size:16px;letter-spacing:1px}
+.tcard .rl{color:var(--gold-soft);font-size:12px;letter-spacing:2px;text-transform:uppercase;margin-top:6px}
+.tcard .sub{color:var(--muted);font-size:13px;margin-top:8px}
+
+/* CONTRIBUTION */
+.contrib-shell{border:1px solid var(--line);border-radius:14px;padding:40px;
+  background:radial-gradient(120% 140% at 0% 0%,rgba(212,175,55,.10),transparent 50%),linear-gradient(180deg,var(--panel),var(--black-2));
+  position:relative;overflow:hidden}
+.contrib-shell::before{content:"";position:absolute;inset:0;border-radius:14px;padding:1px;
+  background:linear-gradient(120deg,rgba(212,175,55,.5),transparent 40%,transparent 60%,rgba(201,204,209,.4));
+  -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask-composite:exclude;pointer-events:none}
+.amount-line{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;margin-bottom:6px}
+.amount-line .big{font-family:'Cinzel';font-size:clamp(34px,6vw,56px);line-height:1}
+.amount-line .of{color:var(--muted);font-size:18px}
+.barwrap{margin:26px 0 10px}
+.bar{height:18px;border-radius:20px;background:#0c0c0e;border:1px solid var(--line);overflow:hidden;position:relative}
+.bar .fill{height:100%;width:0%;border-radius:20px;background:var(--grad-gold);
+  box-shadow:0 0 18px rgba(212,175,55,.5);transition:width 1s cubic-bezier(.2,.8,.2,1);position:relative}
+.bar .fill::after{content:"";position:absolute;inset:0;
+  background:linear-gradient(90deg,transparent,rgba(255,255,255,.35),transparent);
+  animation:sheen 2.2s linear infinite}
+@keyframes sheen{0%{transform:translateX(-100%)}100%{transform:translateX(100%)}}
+.bar-meta{display:flex;justify-content:space-between;font-size:12px;letter-spacing:1px;color:var(--muted);margin-top:10px}
+.contrib-cta{display:flex;gap:14px;flex-wrap:wrap;margin-top:24px;align-items:center}
+.done-badge{display:none;align-items:center;gap:8px;color:var(--gold);font-family:'Cinzel';font-size:13px;letter-spacing:1px}
+.collective{display:flex;gap:30px;flex-wrap:wrap;margin-top:30px;padding-top:24px;border-top:1px solid var(--line)}
+.stat .v{font-family:'Cinzel';font-size:26px;color:var(--gold-soft)}
+.stat .k{font-size:11px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-top:4px}
+.note{font-size:12px;color:var(--muted);margin-top:18px;line-height:1.6}
+
+/* REG 26 */
+.reg26{text-align:center;border:1px solid var(--line);border-radius:14px;padding:60px 30px;
+  background:linear-gradient(180deg,var(--black-2),var(--panel));position:relative;overflow:hidden}
+.reg26 .yr{font-family:'Cinzel';font-size:clamp(60px,14vw,150px);line-height:.9;color:transparent;-webkit-text-stroke:1px rgba(212,175,55,.35);letter-spacing:6px}
+.reg26 .soon{display:inline-block;margin:10px 0 22px;font-family:'Cinzel';font-size:12px;letter-spacing:4px;color:var(--silver);
+  border:1px solid var(--line);padding:8px 18px;border-radius:30px;text-transform:uppercase}
+
+/* MODAL */
+.overlay{position:fixed;inset:0;z-index:100;background:rgba(5,5,7,.78);backdrop-filter:blur(6px);
+  display:none;place-items:center;padding:20px}
+.overlay.show{display:grid}
+.modal{width:100%;max-width:420px;border:1px solid var(--line);border-radius:14px;padding:34px;
+  background:linear-gradient(180deg,var(--panel),var(--black-2));position:relative;animation:pop .35s ease}
+@keyframes pop{from{opacity:0;transform:translateY(20px) scale(.97)}to{opacity:1;transform:none}}
+.modal h3{font-size:22px;margin-bottom:6px}
+.modal p.s{color:var(--muted);font-size:13px;margin-bottom:22px;line-height:1.6}
+.modal label{display:block;font-size:11px;letter-spacing:2px;text-transform:uppercase;color:var(--gold-soft);margin:14px 0 7px}
+.modal input{width:100%;background:#0c0c0e;border:1px solid var(--line);color:var(--ink);padding:13px 14px;border-radius:6px;
+  font-family:'Jost';font-size:15px;outline:none;transition:.2s}
+.modal input:focus{border-color:var(--gold);box-shadow:0 0 0 3px rgba(212,175,55,.12)}
+.modal .x{position:absolute;top:16px;right:18px;color:var(--muted);font-size:22px;cursor:pointer;line-height:1}
+.modal .x:hover{color:var(--gold)}
+.chip-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+.chip{border:1px solid var(--line);color:var(--silver);padding:8px 14px;border-radius:30px;font-size:13px;cursor:pointer;transition:.2s}
+.chip:hover,.chip.on{border-color:var(--gold);color:var(--gold);background:rgba(212,175,55,.08)}
+.modal .btn{width:100%;margin-top:24px;justify-content:center;display:flex}
+.pay-methods{display:flex;gap:10px;margin-top:8px}
+.pm{flex:1;border:1px solid var(--line);border-radius:6px;padding:10px;text-align:center;font-size:12px;letter-spacing:1px;
+  color:var(--silver);cursor:pointer;transition:.2s}
+.pm.on{border-color:var(--gold);color:var(--gold);background:rgba(212,175,55,.08)}
+.lmsg{font-size:13px;line-height:1.5;margin-top:14px;min-height:0;color:var(--silver)}
+.lmsg.err{color:#ff8a8a}
+.lmsg.ok{color:var(--gold-soft)}
+.preview-banner{display:none;align-items:center;gap:10px;justify-content:center;font-size:12px;letter-spacing:1px;
+  color:#0a0a0c;background:var(--grad-gold);padding:9px 16px;text-align:center;font-family:'Cinzel'}
+.preview-banner.show{display:flex}
+.gbtn{display:flex;align-items:center;justify-content:center;gap:12px;width:100%;margin-top:22px;cursor:pointer;
+  background:#fff;color:#2b2b2b;border:none;border-radius:7px;padding:13px 16px;font-family:'Jost';font-size:15px;
+  font-weight:500;letter-spacing:.3px;transition:.2s}
+.gbtn:hover{transform:translateY(-1px);box-shadow:0 10px 28px rgba(255,255,255,.16)}
+.gbtn:disabled{opacity:.55;cursor:not-allowed;transform:none;box-shadow:none}
+.note2{font-size:12px;color:var(--muted);margin-top:16px;text-align:center;line-height:1.5}
+.toast{position:fixed;bottom:26px;left:50%;transform:translateX(-50%) translateY(40px);z-index:200;
+  background:var(--grad-gold);color:#140f02;font-family:'Cinzel';font-size:13px;letter-spacing:1px;padding:14px 26px;border-radius:8px;
+  opacity:0;transition:.4s;box-shadow:0 12px 40px rgba(212,175,55,.4)}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+/* FOOTER */
+footer{border-top:1px solid var(--line);text-align:center;padding:40px 26px;color:var(--muted);font-size:12px;letter-spacing:1px}
+footer .script{font-size:30px;color:var(--gold);display:block;margin-bottom:8px}
+</style>
+
+<div class="wrap">
+
+<div class="preview-banner" id="previewBanner">⚠ Preview mode — add your Firebase config to enable real login &amp; the live bar.</div>
+
+<!-- NAV -->
+<nav class="nav">
+  <div class="brand"><span class="mark"><span>E</span></span> ECE · FRESHERS</div>
+  <div class="nav-links">
+    <a href="#recap">Freshers'25</a>
+    <a href="#contribute">Contribute</a>
+    <a href="#details">The Day</a>
+    <a href="#reg26">Freshers'26</a>
+  </div>
+  <div class="nav-right">
+    <div id="userTag"><span class="av" id="userAv">?</span><span id="userName"></span></div>
+    <button class="btn ghost" id="loginBtn">Login</button>
+  </div>
+</nav>
+
+<!-- HERO -->
+<header class="hero">
+  <div class="photo-frame"><img src="Files/photo1.jpg" alt="Freshers 2025"></div>
+  <div class="hero-inner">
+    <div class="est reveal in">Department of Electronics &amp; Communication Engineering</div>
+    <div class="fiesta script gold-text reveal in d1">Fête des Freshers</div>
+    <div class="ece gold-text reveal in d2">ECE · 2K26</div>
+    <div class="cta-row reveal in d4">
+      <a href="#contribute" class="btn solid">Contribute to '26</a>
+      <a href="#recap" class="btn ghost">Relive '25</a>
+    </div>
+  </div>
+  <div class="scroll-cue">Scroll ↓</div>
+</header>
+
+<!-- RECAP / GALLERY -->
+<section id="recap">
+  <div class="eyebrow reveal">Memories</div>
+  <h2 class="sec-title gold-text reveal d1">Freshers'25 — The Welcome</h2>
+  <div class="divider"><span class="l"></span><span class="d"></span><span class="l"></span></div>
+  <div class="gallery">
+    <div class="gtile big reveal"><img src="Files/photo1.jpg" alt="Group photo"><div class="cap">The full ECE family · Fiesta de Bienvenida 2k25</div></div>
+    <div class="gtile tall placeholder reveal d1"><span class="plus">+</span>Add a portrait shot</div>
+    <div class="gtile small placeholder reveal"><span class="plus">+</span>Performance</div>
+    <div class="gtile small placeholder reveal d1"><span class="plus">+</span>Awards moment</div>
+    <div class="gtile small placeholder reveal d2"><span class="plus">+</span>Candid</div>
+  </div>
+</section>
+
+<!-- CONTRIBUTE -->
+<section id="contribute">
+  <div class="eyebrow reveal">Light Up '26</div>
+  <h2 class="sec-title gold-text reveal d1">Contribute to Freshers'26</h2>
+  <p class="sec-sub reveal d2">Each contribution toward Freshers'26 is <strong style="color:var(--gold-soft)">₹1,740</strong>. Login, fill the bar, and pay extra if you'd like to go gold.</p>
+  <div class="divider"><span class="l"></span><span class="d"></span><span class="l"></span></div>
+
+  <div class="contrib-shell reveal d1">
+    <div class="amount-line">
+      <span class="big gold-text" id="paidAmt">₹0</span>
+      <span class="of">/ ₹1,740 goal</span>
+    </div>
+    <div class="barwrap">
+      <div class="bar"><div class="fill" id="barFill"></div></div>
+      <div class="bar-meta"><span id="barPct">0% complete</span><span id="barLeft">₹1,740 to go</span></div>
+    </div>
+    <div class="contrib-cta">
+      <button class="btn solid" id="contribBtn">Contribute ₹1,740</button>
+      <button class="btn ghost" id="extraBtn">Pay a custom amount</button>
+      <span class="done-badge" id="doneBadge">◆ Goal complete — thank you!</span>
+    </div>
+    <div class="collective">
+      <div class="stat"><div class="v" id="totalRaised">₹0</div><div class="k">Total Raised</div></div>
+      <div class="stat"><div class="v" id="contribCount">0</div><div class="k">Contributors</div></div>
+      <div class="stat"><div class="v" id="yourTotal">₹0</div><div class="k">Your Contribution</div></div>
+    </div>
+  </div>
+</section>
+
+<!-- DETAILS -->
+<section id="details">
+  <div class="eyebrow reveal">The Day</div>
+  <h2 class="sec-title gold-text reveal d1">Event Details</h2>
+  <div class="divider"><span class="l"></span><span class="d"></span><span class="l"></span></div>
+  <div class="detail-grid">
+    <div class="dcard reveal"><div class="ic">🎓</div><h3>Events</h3></div>
+    <div class="dcard reveal d1"><div class="ic">📍</div><h3>Venue</h3></div>
+  </div>
+</section>
+
+<!-- REG 26 -->
+<section id="reg26">
+  <div class="reg26 reveal">
+    <div class="yr">2026</div>
+    <span class="soon">Registrations open soon</span>
+    <h2 class="sec-title gold-text" style="margin-bottom:14px">Freshers'26 Registration</h2>
+    <p class="sec-sub" style="margin:0 auto 26px">The next chapter hasn't begun yet. Registration for the incoming batch will open here — stay tuned.</p>
+    <button class="btn" id="reg26Btn" disabled>Register — Coming Soon</button>
+  </div>
+</section>
+
+<footer>
+  <span class="script gold-text">Fête des Freshers</span>
+  ECE · Shri Mata Vaishno Devi University
+</footer>
+
+</div>
+
+<!-- LOGIN MODAL -->
+<div class="overlay" id="loginOverlay">
+  <div class="modal">
+    <span class="x" data-close>×</span>
+    <h3 class="gold-text">Login</h3>
+    <p class="s" id="loginHint">Sign in with your <strong style="color:var(--gold-soft)">college Google account</strong> to contribute toward Freshers'26.</p>
+    <button class="gbtn" id="googleBtn">
+      <svg width="18" height="18" viewBox="0 0 48 48" aria-hidden="true"><path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3c-1.6 4.7-6.1 8-11.3 8-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.9 1.2 8 3.1l5.7-5.7C34.6 6.1 29.6 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20 20-8.9 20-20c0-1.3-.1-2.3-.4-3.5z"/><path fill="#FF3D00" d="M6.3 14.7l6.6 4.8C14.7 16 19 13 24 13c3.1 0 5.9 1.2 8 3.1l5.7-5.7C34.6 6.1 29.6 4 24 4 16.3 4 9.7 8.3 6.3 14.7z"/><path fill="#4CAF50" d="M24 44c5.5 0 10.4-2.1 14.1-5.5l-6.5-5.5C29.6 34.6 26.9 36 24 36c-5.2 0-9.6-3.3-11.3-8l-6.6 5.1C9.5 39.6 16.2 44 24 44z"/><path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-.8 2.2-2.2 4.1-4.1 5.5l6.5 5.5C39.9 36.5 44 31 44 24c0-1.3-.1-2.3-.4-3.5z"/></svg>
+      Continue with Google
+    </button>
+    <div id="loginMsg" class="lmsg"></div>
+    <p class="note2">Only verified <strong style="color:var(--gold-soft)">student emails</strong> can sign in. Personal Gmail accounts will be turned away.</p>
+  </div>
+</div>
+
+<!-- PAY MODAL -->
+<div class="overlay" id="payOverlay">
+  <div class="modal">
+    <span class="x" data-close>×</span>
+    <h3 class="gold-text">Contribute</h3>
+    <p class="s">Goal is ₹1,740 per person. You can pay the full amount, part of it, or extra.</p>
+    <label>Amount (₹)</label>
+    <input id="inAmt" type="number" min="1" placeholder="1740">
+    <div class="chip-row">
+      <span class="chip" data-amt="1740">₹1740 (full)</span>
+      <span class="chip" data-amt="870">₹870</span>
+      <span class="chip" data-amt="500">₹500</span>
+      <span class="chip" data-amt="2000">₹2000</span>
+    </div>
+    <label>Method</label>
+    <div class="pay-methods">
+      <div class="pm on" data-pm="UPI">UPI</div>
+      <div class="pm" data-pm="Card">Card</div>
+      <div class="pm" data-pm="NetBanking">Net Banking</div>
+    </div>
+    <button class="btn solid" id="doPay">Pay ₹0</button>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* ============================================================
+   FIESTA DE FRESHERS — Google login + live contributions
+   ------------------------------------------------------------
+   ALLOWED_DOMAINS = only these email domains may sign in.
+   Firebase config below enables the live, shared bar.
+   ============================================================ */
+const FIREBASE_CONFIG = {
+  apiKey: "AIzaSyBS6g593Tzr8c-w3NNe5ej4erIAXzA15oo",
+  authDomain: "freshers-26.firebaseapp.com",
+  projectId: "freshers-26",
+  storageBucket: "freshers-26.firebasestorage.app",
+  messagingSenderId: "566795663580",
+  appId: "1:566795663580:web:4147de852c048261b49c19",
+  measurementId: "G-VDRX1RRYJE"
+};
+const ALLOWED_DOMAINS = ["smvdu.ac.in"];   // <-- only these email domains can log in
+const GOAL = 1740;
+
+const LIVE = !!FIREBASE_CONFIG.apiKey;
+let user = null;            // { email, name }
+let data = {};              // email -> amount  (live snapshot or preview memory)
+let payMethod = "UPI";
+let fb = null, unsub = null;
+
+/* ---------- helpers ---------- */
+const $ = s => document.querySelector(s);
+const loginOverlay = $("#loginOverlay"), payOverlay = $("#payOverlay"), toast = $("#toast");
+function money(n){ return "\u20b9" + Number(n||0).toLocaleString("en-IN"); }
+function showToast(m){ toast.textContent = m; toast.classList.add("show"); setTimeout(()=>toast.classList.remove("show"),2800); }
+function openM(o){ o.classList.add("show"); }
+function closeM(o){ o.classList.remove("show"); }
+function msg(t,cls){ const m=$("#loginMsg"); m.textContent=t||""; m.className="lmsg "+(cls||""); }
+function domainOK(email){
+  const at = (email||"").lastIndexOf("@"); if(at<0) return false;
+  const dom = email.slice(at+1).toLowerCase();
+  return ALLOWED_DOMAINS.some(d => dom===d || dom.endsWith("."+d));
+}
+document.querySelectorAll("[data-close]").forEach(x=>x.onclick=()=>{closeM(loginOverlay);closeM(payOverlay);});
+[loginOverlay,payOverlay].forEach(o=>o.addEventListener("click",e=>{ if(e.target===o) closeM(o); }));
+
+/* ---------- paint the bar + stats ---------- */
+function repaint(){
+  let total=0, count=0;
+  for(const k in data){ total += data[k]; count++; }
+  const mine = user ? (data[user.email]||0) : 0;
+  const pct = Math.min(mine/GOAL,1)*100;
+  $("#barFill").style.width = pct + "%";
+  $("#paidAmt").textContent = money(mine);
+  $("#barPct").textContent = Math.round(pct) + "% complete";
+  $("#barLeft").textContent = mine>=GOAL ? (mine>GOAL ? money(mine-GOAL)+" extra \u2726" : "Goal reached \u2726") : money(GOAL-mine)+" to go";
+  $("#doneBadge").style.display = mine>=GOAL ? "flex" : "none";
+  $("#totalRaised").textContent = money(total);
+  $("#contribCount").textContent = count;
+  $("#yourTotal").textContent = money(mine);
+  $("#contribBtn").textContent = !user ? "Login to contribute" : (mine>=GOAL ? "Add more" : "Contribute \u20b91,740");
+}
+
+/* ---------- user chip ---------- */
+function refreshUserUI(){
+  const tag = $("#userTag");
+  if(user){
+    tag.style.display="flex";
+    $("#userName").textContent = user.name;
+    $("#userAv").textContent = (user.name.trim()[0]||"?").toUpperCase();
+    $("#loginBtn").textContent = "Logout";
+  } else {
+    tag.style.display="none";
+    $("#loginBtn").textContent = "Login";
+  }
+}
+
+/* ---------- login ---------- */
+$("#loginBtn").onclick = async ()=>{
+  if(user){
+    if(LIVE && fb){ try{ await fb.signOut(fb.auth); }catch(e){} }
+    user=null; refreshUserUI(); repaint(); showToast("Logged out");
+  } else { msg(""); openM(loginOverlay); }
+};
+
+$("#googleBtn").onclick = async ()=>{
+  if(LIVE){
+    if(!fb){ msg("Still connecting to Firebase \u2014 try again in a second.","err"); return; }
+    $("#googleBtn").disabled = true; msg("Opening Google sign-in\u2026","ok");
+    try{
+      const provider = new fb.GoogleAuthProvider();
+      provider.setCustomParameters({ hd: ALLOWED_DOMAINS[0], prompt: "select_account" });
+      await fb.signInWithPopup(fb.auth, provider);
+      // onAuthStateChanged enforces the domain and updates the UI
+      msg(""); closeM(loginOverlay);
+    }catch(e){
+      const code = e && e.code ? e.code : "";
+      if(code === "auth/popup-blocked"){
+        try{ const p = new fb.GoogleAuthProvider(); p.setCustomParameters({hd:ALLOWED_DOMAINS[0]}); await fb.signInWithRedirect(fb.auth, p); }
+        catch(e2){ msg("Couldn't open Google sign-in.","err"); }
+      } else if(code === "auth/popup-closed-by-user" || code === "auth/cancelled-popup-request"){
+        msg("");
+      } else {
+        msg("Sign-in failed: " + (code || e.message || e), "err");
+      }
+    }
+    $("#googleBtn").disabled = false;
+  } else {
+    // preview demo login
+    user = { email: "demo@"+ALLOWED_DOMAINS[0], name: "Demo Student" };
+    refreshUserUI(); closeM(loginOverlay); repaint();
+    showToast("Welcome, Demo Student! (preview)");
+  }
+};
+
+/* ---------- pay ---------- */
+function wantPay(defaultAmt){
+  if(!user){ openM(loginOverlay); showToast("Please login first"); return; }
+  $("#inAmt").value = defaultAmt; updatePayBtn(); openM(payOverlay);
+}
+$("#contribBtn").onclick = ()=> wantPay(GOAL);
+$("#extraBtn").onclick   = ()=> wantPay("");
+$("#inAmt").addEventListener("input", updatePayBtn);
+document.querySelectorAll(".chip").forEach(c=>c.onclick=()=>{
+  document.querySelectorAll(".chip").forEach(x=>x.classList.remove("on"));
+  c.classList.add("on"); $("#inAmt").value=c.dataset.amt; updatePayBtn();
+});
+document.querySelectorAll(".pm").forEach(p=>p.onclick=()=>{
+  document.querySelectorAll(".pm").forEach(x=>x.classList.remove("on"));
+  p.classList.add("on"); payMethod=p.dataset.pm;
+});
+function updatePayBtn(){ $("#doPay").textContent = "Pay " + money(Number($("#inAmt").value)||0); }
+$("#doPay").onclick = async ()=>{
+  const amt = Number($("#inAmt").value)||0;
+  if(amt<1){ $("#inAmt").focus(); return; }
+  if(!user){ closeM(payOverlay); openM(loginOverlay); return; }
+  $("#doPay").disabled=true;
+  try{
+    if(LIVE){
+      await fb.setDoc(fb.doc(fb.db,"contributions",user.email), {
+        email: user.email, name: user.name,
+        amount: fb.increment(amt), updatedAt: fb.serverTimestamp()
+      }, { merge:true });
+      // the live listener will repaint automatically
+    } else {
+      data[user.email] = (data[user.email]||0) + amt; repaint();
+    }
+    closeM(payOverlay);
+    showToast("Paid " + money(amt) + " via " + payMethod + " \u2726");
+  }catch(e){ showToast("Couldn't record payment"); console.error(e); }
+  $("#doPay").disabled=false;
+};
+
+/* ---------- Firebase ---------- */
+function subscribe(){
+  if(!LIVE || !fb) return;
+  if(unsub) unsub();
+  unsub = fb.onSnapshot(fb.collection(fb.db,"contributions"), snap=>{
+    data = {};
+    snap.forEach(d=>{ const v=d.data()||{}; data[(v.email||d.id)] = Number(v.amount)||0; });
+    repaint();
+  }, err=>console.error("snapshot error", err));
+}
+async function initFirebase(){
+  try{
+    const appMod  = await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js");
+    const authMod = await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js");
+    const fsMod   = await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js");
+    const app = appMod.initializeApp(FIREBASE_CONFIG);
+    fb = { auth: authMod.getAuth(app), db: fsMod.getFirestore(app), ...authMod, ...fsMod };
+
+    // complete a redirect sign-in if we came back from one
+    try{ await fb.getRedirectResult(fb.auth); }catch(e){ console.warn("redirect result", e); }
+
+    fb.onAuthStateChanged(fb.auth, async u=>{
+      if(u){
+        if(!domainOK(u.email||"")){
+          await fb.signOut(fb.auth);
+          showToast("Use your @"+ALLOWED_DOMAINS[0]+" student email to sign in");
+          user=null;
+        } else {
+          user = { email:(u.email||"").toLowerCase(), name: u.displayName || (u.email||"").split("@")[0] };
+        }
+      } else user=null;
+      refreshUserUI(); repaint();
+    });
+    subscribe();
+  }catch(e){
+    console.error("Firebase failed to load/init", e);
+    showToast("Couldn't connect to Firebase \u2014 check your config");
+  }
+}
+
+/* ---------- scroll reveal ---------- */
+const io = new IntersectionObserver(es=>es.forEach(e=>{ if(e.isIntersecting) e.target.classList.add("in"); }),{threshold:.12});
+document.querySelectorAll(".reveal:not(.in)").forEach(el=>io.observe(el));
+
+/* ---------- boot ---------- */
+if(LIVE){
+  $("#loginHint").innerHTML = "Sign in with your <strong style='color:var(--gold-soft)'>college Google account</strong> to contribute toward Freshers'26.";
+  initFirebase();
+} else {
+  $("#previewBanner").classList.add("show");
+  $("#loginHint").innerHTML = "<strong style='color:var(--gold-soft)'>Preview mode</strong> \u2014 the Google button signs you in instantly so you can try the flow.";
+}
+refreshUserUI();
+repaint();
+
+</script>
