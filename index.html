@@ -97,6 +97,7 @@ section{padding:90px 26px;max-width:1180px;margin:0 auto}
 .hero{min-height:92vh;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;
   position:relative;padding:120px 26px 80px;overflow:hidden}
 .hero .photo-frame{position:absolute;inset:0;z-index:0}
+.hero .photo-frame picture{display:block;width:100%;height:100%}
 .hero .photo-frame img{width:100%;height:100%;object-fit:cover;opacity:.30;filter:grayscale(.25) contrast(1.05)}
 .hero .photo-frame::after{content:"";position:absolute;inset:0;
   background:linear-gradient(180deg,rgba(10,10,12,.55) 0%,rgba(10,10,12,.78) 55%,var(--black) 100%)}
@@ -267,7 +268,12 @@ footer .script{font-size:30px;color:var(--gold);display:block;margin-bottom:8px}
 
 <!-- HERO -->
 <header class="hero">
-  <div class="photo-frame"><img src="Files/photo1.JPG" alt="Freshers 2025"></div>
+  <div class="photo-frame">
+    <picture>
+      <source media="(max-width:900px)" srcset="Files/cover-mobile.JPG">
+      <img src="Files/photo1.JPG" alt="Freshers 2025">
+    </picture>
+  </div>
   <div class="hero-inner">
     <div class="est reveal in">Department of Electronics &amp; Communication Engineering</div>
     <div class="fiesta script gold-text reveal in d1">Fête des Freshers</div>
