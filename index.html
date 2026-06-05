@@ -489,25 +489,23 @@ document.querySelectorAll(".pm").forEach(p=>p.onclick=()=>{
   p.classList.add("on"); payMethod=p.dataset.pm;
 });
 function updatePayBtn(){ $("#doPay").textContent = "Pay " + money(Number($("#inAmt").value)||0); }
-$("#doPay").onclick = async ()=>{
+$("#doPay").onclick = ()=>{
   const amt = Number($("#inAmt").value)||0;
   if(amt<1){ $("#inAmt").focus(); return; }
   if(!user){ closeM(payOverlay); openM(loginOverlay); return; }
-  $("#doPay").disabled=true;
-  try{
-    if(LIVE){
-      await fb.setDoc(fb.doc(fb.db,"contributions",user.email), {
-        email: user.email, name: user.name,
-        amount: fb.increment(amt), updatedAt: fb.serverTimestamp()
-      }, { merge:true });
-      // the live listener will repaint automatically
-    } else {
-      data[user.email] = (data[user.email]||0) + amt; repaint();
-    }
-    closeM(payOverlay);
-    showToast("Paid " + money(amt) + " via " + payMethod + " \u2726");
-  }catch(e){ showToast("Couldn't record payment"); console.error(e); }
-  $("#doPay").disabled=false;
+  if(LIVE){
+    // fire the write and close right away; the live listener fills the bar on commit
+    fb.setDoc(fb.doc(fb.db,"contributions",user.email), {
+      email: user.email, name: user.name,
+      amount: fb.increment(amt), updatedAt: fb.serverTimestamp()
+    }, { merge:true })
+      .then(()=> showToast("Paid " + money(amt) + " via " + payMethod + " \u2726"))
+      .catch(e=>{ showToast("Couldn't save: " + (e.code||e.message||e)); console.error(e); });
+  } else {
+    data[user.email] = (data[user.email]||0) + amt; repaint();
+    showToast("Paid " + money(amt) + " via " + payMethod + " \u2726 (preview)");
+  }
+  closeM(payOverlay);
 };
 
 /* ---------- Firebase ---------- */
@@ -526,7 +524,9 @@ async function initFirebase(){
     const authMod = await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js");
     const fsMod   = await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js");
     const app = appMod.initializeApp(FIREBASE_CONFIG);
-    fb = { auth: authMod.getAuth(app), db: fsMod.getFirestore(app), ...authMod, ...fsMod };
+    // Force long-polling so reads/writes work on restrictive college / Wi-Fi networks
+    const db = fsMod.initializeFirestore(app, { experimentalForceLongPolling: true });
+    fb = { auth: authMod.getAuth(app), db, ...authMod, ...fsMod };
 
     // complete a redirect sign-in if we came back from one
     try{ await fb.getRedirectResult(fb.auth); }catch(e){ console.warn("redirect result", e); }
