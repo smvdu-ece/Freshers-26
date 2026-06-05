@@ -351,12 +351,6 @@ footer .script{font-size:30px;color:var(--gold);display:block;margin-bottom:8px}
       <span class="chip" data-amt="500">₹500</span>
       <span class="chip" data-amt="2000">₹2000</span>
     </div>
-    <label>Method</label>
-    <div class="pay-methods">
-      <div class="pm on" data-pm="UPI">UPI</div>
-      <div class="pm" data-pm="Card">Card</div>
-      <div class="pm" data-pm="NetBanking">Net Banking</div>
-    </div>
     <button class="btn solid" id="doPay">Pay ₹0</button>
   </div>
 </div>
@@ -479,16 +473,17 @@ function wantPay(defaultAmt){
   if(!user){ openM(loginOverlay); showToast("Please login first"); return; }
   $("#inAmt").value = defaultAmt; updatePayBtn(); openM(payOverlay);
 }
-$("#contribBtn").onclick = ()=> wantPay(GOAL);
+// Full amount -> straight to Razorpay (skip the amount box)
+$("#contribBtn").onclick = ()=>{
+  if(!user){ openM(loginOverlay); showToast("Please login first"); return; }
+  payNow(GOAL);
+};
+// Custom amount -> open the amount box
 $("#extraBtn").onclick   = ()=> wantPay("");
 $("#inAmt").addEventListener("input", updatePayBtn);
 document.querySelectorAll(".chip").forEach(c=>c.onclick=()=>{
   document.querySelectorAll(".chip").forEach(x=>x.classList.remove("on"));
   c.classList.add("on"); $("#inAmt").value=c.dataset.amt; updatePayBtn();
-});
-document.querySelectorAll(".pm").forEach(p=>p.onclick=()=>{
-  document.querySelectorAll(".pm").forEach(x=>x.classList.remove("on"));
-  p.classList.add("on"); payMethod=p.dataset.pm;
 });
 function updatePayBtn(){ $("#doPay").textContent = "Pay " + money(Number($("#inAmt").value)||0); }
 function saveContribution(amt, paymentId){
@@ -506,11 +501,10 @@ function saveContribution(amt, paymentId){
     showToast("Paid " + money(amt) + " \u2726 (preview)");
   }
 }
-$("#doPay").onclick = ()=>{
-  const amt = Number($("#inAmt").value)||0;
-  if(amt<1){ $("#inAmt").focus(); return; }
+function payNow(amt){
+  if(amt<1){ return; }
   if(!user){ closeM(payOverlay); openM(loginOverlay); return; }
-
+  closeM(payOverlay);
   // Real payment via Razorpay when a Key ID is configured
   if(RAZORPAY_KEY_ID && typeof Razorpay !== "undefined"){
     const options = {
@@ -529,13 +523,16 @@ $("#doPay").onclick = ()=>{
     rzp.on("payment.failed", function(resp){
       showToast("Payment failed: " + ((resp.error && resp.error.description) || ""));
     });
-    closeM(payOverlay);
     rzp.open();
   } else {
     // No gateway configured yet -> record directly (demo / preview)
     saveContribution(amt, null);
-    closeM(payOverlay);
   }
+}
+$("#doPay").onclick = ()=>{
+  const amt = Number($("#inAmt").value)||0;
+  if(amt<1){ $("#inAmt").focus(); return; }
+  payNow(amt);
 };
 
 /* ---------- Firebase ---------- */
