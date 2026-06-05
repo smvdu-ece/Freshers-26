@@ -342,9 +342,9 @@ footer .script{font-size:30px;color:var(--gold);display:block;margin-bottom:8px}
   <div class="modal">
     <span class="x" data-close>×</span>
     <h3 class="gold-text">Contribute</h3>
-    <p class="s">Goal is ₹1,740 per person. You can pay the full amount, part of it, or extra.</p>
+    <p class="s">Goal is ₹1,740 per person. Pay the full amount or part of it — minimum ₹500.</p>
     <label>Amount (₹)</label>
-    <input id="inAmt" type="number" min="1" placeholder="1740">
+    <input id="inAmt" type="number" min="500" placeholder="Min ₹500">
     <div class="chip-row">
       <span class="chip" data-amt="1740">₹1740 (full)</span>
       <span class="chip" data-amt="870">₹870</span>
@@ -531,7 +531,7 @@ function payNow(amt){
 }
 $("#doPay").onclick = ()=>{
   const amt = Number($("#inAmt").value)||0;
-  if(amt<1){ $("#inAmt").focus(); return; }
+  if(amt<500){ showToast("Minimum contribution is \u20b9500"); $("#inAmt").focus(); return; }
   payNow(amt);
 };
 
