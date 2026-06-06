@@ -178,9 +178,6 @@ section{padding:90px 26px;max-width:1180px;margin:0 auto}
 .bar-meta{display:flex;justify-content:space-between;font-size:12px;letter-spacing:1px;color:var(--muted);margin-top:10px}
 .contrib-cta{display:flex;gap:14px;flex-wrap:wrap;margin-top:24px;align-items:center}
 .done-badge{display:none;align-items:center;gap:8px;color:var(--gold);font-family:'Cinzel';font-size:13px;letter-spacing:1px}
-.pay-buttons{display:flex;flex-wrap:wrap;gap:16px 18px;justify-content:center;align-items:flex-end;width:100%}
-.pay-buttons .pb{display:flex;flex-direction:column;align-items:center;gap:7px}
-.pay-buttons .pb .lbl{font-family:'Cinzel';font-size:12px;letter-spacing:1px;color:var(--silver)}
 .collective{display:flex;gap:30px;flex-wrap:wrap;margin-top:30px;padding-top:24px;border-top:1px solid var(--line)}
 .stat .v{font-family:'Cinzel';font-size:26px;color:var(--gold-soft)}
 .stat .k{font-size:11px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-top:4px}

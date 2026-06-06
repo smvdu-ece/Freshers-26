@@ -80,14 +80,8 @@
       <div class="bar-meta"><span id="barPct">0% complete</span><span id="barLeft">₹1,740 to go</span></div>
     </div>
     <div class="contrib-cta">
-      <button class="btn solid" id="loginToPay">Login to contribute</button>
-      <div id="payButtons" class="pay-buttons" style="display:none">
-        <div class="pb"><span class="lbl">₹500</span><form><script src="https://checkout.razorpay.com/v1/payment-button.js" data-payment_button_id="pl_SyGa9g08JUrWl8" async></script></form></div>
-        <div class="pb"><span class="lbl">₹740</span><form><script src="https://checkout.razorpay.com/v1/payment-button.js" data-payment_button_id="pl_SyGdSD5vupCOP3" async></script></form></div>
-        <div class="pb"><span class="lbl">₹1000</span><form><script src="https://checkout.razorpay.com/v1/payment-button.js" data-payment_button_id="pl_SyGbq8oSwHlKbT" async></script></form></div>
-        <div class="pb"><span class="lbl">₹1740 · full</span><form><script src="https://checkout.razorpay.com/v1/payment-button.js" data-payment_button_id="pl_SyGXxlz10icrZR" async></script></form></div>
-        <div class="pb"><span class="lbl">₹2000 · gold</span><form><script src="https://checkout.razorpay.com/v1/payment-button.js" data-payment_button_id="pl_SyGepzpSTSd5xT" async></script></form></div>
-      </div>
+      <button class="btn solid" id="contribBtn">Contribute ₹1,740</button>
+      <button class="btn ghost" id="extraBtn">Pay a custom amount</button>
       <span class="done-badge" id="doneBadge">◆ Goal complete — thank you!</span>
     </div>
     <div class="collective">
@@ -150,14 +144,14 @@
   <div class="modal">
     <span class="x" data-close>×</span>
     <h3 class="gold-text">Contribute</h3>
-    <p class="s">Goal is ₹1,740 per person. Pick an amount or type your own — minimum ₹100.</p>
+    <p class="s">Goal is ₹1,740 per person. Pay the full amount or part of it — minimum ₹500.</p>
     <label>Amount (₹)</label>
-    <input id="inAmt" type="number" min="100" placeholder="Min ₹100">
+    <input id="inAmt" type="number" min="500" placeholder="Min ₹500">
     <div class="chip-row">
-      <span class="chip" data-amt="200">₹200</span>
-      <span class="chip" data-amt="500">₹500</span>
+      <span class="chip" data-amt="1740">₹1740 (full)</span>
       <span class="chip" data-amt="740">₹740</span>
-      <span class="chip" data-amt="1000">₹1000</span>
+      <span class="chip" data-amt="500">₹500</span>
+      <span class="chip" data-amt="2000">₹2000</span>
     </div>
     <button class="btn solid" id="doPay">Pay ₹0</button>
   </div>
