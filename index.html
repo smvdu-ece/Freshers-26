@@ -86,7 +86,7 @@
     </div>
     <div class="collective">
       <div class="stat"><div class="v" id="totalRaised">₹0</div><div class="k">Total Raised</div></div>
-      <div class="stat"><div class="v" id="contribCount">0</div><div class="k">Contributors</div></div>
+      <div class="stat" id="contribStat" style="cursor:pointer" title="See who contributed"><div class="v" id="contribCount">0</div><div class="k">Contributors ›</div></div>
       <div class="stat"><div class="v" id="yourTotal">₹0</div><div class="k">Your Contribution</div></div>
     </div>
   </div>
@@ -163,9 +163,16 @@
     <span class="x" data-close>×</span>
     <h3 class="gold-text">Payment Status</h3>
     <p class="s" id="paySummary"></p>
-    <input id="paySearch" placeholder="Search email…" autocomplete="off" style="margin-bottom:4px">
+    <div class="pay-filters" id="payFilters">
+      <span class="fchip on" data-filter="all">All</span>
+      <span class="fchip" data-filter="gold">Gold</span>
+      <span class="fchip" data-filter="full">Full</span>
+      <span class="fchip" data-filter="partial">Partial</span>
+      <span class="fchip" data-filter="pending">Pending</span>
+    </div>
+    <input id="paySearch" placeholder="Search name or email…" autocomplete="off" style="margin-bottom:4px">
     <div class="pay-list" id="payList"></div>
-    <div class="legend"><span class="dot g"></span>Full <span class="dot y"></span>Partial <span class="dot r"></span>Pending</div>
+    <div class="legend"><span class="dot gold"></span>Gold <span class="dot g"></span>Full <span class="dot y"></span>Partial <span class="dot r"></span>Pending</div>
   </div>
 </div>
 
