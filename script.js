@@ -58,7 +58,9 @@ function repaint(){
   $("#totalRaised").textContent = money(total);
   $("#contribCount").textContent = count;
   $("#yourTotal").textContent = money(mine);
-  $("#contribBtn").textContent = !user ? "Login to contribute" : (mine>=GOAL ? "Add more" : "Contribute \u20b91,740");
+  var _lp=$("#loginToPay"), _pb=$("#payButtons");
+  if(_lp) _lp.style.display = user ? "none" : "inline-flex";
+  if(_pb) _pb.style.display = user ? "flex" : "none";
   if($("#payListOverlay").classList.contains("show")) renderPayments();
 }
 
@@ -178,13 +180,8 @@ function wantPay(defaultAmt){
   if(!user){ openM(loginOverlay); showToast("Please login first"); return; }
   $("#inAmt").value = defaultAmt; updatePayBtn(); openM(payOverlay);
 }
-// Full amount -> straight to Razorpay (skip the amount box)
-$("#contribBtn").onclick = ()=>{
-  if(!user){ openM(loginOverlay); showToast("Please login first"); return; }
-  payNow(GOAL);
-};
-// Custom amount -> open the amount box
-$("#extraBtn").onclick   = ()=> wantPay("");
+// Login gate for the Razorpay payment buttons (login required before paying)
+$("#loginToPay").onclick = ()=>{ openM(loginOverlay); };
 $("#inAmt").addEventListener("input", updatePayBtn);
 document.querySelectorAll(".chip").forEach(c=>c.onclick=()=>{
   document.querySelectorAll(".chip").forEach(x=>x.classList.remove("on"));
@@ -236,7 +233,7 @@ function payNow(amt){
 }
 $("#doPay").onclick = ()=>{
   const amt = Number($("#inAmt").value)||0;
-  if(amt<500){ showToast("Minimum contribution is \u20b9500"); $("#inAmt").focus(); return; }
+  if(amt<100){ showToast("Minimum contribution is \u20b9100"); $("#inAmt").focus(); return; }
   payNow(amt);
 };
 
