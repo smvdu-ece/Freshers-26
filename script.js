@@ -20,6 +20,7 @@ const RAZORPAY_KEY_ID = "rzp_test_Sy3RPG1Q1JAf3e";   // Razorpay Key ID (test). 
 const LIVE = !!FIREBASE_CONFIG.apiKey;
 let user = null;            // { email, name }
 let data = {};              // email -> amount  (live snapshot or preview memory)
+let payFilter = "all";      // payments list filter: all/gold/full/partial/pending/paid
 let payMethod = "UPI";
 let fb = null, unsub = null;
 
@@ -58,7 +59,10 @@ function repaint(){
   $("#totalRaised").textContent = money(total);
   $("#contribCount").textContent = count;
   $("#yourTotal").textContent = money(mine);
-  $("#contribBtn").textContent = !user ? "Login to contribute" : (mine>=GOAL ? "Add more" : "Contribute \u20b91,740");
+  var _lp=$("#loginToPay"), _pb=$("#payButtons"), _rb=$("#recordBtn");
+  if(_lp) _lp.style.display = user ? "none" : "inline-flex";
+  if(_pb) _pb.style.display = user ? "flex" : "none";
+  if(_rb) _rb.style.display = user ? "inline-flex" : "none";
   if($("#payListOverlay").classList.contains("show")) renderPayments();
 }
 
@@ -69,17 +73,32 @@ const ROSTER = [];
 for(let n=1;n<=90;n++){ if(EXCLUDE.includes(n)) continue; ROSTER.push({ email:"25bec"+String(n).padStart(3,"0")+"@smvdu.ac.in", name:NAMES[n-1] }); }
 function renderPayments(){
   const q = ($("#paySearch").value||"").toLowerCase();
-  let full=0, part=0, none=0;
-  ROSTER.forEach(p=>{ const a=data[p.email]||0; if(a>=GOAL) full++; else if(a>0) part++; else none++; });
-  $("#paySummary").innerHTML = '<span class="s-g">'+full+' full</span> · <span class="s-y">'+part+' partial</span> · <span class="s-r">'+none+' pending</span>';
-  const rows = ROSTER.filter(p=> p.email.includes(q) || p.name.toLowerCase().includes(q)).map(p=>{
-    const amt = data[p.email]||0;
-    const cls = amt>=GOAL ? "g" : (amt>0 ? "y" : "r");
-    return '<div class="prow"><span class="dot '+cls+'"></span><span class="pe"><span class="pn">'+p.name+'</span><span class="pem">'+p.email+'</span></span><span class="pa">'+money(amt)+'</span></div>';
-  }).join("");
+  let gold=0, full=0, part=0, none=0;
+  ROSTER.forEach(p=>{ const a=data[p.email]||0; if(a>=2000) gold++; else if(a>=GOAL) full++; else if(a>0) part++; else none++; });
+  $("#paySummary").innerHTML = '<span class="s-gold">'+gold+' gold</span> · <span class="s-g">'+full+' full</span> · <span class="s-y">'+part+' partial</span> · <span class="s-r">'+none+' pending</span>';
+  const match = (a)=> payFilter==="gold" ? a>=2000
+    : payFilter==="full" ? (a>=GOAL && a<2000)
+    : payFilter==="partial" ? (a>0 && a<GOAL)
+    : payFilter==="pending" ? a===0
+    : payFilter==="paid" ? a>0 : true;
+  const rows = ROSTER
+    .map(p=>({ email:p.email, name:p.name, amt:data[p.email]||0 }))
+    .filter(p=> (p.email.includes(q) || p.name.toLowerCase().includes(q)) && match(p.amt))
+    .sort((a,b)=> b.amt - a.amt)
+    .map(p=>{
+      const cls = p.amt>=2000 ? "gold" : (p.amt>=GOAL ? "g" : (p.amt>0 ? "y" : "r"));
+      return '<div class="prow"><span class="dot '+cls+'"></span><span class="pe"><span class="pn">'+p.name+'</span><span class="pem">'+p.email+'</span></span><span class="pa">'+money(p.amt)+'</span></div>';
+    }).join("");
   $("#payList").innerHTML = rows || '<div class="prow" style="justify-content:center;color:var(--muted)">No matches</div>';
 }
-$("#seePaymentsBtn").onclick = ()=>{ $("#paySearch").value=""; renderPayments(); openM($("#payListOverlay")); };
+function setPayFilter(f){
+  payFilter = f;
+  document.querySelectorAll("#payFilters .fchip").forEach(x=> x.classList.toggle("on", x.dataset.filter===f));
+  renderPayments();
+}
+document.querySelectorAll("#payFilters .fchip").forEach(c=> c.onclick=()=> setPayFilter(c.dataset.filter));
+$("#seePaymentsBtn").onclick = ()=>{ $("#paySearch").value=""; setPayFilter("all"); openM($("#payListOverlay")); };
+$("#contribStat").onclick   = ()=>{ $("#paySearch").value=""; setPayFilter("paid"); openM($("#payListOverlay")); };
 $("#paySearch").addEventListener("input", renderPayments);
 
 /* ---------- memories carousel ---------- */
@@ -178,19 +197,16 @@ function wantPay(defaultAmt){
   if(!user){ openM(loginOverlay); showToast("Please login first"); return; }
   $("#inAmt").value = defaultAmt; updatePayBtn(); openM(payOverlay);
 }
-// Full amount -> straight to Razorpay (skip the amount box)
-$("#contribBtn").onclick = ()=>{
-  if(!user){ openM(loginOverlay); showToast("Please login first"); return; }
-  payNow(GOAL);
-};
-// Custom amount -> open the amount box
-$("#extraBtn").onclick   = ()=> wantPay("");
+// Login gate for the Razorpay payment buttons (login required before paying)
+$("#loginToPay").onclick = ()=>{ openM(loginOverlay); };
+// "I've paid" -> open the record dialog (login required)
+$("#recordBtn").onclick = ()=> wantPay("");
 $("#inAmt").addEventListener("input", updatePayBtn);
 document.querySelectorAll(".chip").forEach(c=>c.onclick=()=>{
   document.querySelectorAll(".chip").forEach(x=>x.classList.remove("on"));
   c.classList.add("on"); $("#inAmt").value=c.dataset.amt; updatePayBtn();
 });
-function updatePayBtn(){ $("#doPay").textContent = "Pay " + money(Number($("#inAmt").value)||0); }
+function updatePayBtn(){ $("#doPay").textContent = "Add " + money(Number($("#inAmt").value)||0) + " to my total"; }
 function saveContribution(amt, paymentId){
   if(LIVE){
     fb.setDoc(fb.doc(fb.db,"contributions",user.email), {
@@ -199,11 +215,11 @@ function saveContribution(amt, paymentId){
       lastPaymentId: paymentId || "manual",
       updatedAt: fb.serverTimestamp()
     }, { merge:true })
-      .then(()=> showToast("Paid " + money(amt) + " \u2726"))
-      .catch(e=>{ showToast("Payment received, bar update failed: " + (e.code||e.message)); console.error(e); });
+      .then(()=> showToast("Recorded " + money(amt) + " \u2726"))
+      .catch(e=>{ showToast("Couldn't update bar: " + (e.code||e.message)); console.error(e); });
   } else {
     data[user.email] = (data[user.email]||0) + amt; repaint();
-    showToast("Paid " + money(amt) + " \u2726 (preview)");
+    showToast("Recorded " + money(amt) + " \u2726 (preview)");
   }
 }
 function payNow(amt){
@@ -236,8 +252,10 @@ function payNow(amt){
 }
 $("#doPay").onclick = ()=>{
   const amt = Number($("#inAmt").value)||0;
-  if(amt<500){ showToast("Minimum contribution is \u20b9500"); $("#inAmt").focus(); return; }
-  payNow(amt);
+  if(amt<100){ showToast("Minimum is \u20b9100"); $("#inAmt").focus(); return; }
+  if(!user){ closeM(payOverlay); openM(loginOverlay); return; }
+  closeM(payOverlay);
+  saveContribution(amt, "self-reported");
 };
 
 /* ---------- Firebase ---------- */
