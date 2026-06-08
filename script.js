@@ -15,7 +15,7 @@ const FIREBASE_CONFIG = {
 };
 const ALLOWED_DOMAINS = ["smvdu.ac.in"];   // <-- only these email domains can log in
 const GOAL = 1740;
-const RAZORPAY_KEY_ID = "rzp_test_Sy3RPG1Q1JAf3e";   // Razorpay Key ID (test). Live key replaces this later. NEVER put the Key Secret here.
+const BACKEND_URL = "https://YOUR-VERCEL-APP.vercel.app";   // your Vercel backend (set this after you deploy). No secrets here — the API key lives only on the backend.
 
 const LIVE = !!FIREBASE_CONFIG.apiKey;
 let user = null;            // { email, name }
@@ -226,29 +226,23 @@ function payNow(amt){
   if(amt<1){ return; }
   if(!user){ closeM(payOverlay); openM(loginOverlay); return; }
   closeM(payOverlay);
-  // Real payment via Razorpay when a Key ID is configured
-  if(RAZORPAY_KEY_ID && typeof Razorpay !== "undefined"){
-    const options = {
-      key: RAZORPAY_KEY_ID,
-      amount: Math.round(amt*100),         // amount in paise
-      currency: "INR",
-      name: "F\u00eate des Freshers '26",
-      description: "Freshers'26 contribution",
-      prefill: { name: user.name, email: user.email },
-      notes: { email: user.email },
-      theme: { color: "#d4af37" },
-      handler: function(response){ saveContribution(amt, response.razorpay_payment_id); },
-      modal: { ondismiss: function(){ showToast("Payment cancelled"); } }
-    };
-    const rzp = new Razorpay(options);
-    rzp.on("payment.failed", function(resp){
-      showToast("Payment failed: " + ((resp.error && resp.error.description) || ""));
-    });
-    rzp.open();
-  } else {
-    // No gateway configured yet -> record directly (demo / preview)
+  // Backend not set yet (or preview) -> demo record so the layout still works
+  if(!BACKEND_URL || BACKEND_URL.indexOf("YOUR-VERCEL-APP") > -1){
     saveContribution(amt, null);
+    return;
   }
+  showToast("Opening UPI payment\u2026");
+  fetch(BACKEND_URL.replace(/\/$/,"") + "/api/create-order", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ amount: amt, email: user.email, name: user.name || user.email })
+  })
+    .then(r => r.json())
+    .then(d => {
+      if(d && d.payment_url){ window.location.href = d.payment_url; }
+      else { showToast("Couldn't start payment: " + ((d && d.msg) || "please try again")); }
+    })
+    .catch(e => { showToast("Payment error: " + e.message); });
 }
 $("#doPay").onclick = ()=>{
   const amt = Number($("#inAmt").value)||0;
