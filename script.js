@@ -267,7 +267,33 @@ function updatePayBtn(){
   const amt = Number($("#inAmt").value)||0;
   $("#payAmtLbl").textContent = money(amt);
   const link = upiLink(amt);
-  const a = $("#openUpi"); if(a) a.setAttribute("href", link);
+  const btn = $("#downloadQRBtn");
+
+  if(btn){
+    btn.onclick = async () => {
+      const qr = document.getElementById("upiQr");
+
+      try{
+        const response = await fetch(qr.src);
+        const blob = await response.blob();
+
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+
+        a.href = url;
+        a.download = "Freshers26-UPI-QR.png";
+
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+
+        URL.revokeObjectURL(url);
+      }catch(err){
+        console.error(err);
+        alert("Unable to download QR code");
+      }
+    };
+  }
   // amount-encoded QR — scanning it fills in the amount, just like the button
   const img = $("#upiQr"); if(img) img.src = "https://api.qrserver.com/v1/create-qr-code/?size=240x240&margin=0&data=" + encodeURIComponent(link);
   // custom mode: only reveal the QR/button once an amount is entered
@@ -275,13 +301,7 @@ function updatePayBtn(){
     $("#payTo").style.display = amt>0 ? "" : "none";
   }
 }
-function initPayTo(){
-  // "Pay with UPI" deep link only works on phones — hide it on laptops (QR still shown)
-  const isMobile = /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent);
-  if(!isMobile){ const o=$("#openUpi"); if(o) o.style.display="none"; }
-  updatePayBtn();
-}
-initPayTo();
+updatePayBtn();
 function saveContribution(amt, paymentId){
   if(LIVE){
     fb.setDoc(fb.doc(fb.db,"contributions",user.email), {
