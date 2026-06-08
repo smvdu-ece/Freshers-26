@@ -198,8 +198,9 @@ section{padding:90px 26px;max-width:1180px;margin:0 auto}
 .overlay{position:fixed;inset:0;z-index:100;background:rgba(5,5,7,.78);backdrop-filter:blur(6px);
   display:none;place-items:center;padding:20px}
 .overlay.show{display:grid}
-.modal{width:100%;max-width:420px;max-height:calc(100vh - 40px);overflow-y:auto;border:1px solid var(--line);border-radius:14px;padding:30px 32px;
+.modal{width:100%;max-width:420px;max-height:calc(100vh - 40px);overflow-y:auto;scrollbar-width:none;-ms-overflow-style:none;border:1px solid var(--line);border-radius:14px;padding:30px 32px;
   background:linear-gradient(180deg,var(--panel),var(--black-2));position:relative;animation:pop .35s ease}
+.modal::-webkit-scrollbar{display:none}
 @keyframes pop{from{opacity:0;transform:translateY(20px) scale(.97)}to{opacity:1;transform:none}}
 .modal h3{font-size:22px;margin-bottom:6px}
 .modal p.s{color:var(--muted);font-size:13px;margin-bottom:22px;line-height:1.6}
