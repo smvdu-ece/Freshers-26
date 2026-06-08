@@ -169,12 +169,16 @@ section{padding:90px 26px;max-width:1180px;margin:0 auto}
 .amount-line .of{color:var(--muted);font-size:18px}
 .barwrap{margin:26px 0 10px}
 .bar{height:18px;border-radius:20px;background:#0c0c0e;border:1px solid var(--line);overflow:hidden;position:relative}
-.bar .fill{height:100%;width:0%;border-radius:20px;background:var(--grad-gold);
-  box-shadow:0 0 18px rgba(212,175,55,.5);transition:width 1s cubic-bezier(.2,.8,.2,1);position:relative}
+.bar .fill{position:absolute;left:0;top:0;height:100%;width:0%;border-radius:20px;background:var(--grad-gold);z-index:2;
+  box-shadow:0 0 18px rgba(212,175,55,.5);transition:width 1s cubic-bezier(.2,.8,.2,1)}
+.bar .fill-pending{position:absolute;left:0;top:0;height:100%;width:0%;border-radius:20px;z-index:1;
+  background:linear-gradient(135deg,#6f9bff,#3f6fe0);box-shadow:0 0 16px rgba(63,111,224,.45);transition:width 1s cubic-bezier(.2,.8,.2,1)}
 .bar .fill::after{content:"";position:absolute;inset:0;
   background:linear-gradient(90deg,transparent,rgba(255,255,255,.35),transparent);
   animation:sheen 2.2s linear infinite}
 @keyframes sheen{0%{transform:translateX(-100%)}100%{transform:translateX(100%)}}
+.bar-pending-note{font-size:12px;letter-spacing:.5px;color:#8fb0ff;margin-top:8px;display:flex;align-items:center;gap:7px}
+.bar-pending-note::before{content:"";width:9px;height:9px;border-radius:50%;background:#5b8cff;box-shadow:0 0 8px rgba(91,140,255,.8)}
 .bar-meta{display:flex;justify-content:space-between;font-size:12px;letter-spacing:1px;color:var(--muted);margin-top:10px}
 .contrib-cta{display:flex;gap:14px;flex-wrap:wrap;margin-top:24px;align-items:center}
 .done-badge{display:none;align-items:center;gap:8px;color:var(--gold);font-family:'Cinzel';font-size:13px;letter-spacing:1px}
@@ -274,3 +278,7 @@ footer .script{font-size:30px;color:var(--gold);display:block;margin-bottom:8px}
 .admin-row .acts .btn{flex:1;padding:8px}
 .btn.danger{border-color:rgba(224,86,86,.5);color:#e05656}
 .btn.danger:hover{background:#e05656;color:#fff;box-shadow:none}
+
+/* Pay with UPI button */
+.upi-btn{display:inline-flex;align-items:center;justify-content:center;gap:9px}
+.upi-btn svg{flex:0 0 auto;background:#fff;border-radius:5px;padding:3px;box-sizing:content-box}

@@ -18,7 +18,6 @@ const GOAL = 1740;
 /* ---- Version A: direct UPI + manual verify (no gateway) ---- */
 const UPI_ID    = "levisujit@ybl";                  // <-- the UPI ID that RECEIVES the money
 const UPI_NAME  = "Sujit Kumar";                    // name shown in the payer's UPI app
-const UPI_QR_IMG= "Files/upi-qr.png";               // <-- upload your UPI "My QR" image here (optional; auto-falls back to a generated QR)
 const ADMIN_EMAILS = ["25bec079@smvdu.ac.in"];     // who can verify & approve payments
 
 const LIVE = !!FIREBASE_CONFIG.apiKey;
@@ -27,6 +26,7 @@ let data = {};              // email -> amount  (live snapshot or preview memory
 let payFilter = "all";      // payments list filter: all/gold/full/partial/pending/paid
 let payMethod = "UPI";
 let fb = null, unsub = null;
+let myPending = 0, unsubMyPending = null;
 
 /* ---------- helpers ---------- */
 const $ = s => document.querySelector(s);
@@ -54,8 +54,13 @@ function repaint(){
   let total=0, count=0;
   for(const k in data){ total += data[k]; count++; }
   const mine = user ? (data[user.email]||0) : 0;
+  const pend = user ? (myPending||0) : 0;
   const pct = Math.min(mine/GOAL,1)*100;
   $("#barFill").style.width = pct + "%";
+  $("#barPending").style.width = Math.min((mine+pend)/GOAL,1)*100 + "%";
+  const note = $("#barPendingNote");
+  if(pend>0){ note.style.display="flex"; note.textContent = money(pend) + " pending approval"; }
+  else { note.style.display="none"; }
   $("#paidAmt").textContent = money(mine);
   $("#barPct").textContent = Math.round(pct) + "% complete";
   $("#barLeft").textContent = mine>=GOAL ? (mine>GOAL ? money(mine-GOAL)+" extra \u2726" : "Goal reached \u2726") : money(GOAL-mine)+" to go";
@@ -160,7 +165,7 @@ function refreshUserUI(){
 $("#loginBtn").onclick = async ()=>{
   if(user){
     if(LIVE && fb){ try{ await fb.signOut(fb.auth); }catch(e){} }
-    user=null; refreshUserUI(); repaint(); showToast("Logged out");
+    user=null; refreshUserUI(); subscribeMyPending(); repaint(); showToast("Logged out");
   } else { msg(""); openM(loginOverlay); }
 };
 
@@ -189,7 +194,7 @@ $("#googleBtn").onclick = async ()=>{
   } else {
     // preview demo login
     user = { email: "demo@"+ALLOWED_DOMAINS[0], name: "Demo Student" };
-    refreshUserUI(); closeM(loginOverlay); repaint();
+    refreshUserUI(); subscribeMyPending(); closeM(loginOverlay); repaint();
     showToast("Welcome, Demo Student! (preview)");
   }
 };
@@ -211,34 +216,27 @@ document.querySelectorAll(".chip").forEach(c=>c.onclick=()=>{
   document.querySelectorAll(".chip").forEach(x=>x.classList.remove("on"));
   c.classList.add("on"); $("#inAmt").value=c.dataset.amt; updatePayBtn();
 });
+function upiLink(amt){
+  return "upi://pay?pa=" + encodeURIComponent(UPI_ID)
+       + "&pn=" + encodeURIComponent(UPI_NAME)
+       + (amt>0 ? "&am=" + amt : "")
+       + "&cu=INR&tn=" + encodeURIComponent("Freshers26");
+}
 function updatePayBtn(){
   const amt = Number($("#inAmt").value)||0;
   $("#payAmtLbl").textContent = money(amt);
-  // amount-prefilled UPI deep link (opens the payer's UPI app on mobile)
-  const link = "upi://pay?pa=" + encodeURIComponent(UPI_ID)
-             + "&pn=" + encodeURIComponent(UPI_NAME)
-             + (amt>0 ? "&am=" + amt : "")
-             + "&cu=INR&tn=" + encodeURIComponent("Freshers26");
+  const link = upiLink(amt);
   const a = $("#openUpi"); if(a) a.setAttribute("href", link);
+  // amount-encoded QR — scanning it fills in the amount, just like the button
+  const img = $("#upiQr"); if(img) img.src = "https://api.qrserver.com/v1/create-qr-code/?size=240x240&margin=0&data=" + encodeURIComponent(link);
 }
 function initPayTo(){
-  $("#upiIdTxt").textContent = UPI_ID;
-  const img = $("#upiQr");
-  img.src = UPI_QR_IMG;   // your uploaded QR
-  // if no uploaded image, generate a QR from the UPI id
-  img.onerror = ()=>{
-    img.onerror = null;
-    const data = encodeURIComponent("upi://pay?pa=" + UPI_ID + "&pn=" + UPI_NAME + "&cu=INR");
-    img.src = "https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=" + data;
-  };
+  // "Pay with UPI" deep link only works on phones — hide it on laptops (QR still shown)
+  const isMobile = /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent);
+  if(!isMobile){ const o=$("#openUpi"); if(o) o.style.display="none"; }
+  updatePayBtn();
 }
 initPayTo();
-$("#copyUpi").onclick = ()=>{
-  navigator.clipboard?.writeText(UPI_ID).then(
-    ()=> showToast("UPI ID copied"),
-    ()=> showToast(UPI_ID)
-  );
-};
 function saveContribution(amt, paymentId){
   if(LIVE){
     fb.setDoc(fb.doc(fb.db,"contributions",user.email), {
@@ -288,7 +286,16 @@ function subscribe(){
   }, err=>console.error("snapshot error", err));
 }
 
-/* ---------- admin: verify pending payments ---------- */
+function subscribeMyPending(){
+  if(unsubMyPending){ unsubMyPending(); unsubMyPending=null; }
+  myPending = 0;
+  if(!LIVE || !fb || !user){ repaint(); return; }
+  const q = fb.query(fb.collection(fb.db,"pending"), fb.where("email","==",user.email));
+  unsubMyPending = fb.onSnapshot(q, snap=>{
+    let p=0; snap.forEach(d=>{ const v=d.data()||{}; if(v.status==="pending") p += Number(v.amount)||0; });
+    myPending = p; repaint();
+  }, err=>console.error("my-pending snapshot", err));
+}
 let unsubPending = null;
 function isAdmin(){ return !!user && ADMIN_EMAILS.indexOf(user.email) > -1; }
 function refreshAdminUI(){
@@ -375,7 +382,7 @@ async function initFirebase(){
           user = { email:(u.email||"").toLowerCase(), name: u.displayName || (u.email||"").split("@")[0] };
         }
       } else user=null;
-      refreshUserUI(); repaint();
+      refreshUserUI(); subscribeMyPending(); repaint();
     });
     subscribe();
   }catch(e){

@@ -74,8 +74,9 @@
       <span class="of">/ ₹1,740 goal</span>
     </div>
     <div class="barwrap">
-      <div class="bar"><div class="fill" id="barFill"></div></div>
+      <div class="bar"><div class="fill-pending" id="barPending"></div><div class="fill" id="barFill"></div></div>
       <div class="bar-meta"><span id="barPct">0% complete</span><span id="barLeft">₹1,740 to go</span></div>
+      <div class="bar-pending-note" id="barPendingNote" style="display:none"></div>
     </div>
     <div class="contrib-cta">
       <button class="btn solid" id="contribBtn">Contribute ₹1,740</button>
@@ -154,11 +155,13 @@
     </div>
 
     <div class="pay-to">
-      <div class="pay-to-row">Pay <strong id="payAmtLbl">₹0</strong> to</div>
-      <div class="upi-id"><span id="upiIdTxt"></span><button type="button" class="btn ghost mini" id="copyUpi">Copy</button></div>
+      <div class="pay-to-row">Pay <strong id="payAmtLbl">₹0</strong></div>
       <img id="upiQr" class="upi-qr" alt="UPI QR code">
-      <a id="openUpi" class="btn ghost" href="#" rel="noopener">Open in UPI app</a>
-      <p class="hint">Scan the QR (or tap “Open in UPI app” on your phone), pay the amount, then paste your UPI Ref&nbsp;No. / UTR below.</p>
+      <a id="openUpi" class="btn solid upi-btn" href="#" rel="noopener">
+        <svg width="20" height="20" viewBox="0 0 48 48" aria-hidden="true"><polygon points="13,8 27,24 13,40" fill="#f47e20"></polygon><polygon points="22,8 36,24 22,40" fill="#6cb33f"></polygon></svg>
+        <span>Pay with UPI</span>
+      </a>
+      <p class="hint">Scan the QR with any UPI app, or tap “Pay with UPI” on your phone — the amount is filled in automatically. Then paste your UPI Ref&nbsp;No. / UTR below.</p>
     </div>
 
     <label>UPI Reference No. / UTR</label>
