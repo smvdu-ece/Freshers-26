@@ -266,34 +266,36 @@ function upiLink(amt){
 function updatePayBtn(){
   const amt = Number($("#inAmt").value)||0;
   $("#payAmtLbl").textContent = money(amt);
+
   const link = upiLink(amt);
+
+  const img = $("#upiQr");
+  if(img){
+    img.src =
+      "https://api.qrserver.com/v1/create-qr-code/?size=240x240&margin=0&data="
+      + encodeURIComponent(link);
+  }
+
   const btn = $("#downloadQRBtn");
 
   if(btn){
-    btn.onclick = async () => {
+    btn.onclick = () => {
       const qr = document.getElementById("upiQr");
 
-      try{
-        const response = await fetch(qr.src);
-        const blob = await response.blob();
+      const a = document.createElement("a");
+      a.href = qr.src;
+      a.download = "Freshers26-UPI-QR.png";
 
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement("a");
-
-        a.href = url;
-        a.download = "Freshers26-UPI-QR.png";
-
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-
-        URL.revokeObjectURL(url);
-      }catch(err){
-        console.error(err);
-        alert("Unable to download QR code");
-      }
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
     };
   }
+
+  if($("#amtSection").style.display !== "none"){
+    $("#payTo").style.display = amt > 0 ? "" : "none";
+  }
+}
   // amount-encoded QR — scanning it fills in the amount, just like the button
   const img = $("#upiQr"); if(img) img.src = "https://api.qrserver.com/v1/create-qr-code/?size=240x240&margin=0&data=" + encodeURIComponent(link);
   // custom mode: only reveal the QR/button once an amount is entered
