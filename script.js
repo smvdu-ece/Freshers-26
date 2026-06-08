@@ -283,7 +283,7 @@ function submitPayment(amt, utr){
   if(!user){ closeM(payOverlay); openM(loginOverlay); showToast("Please login first"); return; }
   if(amt<1){ showToast("Enter an amount"); $("#inAmt").focus(); return; }
   utr = (utr||"").trim();
-  if(!/^[0-9]{6,}$/.test(utr)){ showToast("Enter a valid UPI Ref No. / UTR"); $("#inUtr").focus(); return; }
+  if(!/^[a-zA-Z0-9]{6,}$/.test(utr)){ showToast("Enter a valid UPI Ref No. / UTR"); $("#inUtr").focus(); return; }
   if(!LIVE){
     closeM(payOverlay); $("#inUtr").value="";
     showToast("Submitted for verification (preview)");

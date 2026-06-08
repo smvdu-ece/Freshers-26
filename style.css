@@ -198,7 +198,7 @@ section{padding:90px 26px;max-width:1180px;margin:0 auto}
 .overlay{position:fixed;inset:0;z-index:100;background:rgba(5,5,7,.78);backdrop-filter:blur(6px);
   display:none;place-items:center;padding:20px}
 .overlay.show{display:grid}
-.modal{width:100%;max-width:420px;border:1px solid var(--line);border-radius:14px;padding:34px;
+.modal{width:100%;max-width:420px;max-height:calc(100vh - 40px);overflow-y:auto;border:1px solid var(--line);border-radius:14px;padding:30px 32px;
   background:linear-gradient(180deg,var(--panel),var(--black-2));position:relative;animation:pop .35s ease}
 @keyframes pop{from{opacity:0;transform:translateY(20px) scale(.97)}to{opacity:1;transform:none}}
 .modal h3{font-size:22px;margin-bottom:6px}
@@ -207,7 +207,7 @@ section{padding:90px 26px;max-width:1180px;margin:0 auto}
 .modal input{width:100%;background:#0c0c0e;border:1px solid var(--line);color:var(--ink);padding:13px 14px;border-radius:6px;
   font-family:'Jost';font-size:15px;outline:none;transition:.2s}
 .modal input:focus{border-color:var(--gold);box-shadow:0 0 0 3px rgba(212,175,55,.12)}
-.modal .x{position:absolute;top:16px;right:18px;color:var(--muted);font-size:22px;cursor:pointer;line-height:1}
+.modal .x{position:sticky;float:right;top:0;margin:-6px -6px 0 0;color:var(--muted);font-size:22px;cursor:pointer;line-height:1;z-index:3}
 .modal .x:hover{color:var(--gold)}
 .chip-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
 .chip{border:1px solid var(--line);color:var(--silver);padding:8px 14px;border-radius:30px;font-size:13px;cursor:pointer;transition:.2s}
@@ -264,7 +264,7 @@ footer .script{font-size:30px;color:var(--gold);display:block;margin-bottom:8px}
 .pay-to-row{color:var(--muted);font-size:.95rem;margin-bottom:8px}
 .pay-to-row strong{color:var(--gold-soft)}
 .upi-id{display:flex;align-items:center;justify-content:center;gap:8px;flex-wrap:wrap;font-weight:600;letter-spacing:.3px;margin-bottom:12px;word-break:break-all;color:var(--ink)}
-.upi-qr{width:200px;height:200px;object-fit:contain;background:#fff;border-radius:10px;padding:8px;display:block;margin:0 auto 12px}
+.upi-qr{width:180px;height:180px;object-fit:contain;background:#fff;border-radius:10px;padding:8px;display:block;margin:0 auto 10px}
 .btn.mini{padding:4px 10px;font-size:.78rem}
 .hint{color:var(--muted);font-size:.85rem;margin-top:10px;line-height:1.45}
 .hint.small{font-size:.78rem;opacity:.85}
@@ -279,9 +279,11 @@ footer .script{font-size:30px;color:var(--gold);display:block;margin-bottom:8px}
 .btn.danger{border-color:rgba(224,86,86,.5);color:#e05656}
 .btn.danger:hover{background:#e05656;color:#fff;box-shadow:none}
 
-/* Pay with UPI button */
+/* Pay with UPI button — UPI brand look (white button, colored logo) */
 .upi-btn{display:inline-flex;align-items:center;justify-content:center;gap:9px}
-.upi-btn svg{flex:0 0 auto;background:#fff;border-radius:5px;padding:3px;box-sizing:content-box}
+.upi-btn svg{flex:0 0 auto}
+.btn.upi-btn{background:#fff;color:#0b1f3a;border:none;font-weight:700;box-shadow:0 6px 16px rgba(0,0,0,.3)}
+.btn.upi-btn:hover{background:#f2f2f2;color:#0b1f3a;box-shadow:0 8px 20px rgba(0,0,0,.4)}
 
 /* Your Contribution pending sub-line + submissions modal */
 .pend-sub{display:none;font-size:11px;letter-spacing:.5px;color:#8fb0ff;margin-top:4px}
