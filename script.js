@@ -120,10 +120,12 @@ function renderMySubs(){
     const st = (s.status||"pending");
     const el = document.createElement("div");
     el.className = "sub-row";
-    el.innerHTML = '<div class="si"></div><div class="sb"><div class="sa"></div><div class="su"></div></div><span class="badge"></span>';
+    el.innerHTML = '<div class="si"></div><div class="sb"><div class="sa"></div><div class="su"></div><div class="snote"></div></div><span class="badge"></span>';
     el.querySelector(".si").textContent = "#" + (i+1);
     el.querySelector(".sa").textContent = money(Number(s.amount)||0);
     el.querySelector(".su").textContent = "UTR " + (s.utr||"");
+    const sn = el.querySelector(".snote");
+    if(s.note){ sn.textContent = "\u201c" + s.note + "\u201d"; } else { sn.style.display="none"; }
     const b = el.querySelector(".badge");
     b.classList.add(st);
     b.textContent = st.charAt(0).toUpperCase() + st.slice(1);
@@ -352,16 +354,18 @@ function renderAdmin(rows){
     el.innerHTML =
       '<div class="top"><span class="nm"></span><span class="amt"></span></div>' +
       '<div class="meta"></div>' +
+      '<input class="msg-in" type="text" maxlength="140" placeholder="Optional message (shown to them)">' +
       '<div class="acts"><button class="btn solid ap">Approve</button><button class="btn ghost danger rj">Reject</button></div>';
     el.querySelector(".nm").textContent = r.name || r.email;
     el.querySelector(".amt").textContent = money(Number(r.amount)||0);
     el.querySelector(".meta").textContent = r.email + " \u00b7 UTR " + r.utr;
-    el.querySelector(".ap").onclick = ()=> approvePending(r.utr);
-    el.querySelector(".rj").onclick = ()=> rejectPending(r.utr);
+    const msgIn = el.querySelector(".msg-in");
+    el.querySelector(".ap").onclick = ()=> approvePending(r.utr, msgIn.value);
+    el.querySelector(".rj").onclick = ()=> rejectPending(r.utr, msgIn.value);
     box.appendChild(el);
   });
 }
-function approvePending(utr){
+function approvePending(utr, note){
   fb.runTransaction(fb.db, async (t)=>{
     const pRef = fb.doc(fb.db,"pending",utr);
     const pSnap = await t.get(pRef);
@@ -377,13 +381,13 @@ function approvePending(utr){
       lastPaymentId: "utr:" + utr,
       updatedAt: fb.serverTimestamp()
     }, { merge:true });
-    t.update(pRef, { status:"approved", approvedAt: fb.serverTimestamp() });
+    t.update(pRef, { status:"approved", note:(note||"").trim(), approvedAt: fb.serverTimestamp() });
   })
     .then(()=> showToast("Approved \u2726"))
     .catch(e=>{ showToast("Approve failed: " + (e.code||e.message)); console.error(e); });
 }
-function rejectPending(utr){
-  fb.updateDoc(fb.doc(fb.db,"pending",utr), { status:"rejected", rejectedAt: fb.serverTimestamp() })
+function rejectPending(utr, note){
+  fb.updateDoc(fb.doc(fb.db,"pending",utr), { status:"rejected", note:(note||"").trim(), rejectedAt: fb.serverTimestamp() })
     .then(()=> showToast("Rejected"))
     .catch(e=>{ showToast("Reject failed: " + (e.code||e.message)); console.error(e); });
 }
