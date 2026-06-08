@@ -239,7 +239,10 @@ function payNow(amt){
   })
     .then(r => r.json())
     .then(d => {
-      if(d && d.payment_url){ window.location.href = d.payment_url; }
+      if(d && d.payment_url){
+        if(d.client_txn_id){ try{ sessionStorage.setItem("pendingTxn", d.client_txn_id); }catch(e){} }
+        window.location.href = d.payment_url;
+      }
       else { showToast("Couldn't start payment: " + ((d && d.msg) || "please try again")); }
     })
     .catch(e => { showToast("Payment error: " + e.message); });
@@ -306,3 +309,31 @@ if(LIVE){
 }
 refreshUserUI();
 repaint();
+
+/* ---------- verify payment on return from UPIGateway ---------- */
+(function checkReturn(){
+  if(!BACKEND_URL || BACKEND_URL.indexOf("YOUR-VERCEL-APP") > -1) return;
+  const params = new URLSearchParams(location.search);
+  let txn = params.get("txn");
+  try{ if(!txn) txn = sessionStorage.getItem("pendingTxn"); }catch(e){}
+  if(!txn) return;
+  if(params.get("txn")) history.replaceState({}, "", location.pathname);  // clean the URL
+  showToast("Checking your payment\u2026");
+  let tries = 0;
+  (function poll(){
+    fetch(BACKEND_URL.replace(/\/$/,"") + "/api/verify?client_txn_id=" + encodeURIComponent(txn))
+      .then(r=>r.json())
+      .then(d=>{
+        if(d && d.recorded){
+          try{ sessionStorage.removeItem("pendingTxn"); }catch(e){}
+          showToast("Payment confirmed \u2726");
+        } else if(tries++ < 6){
+          setTimeout(poll, 3000);
+        } else {
+          try{ sessionStorage.removeItem("pendingTxn"); }catch(e){}
+          showToast("Not confirmed yet \u2014 it'll appear once the payment settles.");
+        }
+      })
+      .catch(()=>{ if(tries++ < 6) setTimeout(poll, 3000); });
+  })();
+})();
