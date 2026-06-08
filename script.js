@@ -15,7 +15,7 @@ const FIREBASE_CONFIG = {
 };
 const ALLOWED_DOMAINS = ["smvdu.ac.in"];   // <-- only these email domains can log in
 const GOAL = 1740;
-const BACKEND_URL = "https://YOUR-VERCEL-APP.vercel.app";   // your Vercel backend (set this after you deploy). No secrets here — the API key lives only on the backend.
+const BACKEND_URL = "https://freshers-backend.vercel.app";   // your Vercel backend (set this after you deploy). No secrets here — the API key lives only on the backend.
 
 const LIVE = !!FIREBASE_CONFIG.apiKey;
 let user = null;            // { email, name }
