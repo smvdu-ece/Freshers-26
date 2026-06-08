@@ -16,7 +16,7 @@ const FIREBASE_CONFIG = {
 const ALLOWED_DOMAINS = ["smvdu.ac.in"];   // <-- only these email domains can log in
 const GOAL = 1740;
 /* ---- Version A: direct UPI + manual verify (no gateway) ---- */
-const UPI_ID    = "levisujit@ybl";                  // <-- the UPI ID that RECEIVES the money
+const UPI_ID    = "kumarsujit73775-2@okaxis";       // <-- the UPI ID that RECEIVES the money
 const UPI_NAME  = "Sujit Kumar";                    // name shown in the payer's UPI app
 const ADMIN_EMAILS = ["25bec079@smvdu.ac.in"];     // who can verify & approve payments
 
@@ -27,6 +27,7 @@ let payFilter = "all";      // payments list filter: all/gold/full/partial/pendi
 let payMethod = "UPI";
 let fb = null, unsub = null;
 let myPending = 0, unsubMyPending = null, mySubs = [];
+let remainingAmt = GOAL, allSubs = [];
 
 /* ---------- helpers ---------- */
 const $ = s => document.querySelector(s);
@@ -73,7 +74,8 @@ function repaint(){
     if(pend>0){ yp.style.display="block"; yp.textContent = "+" + money(pend) + " pending"; }
     else { yp.style.display="none"; yp.textContent=""; }
   }
-  $("#contribBtn").textContent = !user ? "Login to contribute" : (mine>=GOAL ? "Add more" : "Contribute \u20b91,740");
+  remainingAmt = Math.max(GOAL - mine - pend, 0);
+  $("#contribBtn").textContent = !user ? "Login to contribute" : (remainingAmt>0 ? ("Contribute " + money(remainingAmt)) : "Contribute extra");
   if($("#payListOverlay").classList.contains("show")) renderPayments();
 }
 
@@ -227,17 +229,29 @@ $("#googleBtn").onclick = async ()=>{
 };
 
 /* ---------- pay ---------- */
-function wantPay(defaultAmt){
+function wantPay(amt, fixed){
   if(!user){ openM(loginOverlay); showToast("Please login first"); return; }
-  $("#inAmt").value = defaultAmt; updatePayBtn(); openM(payOverlay);
+  if(fixed){
+    $("#amtSection").style.display = "none";   // fixed amount -> no amount entry
+    $("#inAmt").value = amt;
+    $("#payTo").style.display = "";            // show QR/button straight away
+  } else {
+    $("#amtSection").style.display = "";       // custom -> show amount entry
+    $("#inAmt").value = "";
+    document.querySelectorAll(".chip").forEach(x=>x.classList.remove("on"));
+    $("#payTo").style.display = "none";        // hide QR/button until amount entered
+  }
+  $("#inUtr").value = "";
+  updatePayBtn(); openM(payOverlay);
 }
-// Full amount -> open the pay overlay prefilled
+// Full amount -> pay the remaining toward the goal, no amount entry
 $("#contribBtn").onclick = ()=>{
   if(!user){ openM(loginOverlay); showToast("Please login first"); return; }
-  wantPay(GOAL);
+  if(remainingAmt > 0) wantPay(remainingAmt, true);
+  else wantPay(0, false);                      // goal met -> custom extra
 };
-// Custom amount -> open the amount box
-$("#extraBtn").onclick   = ()=> wantPay("");
+// Custom amount -> show the amount box first
+$("#extraBtn").onclick   = ()=> wantPay(0, false);
 $("#inAmt").addEventListener("input", updatePayBtn);
 document.querySelectorAll(".chip").forEach(c=>c.onclick=()=>{
   document.querySelectorAll(".chip").forEach(x=>x.classList.remove("on"));
@@ -256,6 +270,10 @@ function updatePayBtn(){
   const a = $("#openUpi"); if(a) a.setAttribute("href", link);
   // amount-encoded QR — scanning it fills in the amount, just like the button
   const img = $("#upiQr"); if(img) img.src = "https://api.qrserver.com/v1/create-qr-code/?size=240x240&margin=0&data=" + encodeURIComponent(link);
+  // custom mode: only reveal the QR/button once an amount is entered
+  if($("#amtSection").style.display !== "none"){
+    $("#payTo").style.display = amt>0 ? "" : "none";
+  }
 }
 function initPayTo(){
   // "Pay with UPI" deep link only works on phones — hide it on laptops (QR still shown)
@@ -282,6 +300,8 @@ function saveContribution(amt, paymentId){
 function submitPayment(amt, utr){
   if(!user){ closeM(payOverlay); openM(loginOverlay); showToast("Please login first"); return; }
   if(amt<1){ showToast("Enter an amount"); $("#inAmt").focus(); return; }
+  const customMode = $("#amtSection").style.display !== "none";
+  if(customMode && amt < 500){ showToast("Minimum contribution is \u20b9500"); $("#inAmt").focus(); return; }
   utr = (utr||"").trim();
   if(!/^[a-zA-Z0-9]{3,}$/.test(utr)){ showToast("Enter a valid UPI Ref No. / UTR"); $("#inUtr").focus(); return; }
   if(!LIVE){
@@ -334,32 +354,42 @@ function refreshAdminUI(){
   if(isAdmin()){ btn.style.display = ""; subscribePending(); }
   else { btn.style.display = "none"; if(unsubPending){ unsubPending(); unsubPending=null; } }
 }
-$("#adminBtn").onclick = ()=> openM(adminOverlay);
+$("#adminBtn").onclick = ()=>{ if($("#adminSearch")) $("#adminSearch").value=""; renderAdmin(); openM(adminOverlay); };
+if($("#adminSearch")) $("#adminSearch").oninput = renderAdmin;
 function subscribePending(){
   if(!LIVE || !fb || unsubPending) return;
-  const q = fb.query(fb.collection(fb.db,"pending"), fb.where("status","==","pending"));
-  unsubPending = fb.onSnapshot(q, snap=>{
+  unsubPending = fb.onSnapshot(fb.collection(fb.db,"pending"), snap=>{
     const rows = []; snap.forEach(d=> rows.push(d.data()));
-    renderAdmin(rows);
+    allSubs = rows; renderAdmin();
   }, err=>console.error("pending snapshot", err));
 }
-function renderAdmin(rows){
+function renderAdmin(){
   const box = $("#adminList");
-  if(!rows.length){ box.innerHTML = '<p class="hint">No pending submissions.</p>'; return; }
-  rows.sort((a,b)=> ((a.at&&a.at.seconds)||0) - ((b.at&&b.at.seconds)||0));
+  const term = (($("#adminSearch") && $("#adminSearch").value) || "").trim().toLowerCase();
+  let rows = allSubs.slice();
+  if(term) rows = rows.filter(r => (((r.name||"")+" "+(r.email||"")).toLowerCase()).indexOf(term) > -1);
+  const rank = s => (s==="pending"?0:1);
+  rows.sort((a,b)=>{
+    const r = rank(a.status)-rank(b.status);
+    if(r) return r;
+    return ((b.at&&b.at.seconds)||0) - ((a.at&&a.at.seconds)||0);
+  });
+  if(!rows.length){ box.innerHTML = '<p class="hint">No submissions' + (term?' match that search':'') + '.</p>'; return; }
   box.innerHTML = "";
   rows.forEach(r=>{
+    const st = r.status || "pending";
     const el = document.createElement("div");
     el.className = "admin-row";
     el.innerHTML =
-      '<div class="top"><span class="nm"></span><span class="amt"></span></div>' +
+      '<div class="top"><span class="nm"></span><span class="badge"></span></div>' +
       '<div class="meta"></div>' +
       '<input class="msg-in" type="text" maxlength="140" placeholder="Optional message (shown to them)">' +
       '<div class="acts"><button class="btn solid ap">Approve</button><button class="btn ghost danger rj">Reject</button></div>';
-    el.querySelector(".nm").textContent = r.name || r.email;
-    el.querySelector(".amt").textContent = money(Number(r.amount)||0);
+    el.querySelector(".nm").textContent = (r.name||r.email) + " \u00b7 " + money(Number(r.amount)||0);
+    const b = el.querySelector(".badge"); b.classList.add(st); b.textContent = st.charAt(0).toUpperCase()+st.slice(1);
     el.querySelector(".meta").textContent = r.email + " \u00b7 UTR " + r.utr;
     const msgIn = el.querySelector(".msg-in");
+    if(r.note) msgIn.value = r.note;
     el.querySelector(".ap").onclick = ()=> approvePending(r.utr, msgIn.value);
     el.querySelector(".rj").onclick = ()=> rejectPending(r.utr, msgIn.value);
     box.appendChild(el);
@@ -371,7 +401,7 @@ function approvePending(utr, note){
     const pSnap = await t.get(pRef);
     if(!pSnap.exists()) return;
     const p = pSnap.data();
-    if(p.status !== "pending") return;
+    if(p.status === "approved"){ t.update(pRef, { note:(note||"").trim() }); return; } // already credited
     const cRef = fb.doc(fb.db,"contributions", p.email);
     const cSnap = await t.get(cRef);
     const prev = cSnap.exists() ? (Number(cSnap.data().amount)||0) : 0;
@@ -387,7 +417,20 @@ function approvePending(utr, note){
     .catch(e=>{ showToast("Approve failed: " + (e.code||e.message)); console.error(e); });
 }
 function rejectPending(utr, note){
-  fb.updateDoc(fb.doc(fb.db,"pending",utr), { status:"rejected", note:(note||"").trim(), rejectedAt: fb.serverTimestamp() })
+  fb.runTransaction(fb.db, async (t)=>{
+    const pRef = fb.doc(fb.db,"pending",utr);
+    const pSnap = await t.get(pRef);
+    if(!pSnap.exists()) return;
+    const p = pSnap.data();
+    if(p.status === "rejected"){ t.update(pRef, { note:(note||"").trim() }); return; }
+    if(p.status === "approved"){            // reverse a previous approval
+      const cRef = fb.doc(fb.db,"contributions", p.email);
+      const cSnap = await t.get(cRef);
+      const prev = cSnap.exists() ? (Number(cSnap.data().amount)||0) : 0;
+      t.set(cRef, { amount: Math.max(prev - (Number(p.amount)||0), 0), updatedAt: fb.serverTimestamp() }, { merge:true });
+    }
+    t.update(pRef, { status:"rejected", note:(note||"").trim(), rejectedAt: fb.serverTimestamp() });
+  })
     .then(()=> showToast("Rejected"))
     .catch(e=>{ showToast("Reject failed: " + (e.code||e.message)); console.error(e); });
 }

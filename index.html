@@ -145,16 +145,18 @@
     <span class="x" data-close>×</span>
     <h3 class="gold-text">Contribute</h3>
     <p class="s">Pay by UPI, then paste your transaction reference. An organiser verifies it and your contribution appears on the bar.</p>
-    <label>Amount (₹)</label>
-    <input id="inAmt" type="number" min="1" placeholder="Enter amount">
-    <div class="chip-row">
-      <span class="chip" data-amt="1740">₹1740 (full)</span>
-      <span class="chip" data-amt="740">₹740</span>
-      <span class="chip" data-amt="500">₹500</span>
-      <span class="chip" data-amt="2000">₹2000</span>
+    <div id="amtSection">
+      <label>Amount (₹)</label>
+      <input id="inAmt" type="number" min="500" placeholder="Min ₹500">
+      <div class="chip-row">
+        <span class="chip" data-amt="1740">₹1740 (full)</span>
+        <span class="chip" data-amt="740">₹740</span>
+        <span class="chip" data-amt="500">₹500</span>
+        <span class="chip" data-amt="2000">₹2000</span>
+      </div>
     </div>
 
-    <div class="pay-to">
+    <div class="pay-to" id="payTo">
       <div class="pay-to-row">Pay <strong id="payAmtLbl">₹0</strong></div>
       <img id="upiQr" class="upi-qr" alt="UPI QR code">
       <a id="openUpi" class="btn upi-btn" href="#" rel="noopener">
@@ -175,8 +177,9 @@
   <div class="modal" style="max-width:560px">
     <span class="x" data-close>×</span>
     <h3 class="gold-text">Verify payments</h3>
-    <p class="s">Check each UTR against your bank statement, then approve. Approving credits the bar.</p>
-    <div id="adminList" class="admin-list"><p class="hint">No pending submissions.</p></div>
+    <p class="s">Check each reference, then approve or reject. You can change a decision anytime — approving credits the bar, rejecting (or undoing an approval) removes it.</p>
+    <input id="adminSearch" class="admin-search" type="text" placeholder="Search by name…">
+    <div id="adminList" class="admin-list"><p class="hint">No submissions yet.</p></div>
   </div>
 </div>
 
