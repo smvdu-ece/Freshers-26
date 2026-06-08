@@ -367,7 +367,7 @@ function renderAdmin(){
   const box = $("#adminList");
   const term = (($("#adminSearch") && $("#adminSearch").value) || "").trim().toLowerCase();
   let rows = allSubs.slice();
-  if(term) rows = rows.filter(r => (((r.name||"")+" "+(r.email||"")).toLowerCase()).indexOf(term) > -1);
+  if(term) rows = rows.filter(r => (((r.name||"")+" "+(r.email||"")+" "+(r.utr||"")).toLowerCase()).indexOf(term) > -1);
   const rank = s => (s==="pending"?0:1);
   rows.sort((a,b)=>{
     const r = rank(a.status)-rank(b.status);
