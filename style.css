@@ -307,6 +307,10 @@ footer .script{font-size:30px;color:var(--gold);display:block;margin-bottom:8px}
 /* verify panel: search + status badges */
 .admin-search{width:100%;margin:12px 0 4px;padding:9px 12px;background:#0c0c0e;border:1px solid rgba(255,255,255,.12);border-radius:9px;color:var(--ink);font-family:inherit;font-size:.9rem;box-sizing:border-box}
 .admin-search:focus{outline:none;border-color:var(--gold-soft)}
+.admin-tabs{display:flex;gap:8px;margin-top:14px}
+.atab{flex:1;border:1px solid var(--line);background:transparent;color:var(--silver);padding:9px 12px;border-radius:9px;font-family:inherit;font-size:.82rem;letter-spacing:.5px;cursor:pointer;transition:.2s}
+.atab:hover{border-color:var(--gold);color:var(--gold)}
+.atab.on{border-color:var(--gold);color:#120c02;background:var(--grad-gold);font-weight:600}
 .admin-row .badge{font-size:10px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;padding:3px 9px;border-radius:999px;white-space:nowrap}
 .admin-row .badge.pending{background:rgba(91,140,255,.15);color:#8fb0ff;border:1px solid rgba(91,140,255,.4)}
 .admin-row .badge.approved{background:rgba(63,191,106,.15);color:#5fd089;border:1px solid rgba(63,191,106,.4)}

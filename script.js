@@ -354,7 +354,14 @@ function refreshAdminUI(){
   if(isAdmin()){ btn.style.display = ""; subscribePending(); }
   else { btn.style.display = "none"; if(unsubPending){ unsubPending(); unsubPending=null; } }
 }
-$("#adminBtn").onclick = ()=>{ if($("#adminSearch")) $("#adminSearch").value=""; renderAdmin(); openM(adminOverlay); };
+let adminTab = "pending";
+function syncAdminTabs(){
+  document.querySelectorAll(".atab").forEach(b=> b.classList.toggle("on", b.dataset.tab===adminTab));
+}
+document.querySelectorAll(".atab").forEach(b=>{
+  b.onclick = ()=>{ adminTab = b.dataset.tab; syncAdminTabs(); renderAdmin(); };
+});
+$("#adminBtn").onclick = ()=>{ if($("#adminSearch")) $("#adminSearch").value=""; adminTab="pending"; syncAdminTabs(); renderAdmin(); openM(adminOverlay); };
 if($("#adminSearch")) $("#adminSearch").oninput = renderAdmin;
 function subscribePending(){
   if(!LIVE || !fb || unsubPending) return;
@@ -366,15 +373,27 @@ function subscribePending(){
 function renderAdmin(){
   const box = $("#adminList");
   const term = (($("#adminSearch") && $("#adminSearch").value) || "").trim().toLowerCase();
-  let rows = allSubs.slice();
+  const isPending = r => (r.status || "pending") === "pending";
+
+  // tab counts
+  const pendCount = allSubs.filter(isPending).length;
+  const prevCount = allSubs.length - pendCount;
+  const ptab = $("#tabPending"), vtab = $("#tabPrevious");
+  if(ptab) ptab.textContent = "Pending" + (pendCount ? (" ("+pendCount+")") : "");
+  if(vtab) vtab.textContent = "Previous payments" + (prevCount ? (" ("+prevCount+")") : "");
+
+  // only show rows for the active tab; search filters within it
+  let rows = allSubs.filter(r => adminTab === "previous" ? !isPending(r) : isPending(r));
   if(term) rows = rows.filter(r => (((r.name||"")+" "+(r.email||"")+" "+(r.utr||"")).toLowerCase()).indexOf(term) > -1);
-  const rank = s => (s==="pending"?0:1);
-  rows.sort((a,b)=>{
-    const r = rank(a.status)-rank(b.status);
-    if(r) return r;
-    return ((b.at&&b.at.seconds)||0) - ((a.at&&a.at.seconds)||0);
-  });
-  if(!rows.length){ box.innerHTML = '<p class="hint">No submissions' + (term?' match that search':'') + '.</p>'; return; }
+  rows.sort((a,b)=> ((b.at&&b.at.seconds)||0) - ((a.at&&a.at.seconds)||0));
+
+  if(!rows.length){
+    const msg = adminTab === "previous"
+      ? (term ? "No previous payments match that search." : "No decided payments yet.")
+      : (term ? "No pending payments match that search." : "No pending payments \u2014 all caught up \u2726");
+    box.innerHTML = '<p class="hint">' + msg + '</p>';
+    return;
+  }
   box.innerHTML = "";
   rows.forEach(r=>{
     const st = r.status || "pending";
