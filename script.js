@@ -15,7 +15,7 @@ const FIREBASE_CONFIG = {
 };
 const ALLOWED_DOMAINS = ["smvdu.ac.in"];   // <-- only these email domains can log in
 const GOAL = 1740;
-const BACKEND_URL = "https://freshers-backend.vercel.app";   // your Vercel backend (set this after you deploy). No secrets here — the API key lives only on the backend.
+const BACKEND_URL = "https://freshers-backend.vercel.app";   // your Vercel backend
 
 const LIVE = !!FIREBASE_CONFIG.apiKey;
 let user = null;            // { email, name }
@@ -246,7 +246,7 @@ function payNow(amt){
 }
 $("#doPay").onclick = ()=>{
   const amt = Number($("#inAmt").value)||0;
-  if(amt<500){ showToast("Minimum contribution is \u20b9500"); $("#inAmt").focus(); return; }
+  if(amt<1){ showToast("Enter an amount"); $("#inAmt").focus(); return; }   // TEMP: min lowered to \u20b91 for testing — restore to 500 later
   payNow(amt);
 };
 
