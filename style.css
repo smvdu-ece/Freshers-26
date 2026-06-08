@@ -255,3 +255,22 @@ section{padding:90px 26px;max-width:1180px;margin:0 auto}
 /* FOOTER */
 footer{border-top:1px solid var(--line);text-align:center;padding:40px 26px;color:var(--muted);font-size:12px;letter-spacing:1px}
 footer .script{font-size:30px;color:var(--gold);display:block;margin-bottom:8px}
+/* ---------- Version A: UPI pay-to + UTR + admin verify ---------- */
+.pay-to{background:rgba(255,255,255,.03);border:1px solid rgba(231,201,106,.25);border-radius:14px;padding:16px;margin:14px 0;text-align:center}
+.pay-to-row{color:var(--muted);font-size:.95rem;margin-bottom:8px}
+.pay-to-row strong{color:var(--gold-soft)}
+.upi-id{display:flex;align-items:center;justify-content:center;gap:8px;flex-wrap:wrap;font-weight:600;letter-spacing:.3px;margin-bottom:12px;word-break:break-all;color:var(--ink)}
+.upi-qr{width:200px;height:200px;object-fit:contain;background:#fff;border-radius:10px;padding:8px;display:block;margin:0 auto 12px}
+.btn.mini{padding:4px 10px;font-size:.78rem}
+.hint{color:var(--muted);font-size:.85rem;margin-top:10px;line-height:1.45}
+.hint.small{font-size:.78rem;opacity:.85}
+.admin-list{display:flex;flex-direction:column;gap:10px;max-height:60vh;overflow:auto;margin-top:12px}
+.admin-row{border:1px solid rgba(255,255,255,.08);border-radius:12px;padding:12px}
+.admin-row .top{display:flex;justify-content:space-between;gap:10px;align-items:baseline}
+.admin-row .nm{font-weight:600;color:var(--ink)}
+.admin-row .amt{color:var(--gold-soft);font-weight:700;white-space:nowrap}
+.admin-row .meta{color:var(--muted);font-size:.82rem;margin:4px 0 10px;word-break:break-all}
+.admin-row .acts{display:flex;gap:8px}
+.admin-row .acts .btn{flex:1;padding:8px}
+.btn.danger{border-color:rgba(224,86,86,.5);color:#e05656}
+.btn.danger:hover{background:#e05656;color:#fff;box-shadow:none}

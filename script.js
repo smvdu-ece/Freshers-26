@@ -15,7 +15,11 @@ const FIREBASE_CONFIG = {
 };
 const ALLOWED_DOMAINS = ["smvdu.ac.in"];   // <-- only these email domains can log in
 const GOAL = 1740;
-const BACKEND_URL = "https://freshers-backend.vercel.app";   // your Vercel backend
+/* ---- Version A: direct UPI + manual verify (no gateway) ---- */
+const UPI_ID    = "levisujit@ybl";                  // <-- the UPI ID that RECEIVES the money
+const UPI_NAME  = "Sujit Kumar";                    // name shown in the payer's UPI app
+const UPI_QR_IMG= "Files/upi-qr.png";               // <-- upload your UPI "My QR" image here (optional; auto-falls back to a generated QR)
+const ADMIN_EMAILS = ["25bec079@smvdu.ac.in"];     // who can verify & approve payments
 
 const LIVE = !!FIREBASE_CONFIG.apiKey;
 let user = null;            // { email, name }
@@ -26,7 +30,7 @@ let fb = null, unsub = null;
 
 /* ---------- helpers ---------- */
 const $ = s => document.querySelector(s);
-const loginOverlay = $("#loginOverlay"), payOverlay = $("#payOverlay"), toast = $("#toast");
+const loginOverlay = $("#loginOverlay"), payOverlay = $("#payOverlay"), adminOverlay = $("#adminOverlay"), toast = $("#toast");
 function money(n){ return "\u20b9" + Number(n||0).toLocaleString("en-IN"); }
 function showToast(m){ toast.textContent = m; toast.classList.add("show"); setTimeout(()=>toast.classList.remove("show"),2800); }
 function openM(o){ o.classList.add("show"); }
@@ -149,6 +153,7 @@ function refreshUserUI(){
     tag.style.display="none";
     $("#loginBtn").textContent = "Login";
   }
+  refreshAdminUI();
 }
 
 /* ---------- login ---------- */
@@ -194,10 +199,10 @@ function wantPay(defaultAmt){
   if(!user){ openM(loginOverlay); showToast("Please login first"); return; }
   $("#inAmt").value = defaultAmt; updatePayBtn(); openM(payOverlay);
 }
-// Full amount -> straight to Razorpay (skip the amount box)
+// Full amount -> open the pay overlay prefilled
 $("#contribBtn").onclick = ()=>{
   if(!user){ openM(loginOverlay); showToast("Please login first"); return; }
-  payNow(GOAL);
+  wantPay(GOAL);
 };
 // Custom amount -> open the amount box
 $("#extraBtn").onclick   = ()=> wantPay("");
@@ -206,7 +211,34 @@ document.querySelectorAll(".chip").forEach(c=>c.onclick=()=>{
   document.querySelectorAll(".chip").forEach(x=>x.classList.remove("on"));
   c.classList.add("on"); $("#inAmt").value=c.dataset.amt; updatePayBtn();
 });
-function updatePayBtn(){ $("#doPay").textContent = "Pay " + money(Number($("#inAmt").value)||0); }
+function updatePayBtn(){
+  const amt = Number($("#inAmt").value)||0;
+  $("#payAmtLbl").textContent = money(amt);
+  // amount-prefilled UPI deep link (opens the payer's UPI app on mobile)
+  const link = "upi://pay?pa=" + encodeURIComponent(UPI_ID)
+             + "&pn=" + encodeURIComponent(UPI_NAME)
+             + (amt>0 ? "&am=" + amt : "")
+             + "&cu=INR&tn=" + encodeURIComponent("Freshers26");
+  const a = $("#openUpi"); if(a) a.setAttribute("href", link);
+}
+function initPayTo(){
+  $("#upiIdTxt").textContent = UPI_ID;
+  const img = $("#upiQr");
+  img.src = UPI_QR_IMG;   // your uploaded QR
+  // if no uploaded image, generate a QR from the UPI id
+  img.onerror = ()=>{
+    img.onerror = null;
+    const data = encodeURIComponent("upi://pay?pa=" + UPI_ID + "&pn=" + UPI_NAME + "&cu=INR");
+    img.src = "https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=" + data;
+  };
+}
+initPayTo();
+$("#copyUpi").onclick = ()=>{
+  navigator.clipboard?.writeText(UPI_ID).then(
+    ()=> showToast("UPI ID copied"),
+    ()=> showToast(UPI_ID)
+  );
+};
 function saveContribution(amt, paymentId){
   if(LIVE){
     fb.setDoc(fb.doc(fb.db,"contributions",user.email), {
@@ -222,35 +254,27 @@ function saveContribution(amt, paymentId){
     showToast("Paid " + money(amt) + " \u2726 (preview)");
   }
 }
-function payNow(amt){
-  if(amt<1){ return; }
-  if(!user){ closeM(payOverlay); openM(loginOverlay); return; }
-  closeM(payOverlay);
-  // Backend not set yet (or preview) -> demo record so the layout still works
-  if(!BACKEND_URL || BACKEND_URL.indexOf("YOUR-VERCEL-APP") > -1){
-    saveContribution(amt, null);
+function submitPayment(amt, utr){
+  if(!user){ closeM(payOverlay); openM(loginOverlay); showToast("Please login first"); return; }
+  if(amt<1){ showToast("Enter an amount"); $("#inAmt").focus(); return; }
+  utr = (utr||"").trim();
+  if(!/^[0-9]{6,}$/.test(utr)){ showToast("Enter a valid UPI Ref No. / UTR"); $("#inUtr").focus(); return; }
+  if(!LIVE){
+    closeM(payOverlay); $("#inUtr").value="";
+    showToast("Submitted for verification (preview)");
     return;
   }
-  showToast("Opening UPI payment\u2026");
-  fetch(BACKEND_URL.replace(/\/$/,"") + "/api/create-order", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ amount: amt, email: user.email, name: user.name || user.email })
+  // store as a pending submission, keyed by the UTR so the same ref can't create duplicates
+  fb.setDoc(fb.doc(fb.db,"pending",utr), {
+    email: user.email, name: user.name,
+    amount: amt, utr: utr,
+    status: "pending", at: fb.serverTimestamp()
   })
-    .then(r => r.json())
-    .then(d => {
-      if(d && d.payment_url){
-        if(d.client_txn_id){ try{ sessionStorage.setItem("pendingTxn", d.client_txn_id); }catch(e){} }
-        window.location.href = d.payment_url;
-      }
-      else { showToast("Couldn't start payment: " + ((d && d.msg) || "please try again")); }
-    })
-    .catch(e => { showToast("Payment error: " + e.message); });
+    .then(()=>{ closeM(payOverlay); $("#inUtr").value=""; showToast("Submitted \u2726 — it'll show on the bar once verified"); })
+    .catch(e=>{ showToast("Couldn't submit: " + (e.code||e.message)); console.error(e); });
 }
-$("#doPay").onclick = ()=>{
-  const amt = Number($("#inAmt").value)||0;
-  if(amt<1){ showToast("Enter an amount"); $("#inAmt").focus(); return; }   // TEMP: min lowered to \u20b91 for testing — restore to 500 later
-  payNow(amt);
+$("#submitUtr").onclick = ()=>{
+  submitPayment(Number($("#inAmt").value)||0, $("#inUtr").value);
 };
 
 /* ---------- Firebase ---------- */
@@ -262,6 +286,71 @@ function subscribe(){
     snap.forEach(d=>{ const v=d.data()||{}; data[(v.email||d.id)] = Number(v.amount)||0; });
     repaint();
   }, err=>console.error("snapshot error", err));
+}
+
+/* ---------- admin: verify pending payments ---------- */
+let unsubPending = null;
+function isAdmin(){ return !!user && ADMIN_EMAILS.indexOf(user.email) > -1; }
+function refreshAdminUI(){
+  const btn = $("#adminBtn");
+  if(!btn) return;
+  if(isAdmin()){ btn.style.display = ""; subscribePending(); }
+  else { btn.style.display = "none"; if(unsubPending){ unsubPending(); unsubPending=null; } }
+}
+$("#adminBtn").onclick = ()=> openM(adminOverlay);
+function subscribePending(){
+  if(!LIVE || !fb || unsubPending) return;
+  const q = fb.query(fb.collection(fb.db,"pending"), fb.where("status","==","pending"));
+  unsubPending = fb.onSnapshot(q, snap=>{
+    const rows = []; snap.forEach(d=> rows.push(d.data()));
+    renderAdmin(rows);
+  }, err=>console.error("pending snapshot", err));
+}
+function renderAdmin(rows){
+  const box = $("#adminList");
+  if(!rows.length){ box.innerHTML = '<p class="hint">No pending submissions.</p>'; return; }
+  rows.sort((a,b)=> ((a.at&&a.at.seconds)||0) - ((b.at&&b.at.seconds)||0));
+  box.innerHTML = "";
+  rows.forEach(r=>{
+    const el = document.createElement("div");
+    el.className = "admin-row";
+    el.innerHTML =
+      '<div class="top"><span class="nm"></span><span class="amt"></span></div>' +
+      '<div class="meta"></div>' +
+      '<div class="acts"><button class="btn solid ap">Approve</button><button class="btn ghost danger rj">Reject</button></div>';
+    el.querySelector(".nm").textContent = r.name || r.email;
+    el.querySelector(".amt").textContent = money(Number(r.amount)||0);
+    el.querySelector(".meta").textContent = r.email + " \u00b7 UTR " + r.utr;
+    el.querySelector(".ap").onclick = ()=> approvePending(r.utr);
+    el.querySelector(".rj").onclick = ()=> rejectPending(r.utr);
+    box.appendChild(el);
+  });
+}
+function approvePending(utr){
+  fb.runTransaction(fb.db, async (t)=>{
+    const pRef = fb.doc(fb.db,"pending",utr);
+    const pSnap = await t.get(pRef);
+    if(!pSnap.exists()) return;
+    const p = pSnap.data();
+    if(p.status !== "pending") return;
+    const cRef = fb.doc(fb.db,"contributions", p.email);
+    const cSnap = await t.get(cRef);
+    const prev = cSnap.exists() ? (Number(cSnap.data().amount)||0) : 0;
+    t.set(cRef, {
+      email: p.email, name: p.name,
+      amount: prev + (Number(p.amount)||0),
+      lastPaymentId: "utr:" + utr,
+      updatedAt: fb.serverTimestamp()
+    }, { merge:true });
+    t.update(pRef, { status:"approved", approvedAt: fb.serverTimestamp() });
+  })
+    .then(()=> showToast("Approved \u2726"))
+    .catch(e=>{ showToast("Approve failed: " + (e.code||e.message)); console.error(e); });
+}
+function rejectPending(utr){
+  fb.updateDoc(fb.doc(fb.db,"pending",utr), { status:"rejected", rejectedAt: fb.serverTimestamp() })
+    .then(()=> showToast("Rejected"))
+    .catch(e=>{ showToast("Reject failed: " + (e.code||e.message)); console.error(e); });
 }
 async function initFirebase(){
   try{
@@ -309,31 +398,3 @@ if(LIVE){
 }
 refreshUserUI();
 repaint();
-
-/* ---------- verify payment on return from UPIGateway ---------- */
-(function checkReturn(){
-  if(!BACKEND_URL || BACKEND_URL.indexOf("YOUR-VERCEL-APP") > -1) return;
-  const params = new URLSearchParams(location.search);
-  let txn = params.get("txn");
-  try{ if(!txn) txn = sessionStorage.getItem("pendingTxn"); }catch(e){}
-  if(!txn) return;
-  if(params.get("txn")) history.replaceState({}, "", location.pathname);  // clean the URL
-  showToast("Checking your payment\u2026");
-  let tries = 0;
-  (function poll(){
-    fetch(BACKEND_URL.replace(/\/$/,"") + "/api/verify?client_txn_id=" + encodeURIComponent(txn))
-      .then(r=>r.json())
-      .then(d=>{
-        if(d && d.recorded){
-          try{ sessionStorage.removeItem("pendingTxn"); }catch(e){}
-          showToast("Payment confirmed \u2726");
-        } else if(tries++ < 6){
-          setTimeout(poll, 3000);
-        } else {
-          try{ sessionStorage.removeItem("pendingTxn"); }catch(e){}
-          showToast("Not confirmed yet \u2014 it'll appear once the payment settles.");
-        }
-      })
-      .catch(()=>{ if(tries++ < 6) setTimeout(poll, 3000); });
-  })();
-})();
