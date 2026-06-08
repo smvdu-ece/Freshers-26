@@ -26,7 +26,7 @@ let data = {};              // email -> amount  (live snapshot or preview memory
 let payFilter = "all";      // payments list filter: all/gold/full/partial/pending/paid
 let payMethod = "UPI";
 let fb = null, unsub = null;
-let myPending = 0, unsubMyPending = null;
+let myPending = 0, unsubMyPending = null, mySubs = [];
 
 /* ---------- helpers ---------- */
 const $ = s => document.querySelector(s);
@@ -42,7 +42,7 @@ function domainOK(email){
   return ALLOWED_DOMAINS.some(d => dom===d || dom.endsWith("."+d));
 }
 document.querySelectorAll("[data-close]").forEach(x=>x.onclick=()=>{ const o=x.closest(".overlay"); if(o) o.classList.remove("show"); });
-[loginOverlay,payOverlay,document.getElementById("payListOverlay")].forEach(o=>o&&o.addEventListener("click",e=>{ if(e.target===o) closeM(o); }));
+[loginOverlay,payOverlay,adminOverlay,document.getElementById("mySubsOverlay"),document.getElementById("payListOverlay")].forEach(o=>o&&o.addEventListener("click",e=>{ if(e.target===o) closeM(o); }));
 
 /* ---------- mobile hamburger menu ---------- */
 const navLinks = document.getElementById("navLinks"), hamburger = document.getElementById("hamburger");
@@ -68,6 +68,11 @@ function repaint(){
   $("#totalRaised").textContent = money(total);
   $("#contribCount").textContent = count;
   $("#yourTotal").textContent = money(mine);
+  const yp = $("#yourPending");
+  if(yp){
+    if(pend>0){ yp.style.display="block"; yp.textContent = "+" + money(pend) + " pending"; }
+    else { yp.style.display="none"; yp.textContent=""; }
+  }
   $("#contribBtn").textContent = !user ? "Login to contribute" : (mine>=GOAL ? "Add more" : "Contribute \u20b91,740");
   if($("#payListOverlay").classList.contains("show")) renderPayments();
 }
@@ -105,6 +110,26 @@ function setPayFilter(f){
 document.querySelectorAll("#payFilters .fchip").forEach(c=> c.onclick=()=> setPayFilter(c.dataset.filter));
 $("#seePaymentsBtn").onclick = ()=>{ $("#paySearch").value=""; setPayFilter("all"); openM($("#payListOverlay")); };
 $("#contribStat").onclick   = ()=>{ $("#paySearch").value=""; setPayFilter("paid"); openM($("#payListOverlay")); };
+$("#yourStat").onclick = ()=>{ openM($("#mySubsOverlay")); renderMySubs(); };
+function renderMySubs(){
+  const box = $("#mySubsList");
+  if(!user){ box.innerHTML = '<p class="hint">Login to see your submissions.</p>'; return; }
+  if(!mySubs.length){ box.innerHTML = '<p class="hint">No submissions yet.</p>'; return; }
+  box.innerHTML = "";
+  mySubs.forEach((s,i)=>{
+    const st = (s.status||"pending");
+    const el = document.createElement("div");
+    el.className = "sub-row";
+    el.innerHTML = '<div class="si"></div><div class="sb"><div class="sa"></div><div class="su"></div></div><span class="badge"></span>';
+    el.querySelector(".si").textContent = "#" + (i+1);
+    el.querySelector(".sa").textContent = money(Number(s.amount)||0);
+    el.querySelector(".su").textContent = "UTR " + (s.utr||"");
+    const b = el.querySelector(".badge");
+    b.classList.add(st);
+    b.textContent = st.charAt(0).toUpperCase() + st.slice(1);
+    box.appendChild(el);
+  });
+}
 $("#paySearch").addEventListener("input", renderPayments);
 
 /* ---------- memories carousel ---------- */
@@ -288,12 +313,15 @@ function subscribe(){
 
 function subscribeMyPending(){
   if(unsubMyPending){ unsubMyPending(); unsubMyPending=null; }
-  myPending = 0;
+  myPending = 0; mySubs = [];
   if(!LIVE || !fb || !user){ repaint(); return; }
   const q = fb.query(fb.collection(fb.db,"pending"), fb.where("email","==",user.email));
   unsubMyPending = fb.onSnapshot(q, snap=>{
-    let p=0; snap.forEach(d=>{ const v=d.data()||{}; if(v.status==="pending") p += Number(v.amount)||0; });
-    myPending = p; repaint();
+    let p=0; const list=[];
+    snap.forEach(d=>{ const v=d.data()||{}; list.push(v); if(v.status==="pending") p += Number(v.amount)||0; });
+    list.sort((a,b)=> ((a.at&&a.at.seconds)||0) - ((b.at&&b.at.seconds)||0));
+    mySubs = list; myPending = p; repaint();
+    if($("#mySubsOverlay").classList.contains("show")) renderMySubs();
   }, err=>console.error("my-pending snapshot", err));
 }
 let unsubPending = null;

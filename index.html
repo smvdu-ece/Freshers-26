@@ -86,7 +86,7 @@
     <div class="collective">
       <div class="stat"><div class="v" id="totalRaised">₹0</div><div class="k">Total Raised</div></div>
       <div class="stat" id="contribStat" style="cursor:pointer" title="See who contributed"><div class="v" id="contribCount">0</div><div class="k">Contributors ›</div></div>
-      <div class="stat"><div class="v" id="yourTotal">₹0</div><div class="k">Your Contribution</div></div>
+      <div class="stat" id="yourStat" style="cursor:pointer" title="See your submissions"><div class="v" id="yourTotal">₹0</div><div class="k">Your Contribution ›</div><div class="pend-sub" id="yourPending"></div></div>
     </div>
   </div>
   <div style="text-align:center;margin-top:24px">
@@ -178,6 +178,16 @@
     <h3 class="gold-text">Verify payments</h3>
     <p class="s">Check each UTR against your bank statement, then approve. Approving credits the bar.</p>
     <div id="adminList" class="admin-list"><p class="hint">No pending submissions.</p></div>
+  </div>
+</div>
+
+<!-- YOUR SUBMISSIONS MODAL -->
+<div class="overlay" id="mySubsOverlay">
+  <div class="modal" style="max-width:480px">
+    <span class="x" data-close>×</span>
+    <h3 class="gold-text">Your submissions</h3>
+    <p class="s">Every payment you've submitted and its current status.</p>
+    <div id="mySubsList" class="subs-list"></div>
   </div>
 </div>
 

@@ -282,3 +282,16 @@ footer .script{font-size:30px;color:var(--gold);display:block;margin-bottom:8px}
 /* Pay with UPI button */
 .upi-btn{display:inline-flex;align-items:center;justify-content:center;gap:9px}
 .upi-btn svg{flex:0 0 auto;background:#fff;border-radius:5px;padding:3px;box-sizing:content-box}
+
+/* Your Contribution pending sub-line + submissions modal */
+.pend-sub{display:none;font-size:11px;letter-spacing:.5px;color:#8fb0ff;margin-top:4px}
+.subs-list{display:flex;flex-direction:column;gap:10px;max-height:60vh;overflow:auto;margin-top:12px}
+.sub-row{display:flex;align-items:center;gap:12px;border:1px solid rgba(255,255,255,.08);border-radius:12px;padding:11px 13px}
+.sub-row .si{color:var(--muted);font-weight:600;min-width:30px}
+.sub-row .sb{flex:1;min-width:0}
+.sub-row .sa{font-weight:700;color:var(--ink)}
+.sub-row .su{color:var(--muted);font-size:.78rem;word-break:break-all}
+.sub-row .badge{font-size:11px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;padding:4px 10px;border-radius:999px;white-space:nowrap}
+.sub-row .badge.pending{background:rgba(91,140,255,.15);color:#8fb0ff;border:1px solid rgba(91,140,255,.4)}
+.sub-row .badge.approved{background:rgba(63,191,106,.15);color:#5fd089;border:1px solid rgba(63,191,106,.4)}
+.sub-row .badge.rejected{background:rgba(224,86,86,.15);color:#ef7b7b;border:1px solid rgba(224,86,86,.4)}
