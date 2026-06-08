@@ -16,8 +16,8 @@ const FIREBASE_CONFIG = {
 const ALLOWED_DOMAINS = ["smvdu.ac.in"];   // <-- only these email domains can log in
 const GOAL = 1740;
 /* ---- Version A: direct UPI + manual verify (no gateway) ---- */
-const UPI_ID    = "kumarsujit73775-2@okaxis";       // <-- the UPI ID that RECEIVES the money
-const UPI_NAME  = "Sujit Kumar";                    // name shown in the payer's UPI app
+const UPI_ID    = "7654201815@upi";                 // <-- the UPI ID that RECEIVES the money
+const UPI_NAME  = "Freshers-26";                    // name shown in the payer's UPI app
 const ADMIN_EMAILS = ["25bec079@smvdu.ac.in"];     // who can verify & approve payments
 
 const LIVE = !!FIREBASE_CONFIG.apiKey;
