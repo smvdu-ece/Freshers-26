@@ -266,44 +266,23 @@ function upiLink(amt){
 function updatePayBtn(){
   const amt = Number($("#inAmt").value)||0;
   $("#payAmtLbl").textContent = money(amt);
-
-  const link = upiLink(amt);
-
-  const img = $("#upiQr");
-  if(img){
-    img.src =
-      "https://api.qrserver.com/v1/create-qr-code/?size=240x240&margin=0&data="
-      + encodeURIComponent(link);
-  }
-
-  const btn = $("#downloadQRBtn");
-
-  if(btn){
-    btn.onclick = () => {
-      const qr = document.getElementById("upiQr");
-
-      const a = document.createElement("a");
-      a.href = qr.src;
-      a.download = "Freshers26-UPI-QR.png";
-
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-    };
-  }
-
-  if($("#amtSection").style.display !== "none"){
-    $("#payTo").style.display = amt > 0 ? "" : "none";
-  }
-}
-  // amount-encoded QR — scanning it fills in the amount, just like the button
-  const img = $("#upiQr"); if(img) img.src = "https://api.qrserver.com/v1/create-qr-code/?size=240x240&margin=0&data=" + encodeURIComponent(link);
+  const link = upiLink(amt);          // amount included — for the direct "Pay with UPI" intent button
+  const qrLink = upiLink(0);          // NO amount — a plain payee QR, so apps allow paying it from the gallery
+  const a = $("#openUpi"); if(a) a.setAttribute("href", link);
+  // amount-less QR — apps treat amount-bearing QRs from the gallery as risky and block them
+  const img = $("#upiQr"); if(img) img.src = "https://api.qrserver.com/v1/create-qr-code/?size=240x240&margin=0&data=" + encodeURIComponent(qrLink);
   // custom mode: only reveal the QR/button once an amount is entered
   if($("#amtSection").style.display !== "none"){
     $("#payTo").style.display = amt>0 ? "" : "none";
   }
 }
-updatePayBtn();
+function initPayTo(){
+  // "Pay with UPI" deep link only works on phones — hide it on laptops (QR still shown)
+  const isMobile = /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent);
+  if(!isMobile){ const o=$("#openUpi"); if(o) o.style.display="none"; }
+  updatePayBtn();
+}
+initPayTo();
 function saveContribution(amt, paymentId){
   if(LIVE){
     fb.setDoc(fb.doc(fb.db,"contributions",user.email), {
