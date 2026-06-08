@@ -53,7 +53,7 @@ navLinks.querySelectorAll("a").forEach(a=> a.onclick=()=>{ navLinks.classList.re
 /* ---------- paint the bar + stats ---------- */
 function repaint(){
   let total=0, count=0;
-  for(const k in data){ total += data[k]; count++; }
+  for(const k in data){ const a=data[k]||0; total += a; if(a>0) count++; }
   const mine = user ? (data[user.email]||0) : 0;
   const pend = user ? (myPending||0) : 0;
   const pct = Math.min(mine/GOAL,1)*100;
