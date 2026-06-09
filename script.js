@@ -370,6 +370,7 @@ function refreshAdminUI(){
   else { btn.style.display = "none"; if(unsubPending){ unsubPending(); unsubPending=null; } }
 }
 let adminTab = "pending";
+let optStatus = {};   // utr -> optimistic status, applied instantly on tap until the server confirms
 function syncAdminTabs(){
   document.querySelectorAll(".atab").forEach(b=> b.classList.toggle("on", b.dataset.tab===adminTab));
 }
@@ -382,13 +383,20 @@ function subscribePending(){
   if(!LIVE || !fb || unsubPending) return;
   unsubPending = fb.onSnapshot(fb.collection(fb.db,"pending"), snap=>{
     const rows = []; snap.forEach(d=> rows.push(d.data()));
-    allSubs = rows; renderAdmin();
+    allSubs = rows;
+    // drop optimistic overrides the server has now confirmed
+    for(const utr in optStatus){
+      const real = rows.find(r=> r.utr === utr);
+      if(real && (real.status||"pending") === optStatus[utr]) delete optStatus[utr];
+    }
+    renderAdmin();
   }, err=>console.error("pending snapshot", err));
 }
 function renderAdmin(){
   const box = $("#adminList");
   const term = (($("#adminSearch") && $("#adminSearch").value) || "").trim().toLowerCase();
-  const isPending = r => (r.status || "pending") === "pending";
+  const eff = r => optStatus[r.utr] || r.status || "pending";
+  const isPending = r => eff(r) === "pending";
 
   // tab counts
   const pendCount = allSubs.filter(isPending).length;
@@ -411,7 +419,7 @@ function renderAdmin(){
   }
   box.innerHTML = "";
   rows.forEach(r=>{
-    const st = r.status || "pending";
+    const st = optStatus[r.utr] || r.status || "pending";
     const el = document.createElement("div");
     el.className = "admin-row";
     el.innerHTML =
@@ -424,8 +432,8 @@ function renderAdmin(){
     el.querySelector(".meta").textContent = r.email + " \u00b7 UTR " + r.utr;
     const msgIn = el.querySelector(".msg-in");
     if(r.note) msgIn.value = r.note;
-    el.querySelector(".ap").onclick = ()=> approvePending(r.utr, msgIn.value);
-    el.querySelector(".rj").onclick = ()=> rejectPending(r.utr, msgIn.value);
+    el.querySelector(".ap").onclick = ()=>{ const note=msgIn.value; optStatus[r.utr]="approved"; renderAdmin(); approvePending(r.utr, note); };
+    el.querySelector(".rj").onclick = ()=>{ const note=msgIn.value; optStatus[r.utr]="rejected"; renderAdmin(); rejectPending(r.utr, note); };
     box.appendChild(el);
   });
 }
@@ -450,7 +458,7 @@ function approvePending(utr, note){
     t.update(pRef, { status:"approved", note:(note||"").trim(), approvedAt: fb.serverTimestamp() });
   })
     .then(()=>{ showToast("Approved \u2726"); if(email) syncSheet(email); })
-    .catch(e=>{ showToast("Approve failed: " + (e.code||e.message)); console.error(e); });
+    .catch(e=>{ delete optStatus[utr]; renderAdmin(); showToast("Approve failed: " + (e.code||e.message)); console.error(e); });
 }
 function rejectPending(utr, note){
   let email = null;
@@ -470,7 +478,7 @@ function rejectPending(utr, note){
     t.update(pRef, { status:"rejected", note:(note||"").trim(), rejectedAt: fb.serverTimestamp() });
   })
     .then(()=>{ showToast("Rejected"); if(email) syncSheet(email); })
-    .catch(e=>{ showToast("Reject failed: " + (e.code||e.message)); console.error(e); });
+    .catch(e=>{ delete optStatus[utr]; renderAdmin(); showToast("Reject failed: " + (e.code||e.message)); console.error(e); });
 }
 
 /* ---------- Google Sheets sync ---------- */
