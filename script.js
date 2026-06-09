@@ -19,7 +19,7 @@ const GOAL = 1740;
 const UPI_ID    = "7654201815@upi";                 // <-- the UPI ID that RECEIVES the money
 const UPI_NAME  = "Freshers-26";                    // name shown in the payer's UPI app
 const ADMIN_EMAILS = ["25bec079@smvdu.ac.in"];     // who can verify & approve payments
-const SHEET_URL    = "https://script.google.com/macros/s/AKfycbyuTPSnkuWJUr88SuKuA5Z89gpDPng1QsJDTUiwuc16EeE7Is3i9-RmCkntnArbGG4J/exec";                            // <-- paste your Google Apps Script Web App URL (ends with /exec)
+const SHEET_URL    = "https://script.google.com/macros/s/AKfycbwJKJShyThtujEAm0jS368AlT-CjN-2fBKMofWXGx7I1TNE1enzlj6Nu_PybKhqNRt3/exec";  // Google Apps Script Web App URL
 const SHEET_SECRET = "freshers26";                  // must match SECRET in the Apps Script
 
 const LIVE = !!FIREBASE_CONFIG.apiKey;
