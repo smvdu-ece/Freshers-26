@@ -19,7 +19,7 @@ const GOAL = 1740;
 const UPI_ID    = "7654201815@upi";                 // <-- the UPI ID that RECEIVES the money
 const UPI_NAME  = "Freshers-26";                    // name shown in the payer's UPI app
 const ADMIN_EMAILS = ["25bec079@smvdu.ac.in"];     // who can verify & approve payments
-const SHEET_URL    = "https://script.google.com/macros/s/AKfycbwJKJShyThtujEAm0jS368AlT-CjN-2fBKMofWXGx7I1TNE1enzlj6Nu_PybKhqNRt3/exec";  // Google Apps Script Web App URL
+const SHEET_URL    = "https://script.google.com/macros/s/AKfycbyhLJrFPxSpmjDMeXgclnFhXXOjLCNkFpI0NIbCWlPAPY1C6m9LRCL4hik3R4W7xV3I/exec";  // Google Apps Script Web App URL
 const SHEET_SECRET = "freshers26";                  // must match SECRET in the Apps Script
 
 const LIVE = !!FIREBASE_CONFIG.apiKey;
@@ -493,8 +493,8 @@ function syncSheet(email){
       return ta - tb;
     });
     const name = (subs[0] && subs[0].name) || anyName || email;
-    const payments = subs.slice(0,10).map(s=>({ amount: Number(s.amount)||0, utr: s.utr||"" }));
-    const total = payments.reduce((t,p)=> t + p.amount, 0);
+    const total = subs.reduce((t,s)=> t + (Number(s.amount)||0), 0);
+    const payments = subs.slice(0,5).map(s=>({ amount: Number(s.amount)||0, utr: s.utr||"" }));
     fetch(SHEET_URL, {
       method: "POST", mode: "no-cors",
       headers: { "Content-Type": "text/plain;charset=utf-8" },
