@@ -315,3 +315,6 @@ footer .script{font-size:30px;color:var(--gold);display:block;margin-bottom:8px}
 .admin-row .badge.pending{background:rgba(91,140,255,.15);color:#8fb0ff;border:1px solid rgba(91,140,255,.4)}
 .admin-row .badge.approved{background:rgba(63,191,106,.15);color:#5fd089;border:1px solid rgba(63,191,106,.4)}
 .admin-row .badge.rejected{background:rgba(224,86,86,.15);color:#ef7b7b;border:1px solid rgba(224,86,86,.4)}
+/* Download QR button */
+.dl-btn{display:inline-flex;align-items:center;justify-content:center;gap:8px}
+.dl-btn svg{flex:0 0 auto}
