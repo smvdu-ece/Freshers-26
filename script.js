@@ -19,7 +19,7 @@ const GOAL = 1740;
 const UPI_ID    = "7654201815@upi";                 // <-- the UPI ID that RECEIVES the money
 const UPI_NAME  = "Freshers-26";                    // name shown in the payer's UPI app
 const ADMIN_EMAILS = ["25bec079@smvdu.ac.in"];     // who can verify & approve payments
-const SHEET_URL    = "https://script.google.com/macros/s/AKfycbyuTPSnkuWJUr88SuKuA5Z89gpDPng1QsJDTUiwuc16EeE7Is3i9-RmCkntnArbGG4J/exec";                            // <-- paste your Google Apps Script Web App URL (ends with /exec)
+const SHEET_URL    = "";                            // <-- paste your Google Apps Script Web App URL (ends with /exec)
 const SHEET_SECRET = "freshers26";                  // must match SECRET in the Apps Script
 
 const LIVE = !!FIREBASE_CONFIG.apiKey;
@@ -477,14 +477,14 @@ function rejectPending(utr, note){
 function syncSheet(email){
   if(!SHEET_URL || !fb || !email) return;
   fb.getDocs(fb.query(fb.collection(fb.db,"pending"), fb.where("email","==",email))).then(snap=>{
-    const subs = [];
-    snap.forEach(d=>{ const v=d.data()||{}; if(v.status==="approved") subs.push(v); });
+    const subs = []; let anyName = "";
+    snap.forEach(d=>{ const v=d.data()||{}; if(v.name) anyName = v.name; if(v.status==="approved") subs.push(v); });
     subs.sort((a,b)=>{
       const ta = (a.approvedAt&&a.approvedAt.seconds) || (a.at&&a.at.seconds) || 0;
       const tb = (b.approvedAt&&b.approvedAt.seconds) || (b.at&&b.at.seconds) || 0;
       return ta - tb;
     });
-    const name = (subs[0] && subs[0].name) || email;
+    const name = (subs[0] && subs[0].name) || anyName || email;
     const payments = subs.slice(0,10).map(s=>({ amount: Number(s.amount)||0, utr: s.utr||"" }));
     const total = payments.reduce((t,p)=> t + p.amount, 0);
     fetch(SHEET_URL, {
@@ -496,8 +496,9 @@ function syncSheet(email){
 }
 function syncAllToSheet(){
   if(!SHEET_URL){ showToast("Set SHEET_URL in script.js first"); return; }
-  const emails = Array.from(new Set(allSubs.filter(s=>s.status==="approved").map(s=>s.email)));
-  if(!emails.length){ showToast("No approved payments to sync"); return; }
+  // Sync EVERYONE who has any submission so approvals AND rejections both reconcile.
+  const emails = Array.from(new Set(allSubs.map(s=>s.email).filter(Boolean)));
+  if(!emails.length){ showToast("Nothing to sync yet"); return; }
   emails.forEach((em,i)=> setTimeout(()=> syncSheet(em), i*250));
   showToast("Syncing " + emails.length + " contributor(s) to the sheet\u2026");
 }
