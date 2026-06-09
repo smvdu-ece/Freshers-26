@@ -19,6 +19,8 @@ const GOAL = 1740;
 const UPI_ID    = "7654201815@upi";                 // <-- the UPI ID that RECEIVES the money
 const UPI_NAME  = "Freshers-26";                    // name shown in the payer's UPI app
 const ADMIN_EMAILS = ["25bec079@smvdu.ac.in"];     // who can verify & approve payments
+const SHEET_URL    = "https://script.google.com/a/macros/smvdu.ac.in/s/AKfycbwtTRAoLGnEwcju63i_F3yTQhHKoVZFZuAWiYsBIBVEAxPJWFHp2elqOuDGKLhZtn1kPw/exec";                            // <-- paste your Google Apps Script Web App URL (ends with /exec)
+const SHEET_SECRET = "freshers26";                  // must match SECRET in the Apps Script
 
 const LIVE = !!FIREBASE_CONFIG.apiKey;
 let user = null;            // { email, name }
@@ -266,6 +268,8 @@ function upiLink(amt){
 function updatePayBtn(){
   const amt = Number($("#inAmt").value)||0;
   $("#payAmtLbl").textContent = money(amt);
+  // Pay with UPI link carries the amount AND the "Freshers26" note (apps honour it from a direct link)
+  const a = $("#openUpi"); if(a) a.setAttribute("href", upiLink(amt));
   // amount-encoded QR — scanning/downloading it fills in the amount
   const img = $("#upiQr"); if(img) img.src = "https://api.qrserver.com/v1/create-qr-code/?size=240x240&margin=0&data=" + encodeURIComponent(upiLink(amt));
   // custom mode: only reveal the QR once an amount is entered
@@ -285,7 +289,12 @@ function downloadQR(){
     showToast("QR downloaded \u2014 open it in your UPI app to pay");
   }).catch(()=>{ window.open(url, "_blank"); });
 }
-function initPayTo(){ updatePayBtn(); }
+function initPayTo(){
+  // "Pay with UPI" deep link only works on phones — hide it on laptops (QR + download still shown)
+  const isMobile = /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent);
+  if(!isMobile){ const o=$("#openUpi"); if(o) o.style.display="none"; }
+  updatePayBtn();
+}
 const _dq = $("#downloadQr"); if(_dq) _dq.onclick = downloadQR;
 initPayTo();
 function saveContribution(amt, paymentId){
@@ -421,11 +430,13 @@ function renderAdmin(){
   });
 }
 function approvePending(utr, note){
+  let email = null;
   fb.runTransaction(fb.db, async (t)=>{
     const pRef = fb.doc(fb.db,"pending",utr);
     const pSnap = await t.get(pRef);
     if(!pSnap.exists()) return;
     const p = pSnap.data();
+    email = p.email;
     if(p.status === "approved"){ t.update(pRef, { note:(note||"").trim() }); return; } // already credited
     const cRef = fb.doc(fb.db,"contributions", p.email);
     const cSnap = await t.get(cRef);
@@ -438,15 +449,17 @@ function approvePending(utr, note){
     }, { merge:true });
     t.update(pRef, { status:"approved", note:(note||"").trim(), approvedAt: fb.serverTimestamp() });
   })
-    .then(()=> showToast("Approved \u2726"))
+    .then(()=>{ showToast("Approved \u2726"); if(email) syncSheet(email); })
     .catch(e=>{ showToast("Approve failed: " + (e.code||e.message)); console.error(e); });
 }
 function rejectPending(utr, note){
+  let email = null;
   fb.runTransaction(fb.db, async (t)=>{
     const pRef = fb.doc(fb.db,"pending",utr);
     const pSnap = await t.get(pRef);
     if(!pSnap.exists()) return;
     const p = pSnap.data();
+    email = p.email;
     if(p.status === "rejected"){ t.update(pRef, { note:(note||"").trim() }); return; }
     if(p.status === "approved"){            // reverse a previous approval
       const cRef = fb.doc(fb.db,"contributions", p.email);
@@ -456,9 +469,39 @@ function rejectPending(utr, note){
     }
     t.update(pRef, { status:"rejected", note:(note||"").trim(), rejectedAt: fb.serverTimestamp() });
   })
-    .then(()=> showToast("Rejected"))
+    .then(()=>{ showToast("Rejected"); if(email) syncSheet(email); })
     .catch(e=>{ showToast("Reject failed: " + (e.code||e.message)); console.error(e); });
 }
+
+/* ---------- Google Sheets sync ---------- */
+function syncSheet(email){
+  if(!SHEET_URL || !fb || !email) return;
+  fb.getDocs(fb.query(fb.collection(fb.db,"pending"), fb.where("email","==",email))).then(snap=>{
+    const subs = [];
+    snap.forEach(d=>{ const v=d.data()||{}; if(v.status==="approved") subs.push(v); });
+    subs.sort((a,b)=>{
+      const ta = (a.approvedAt&&a.approvedAt.seconds) || (a.at&&a.at.seconds) || 0;
+      const tb = (b.approvedAt&&b.approvedAt.seconds) || (b.at&&b.at.seconds) || 0;
+      return ta - tb;
+    });
+    const name = (subs[0] && subs[0].name) || email;
+    const payments = subs.slice(0,10).map(s=>({ amount: Number(s.amount)||0, utr: s.utr||"" }));
+    const total = payments.reduce((t,p)=> t + p.amount, 0);
+    fetch(SHEET_URL, {
+      method: "POST", mode: "no-cors",
+      headers: { "Content-Type": "text/plain;charset=utf-8" },
+      body: JSON.stringify({ secret: SHEET_SECRET, name, email, payments, total })
+    }).catch(e=>console.error("sheet sync", e));
+  }).catch(e=>console.error("sheet read", e));
+}
+function syncAllToSheet(){
+  if(!SHEET_URL){ showToast("Set SHEET_URL in script.js first"); return; }
+  const emails = Array.from(new Set(allSubs.filter(s=>s.status==="approved").map(s=>s.email)));
+  if(!emails.length){ showToast("No approved payments to sync"); return; }
+  emails.forEach((em,i)=> setTimeout(()=> syncSheet(em), i*250));
+  showToast("Syncing " + emails.length + " contributor(s) to the sheet\u2026");
+}
+const _ss = $("#syncSheetBtn"); if(_ss) _ss.onclick = syncAllToSheet;
 async function initFirebase(){
   try{
     const appMod  = await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js");
