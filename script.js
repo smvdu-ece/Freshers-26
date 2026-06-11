@@ -141,7 +141,7 @@ $("#paySearch").addEventListener("input", renderPayments);
 /* ---------- memories carousel ---------- */
 // Slides pull from Files/photo1.JPG ... photo26.JPG (uppercase .JPG).
 // Any file that doesn't exist is skipped automatically. Change 26 to add/remove.
-const MEMORIES = Array.from({length:26}, (_,i)=> "Files/photo" + (i+1) + ".JPG");
+const MEMORIES = Array.from({length:25}, (_,i)=> "Files/photo" + (i+1) + ".JPG");
 (function(){
   const car=$("#memCarousel"), track=$("#memTrack"), dotsWrap=$("#memDots");
   let idx=0;
