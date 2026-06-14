@@ -399,3 +399,4 @@ button.bstatus.paid:hover{filter:brightness(1.12)}
 .bproof{width:auto;text-align:right;justify-self:end}
 .bdel{margin-left:0;justify-self:center}
 .budget-head span:last-child{width:auto}
+.budget-head span.r{justify-self:end;width:auto;text-align:right}

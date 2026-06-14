@@ -149,6 +149,7 @@ function renderBudget(){
   const remaining = totalRaised - used;
 
   $("#budgetNeeded").textContent = needed>0 ? money(needed) : "\u20b9-";
+  const tn = $("#totalNeed"); if(tn) tn.textContent = needed>0 ? money(needed) : "\u20b9-";  // mirror on the contribution card
   $("#budgetTotal").textContent  = money(totalRaised);
   $("#budgetUsed").textContent   = money(used);
   $("#budgetLeft").textContent   = money(remaining);
@@ -207,6 +208,7 @@ async function deleteBudgetItem(id){
 }
 
 $("#budgetBtn").onclick = ()=>{ openM($("#budgetOverlay")); renderBudget(); subscribeBudget(); };
+const _ns = $("#needStat"); if(_ns) _ns.onclick = ()=>{ openM($("#budgetOverlay")); renderBudget(); subscribeBudget(); };
 $("#addBudgetItem").onclick = addBudgetItem;
 const _bo = $("#budgetOverlay"); if(_bo) _bo.addEventListener("click", e=>{ if(e.target===_bo) closeM(_bo); });
 function renderMySubs(){
