@@ -21,6 +21,8 @@ const UPI_NAME  = "Freshers-26";                    // name shown in the payer's
 const ADMIN_EMAILS = ["25bec079@smvdu.ac.in"];     // who can verify & approve payments
 const SHEET_URL    = "https://script.google.com/macros/s/AKfycbyhLJrFPxSpmjDMeXgclnFhXXOjLCNkFpI0NIbCWlPAPY1C6m9LRCL4hik3R4W7xV3I/exec";  // Google Apps Script Web App URL
 const SHEET_SECRET = "freshers26";                  // must match SECRET in the Apps Script
+/* ---- Budget usage lives in Firebase (Firestore doc: budget/main).
+   Admins edit it on the site — set total, add/remove expenses. Everyone sees it live. ---- */
 
 const LIVE = !!FIREBASE_CONFIG.apiKey;
 let user = null;            // { email, name }
@@ -116,6 +118,89 @@ document.querySelectorAll("#payFilters .fchip").forEach(c=> c.onclick=()=> setPa
 $("#seePaymentsBtn").onclick = ()=>{ $("#paySearch").value=""; setPayFilter("all"); openM($("#payListOverlay")); };
 $("#contribStat").onclick   = ()=>{ $("#paySearch").value=""; setPayFilter("paid"); openM($("#payListOverlay")); };
 $("#yourStat").onclick = ()=>{ openM($("#mySubsOverlay")); renderMySubs(); };
+
+/* ---------- budget usage (stored in Firebase: doc budget/main) ---------- */
+let budgetData = { total: 0, items: [] };   // live snapshot
+let unsubBudget = null;
+function _bEsc(s){ return String(s==null?"":s).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function budgetRef(){ return fb.doc(fb.db, "budget", "main"); }
+
+function subscribeBudget(){
+  if(!LIVE || !fb){ renderBudget(); return; }
+  if(unsubBudget) return;                       // already listening
+  unsubBudget = fb.onSnapshot(budgetRef(), snap=>{
+    const d = snap.exists() ? (snap.data()||{}) : {};
+    budgetData = { total: Number(d.total)||0, items: Array.isArray(d.items)? d.items : [] };
+    renderBudget();
+  }, err=>{ console.error("budget sub", err); });
+}
+
+function renderBudget(){
+  const list = $("#budgetList");
+  const admin = isAdmin();
+  $("#budgetAdmin").style.display = admin ? "block" : "none";
+
+  const items = budgetData.items || [];
+  const used  = items.reduce((t,it)=> t + (Number(it.amount)||0), 0);
+  const total = Number(budgetData.total)||0;
+  const left  = Math.max(total - used, 0);
+  $("#budgetTotal").textContent = money(total);
+  $("#budgetUsed").textContent  = money(used);
+  $("#budgetLeft").textContent  = money(left);
+  $("#budgetBarFill").style.width = (total>0 ? Math.min(used/total,1)*100 : 0) + "%";
+  if(admin) $("#inBudgetTotal").placeholder = total ? money(total) : "e.g. 50000";
+
+  if(!LIVE || !fb){ list.innerHTML = '<p class="hint">Connect Firebase to enable the live budget.</p>'; return; }
+  if(!items.length){ list.innerHTML = '<p class="hint">No expenses added yet.</p>'; return; }
+  list.innerHTML = items.map(it=>{
+    const proof = it.proof
+      ? '<a class="bproof" href="'+_bEsc(it.proof)+'" target="_blank" rel="noopener">View proof ›</a>'
+      : '<span class="bproof none">—</span>';
+    const del = admin ? '<button class="bdel" data-id="'+_bEsc(it.id)+'" title="Remove">×</button>' : '';
+    return '<div class="brow"><span class="bwhere">'+_bEsc(it.where)+'</span><span class="bamt">'+money(it.amount)+'</span>'+proof+del+'</div>';
+  }).join("");
+  list.querySelectorAll(".bdel").forEach(b=> b.onclick = ()=> deleteBudgetItem(b.dataset.id));
+}
+
+async function saveBudgetTotal(){
+  if(!isAdmin()) return;
+  const v = Number($("#inBudgetTotal").value);
+  if(!(v>=0)){ showToast("Enter a valid budget amount"); return; }
+  try{
+    await fb.setDoc(budgetRef(), { total: v }, { merge:true });
+    $("#inBudgetTotal").value = "";
+    showToast("Total budget updated \u2726");
+  }catch(e){ console.error(e); showToast("Couldn't save — check permissions"); }
+}
+
+async function addBudgetItem(){
+  if(!isAdmin()) return;
+  const where = $("#inBudgetWhere").value.trim();
+  const amount = Number($("#inBudgetAmt").value);
+  const proof = $("#inBudgetProof").value.trim();
+  if(!where){ showToast("Add where it was used"); return; }
+  if(!(amount>0)){ showToast("Add a valid amount"); return; }
+  const item = { id: "b" + Date.now() + Math.floor(Math.random()*1000), where, amount, proof, at: Date.now() };
+  try{
+    await fb.setDoc(budgetRef(), { items: [ ...(budgetData.items||[]), item ] }, { merge:true });
+    $("#inBudgetWhere").value = ""; $("#inBudgetAmt").value = ""; $("#inBudgetProof").value = "";
+    showToast("Expense added \u2726");
+  }catch(e){ console.error(e); showToast("Couldn't add — check permissions"); }
+}
+
+async function deleteBudgetItem(id){
+  if(!isAdmin()) return;
+  const next = (budgetData.items||[]).filter(it=> it.id !== id);
+  try{
+    await fb.setDoc(budgetRef(), { items: next }, { merge:true });
+    showToast("Expense removed");
+  }catch(e){ console.error(e); showToast("Couldn't remove — check permissions"); }
+}
+
+$("#budgetBtn").onclick = ()=>{ openM($("#budgetOverlay")); renderBudget(); subscribeBudget(); };
+$("#saveBudgetTotal").onclick = saveBudgetTotal;
+$("#addBudgetItem").onclick = addBudgetItem;
+const _bo = $("#budgetOverlay"); if(_bo) _bo.addEventListener("click", e=>{ if(e.target===_bo) closeM(_bo); });
 function renderMySubs(){
   const box = $("#mySubsList");
   if(!user){ box.innerHTML = '<p class="hint">Login to see your submissions.</p>'; return; }
@@ -521,6 +606,7 @@ async function initFirebase(){
     // Force long-polling so reads/writes work on restrictive college / Wi-Fi networks
     const db = fsMod.initializeFirestore(app, { experimentalForceLongPolling: true });
     fb = { auth: authMod.getAuth(app), db, ...authMod, ...fsMod };
+    subscribeBudget();   // keep the budget live regardless of whether the modal is open
 
     // complete a redirect sign-in if we came back from one
     try{ await fb.getRedirectResult(fb.auth); }catch(e){ console.warn("redirect result", e); }
