@@ -72,6 +72,8 @@ function repaint(){
   $("#doneBadge").style.display = mine>=GOAL ? "flex" : "none";
   $("#extraBtn").style.display = mine>=GOAL ? "none" : "";   // hide "Pay a custom amount" once goal is reached
   $("#totalRaised").textContent = money(total);
+  totalRaised = total;   // share with the Budget Usage modal
+  if($("#budgetOverlay") && $("#budgetOverlay").classList.contains("show")) renderBudget();
   $("#contribCount").textContent = count;
   $("#yourTotal").textContent = money(mine);
   const yp = $("#yourPending");
@@ -120,8 +122,9 @@ $("#contribStat").onclick   = ()=>{ $("#paySearch").value=""; setPayFilter("paid
 $("#yourStat").onclick = ()=>{ openM($("#mySubsOverlay")); renderMySubs(); };
 
 /* ---------- budget usage (stored in Firebase: doc budget/main) ---------- */
-let budgetData = { total: 0, items: [] };   // live snapshot
+let budgetData = { items: [] };   // live snapshot: { items:[{id, where, amount, proof, paid}] }
 let unsubBudget = null;
+let totalRaised = 0;              // mirrors the contribution "Total Raised" (kept in sync by repaint)
 function _bEsc(s){ return String(s==null?"":s).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 function budgetRef(){ return fb.doc(fb.db, "budget", "main"); }
 
@@ -130,7 +133,7 @@ function subscribeBudget(){
   if(unsubBudget) return;                       // already listening
   unsubBudget = fb.onSnapshot(budgetRef(), snap=>{
     const d = snap.exists() ? (snap.data()||{}) : {};
-    budgetData = { total: Number(d.total)||0, items: Array.isArray(d.items)? d.items : [] };
+    budgetData = { items: Array.isArray(d.items)? d.items : [] };
     renderBudget();
   }, err=>{ console.error("budget sub", err); });
 }
@@ -140,37 +143,33 @@ function renderBudget(){
   const admin = isAdmin();
   $("#budgetAdmin").style.display = admin ? "block" : "none";
 
-  const items = budgetData.items || [];
-  const used  = items.reduce((t,it)=> t + (Number(it.amount)||0), 0);
-  const total = Number(budgetData.total)||0;
-  const left  = Math.max(total - used, 0);
-  $("#budgetTotal").textContent = money(total);
-  $("#budgetUsed").textContent  = money(used);
-  $("#budgetLeft").textContent  = money(left);
-  $("#budgetBarFill").style.width = (total>0 ? Math.min(used/total,1)*100 : 0) + "%";
-  if(admin) $("#inBudgetTotal").placeholder = total ? money(total) : "e.g. 50000";
+  const items     = budgetData.items || [];
+  const needed    = items.reduce((t,it)=> t + (Number(it.amount)||0), 0);                  // every listed amount
+  const used      = items.reduce((t,it)=> t + (it.paid ? (Number(it.amount)||0) : 0), 0);  // only items marked paid
+  const remaining = totalRaised - used;
+
+  $("#budgetNeeded").textContent = needed>0 ? money(needed) : "\u20b9-";
+  $("#budgetTotal").textContent  = money(totalRaised);
+  $("#budgetUsed").textContent   = money(used);
+  $("#budgetLeft").textContent   = money(remaining);
+  $("#budgetBarFill").style.width = (totalRaised>0 ? Math.min(Math.max(used/totalRaised,0),1)*100 : 0) + "%";
 
   if(!LIVE || !fb){ list.innerHTML = '<p class="hint">Connect Firebase to enable the live budget.</p>'; return; }
   if(!items.length){ list.innerHTML = '<p class="hint">No expenses added yet.</p>'; return; }
   list.innerHTML = items.map(it=>{
+    const paid = !!it.paid;
     const proof = it.proof
-      ? '<a class="bproof" href="'+_bEsc(it.proof)+'" target="_blank" rel="noopener">View proof ›</a>'
+      ? '<a class="bproof" href="'+_bEsc(it.proof)+'" target="_blank" rel="noopener">Proof ›</a>'
       : '<span class="bproof none">—</span>';
+    const status = admin
+      ? '<button class="bstatus '+(paid?'paid':'unpaid')+'" data-toggle="'+_bEsc(it.id)+'">'+(paid?'Paid \u2713':'Mark paid')+'</button>'
+      : '<span class="bstatus '+(paid?'paid':'unpaid')+'">'+(paid?'Paid':'Not paid')+'</span>';
     const del = admin ? '<button class="bdel" data-id="'+_bEsc(it.id)+'" title="Remove">×</button>' : '';
-    return '<div class="brow"><span class="bwhere">'+_bEsc(it.where)+'</span><span class="bamt">'+money(it.amount)+'</span>'+proof+del+'</div>';
+    return '<div class="brow"><div class="bmain"><div class="bwhere">'+_bEsc(it.where)+'</div>'+status+'</div>'
+         + '<span class="bamt">'+money(it.amount)+'</span>'+proof+del+'</div>';
   }).join("");
+  list.querySelectorAll(".bstatus[data-toggle]").forEach(b=> b.onclick = ()=> toggleBudgetPaid(b.dataset.toggle));
   list.querySelectorAll(".bdel").forEach(b=> b.onclick = ()=> deleteBudgetItem(b.dataset.id));
-}
-
-async function saveBudgetTotal(){
-  if(!isAdmin()) return;
-  const v = Number($("#inBudgetTotal").value);
-  if(!(v>=0)){ showToast("Enter a valid budget amount"); return; }
-  try{
-    await fb.setDoc(budgetRef(), { total: v }, { merge:true });
-    $("#inBudgetTotal").value = "";
-    showToast("Total raised updated \u2726");
-  }catch(e){ console.error(e); showToast("Couldn't save — check permissions"); }
 }
 
 async function addBudgetItem(){
@@ -178,14 +177,24 @@ async function addBudgetItem(){
   const where = $("#inBudgetWhere").value.trim();
   const amount = Number($("#inBudgetAmt").value);
   const proof = $("#inBudgetProof").value.trim();
-  if(!where){ showToast("Add where it was used"); return; }
+  if(!where){ showToast("Add what it's for"); return; }
   if(!(amount>0)){ showToast("Add a valid amount"); return; }
-  const item = { id: "b" + Date.now() + Math.floor(Math.random()*1000), where, amount, proof, at: Date.now() };
+  const item = { id: "b" + Date.now() + Math.floor(Math.random()*1000), where, amount, proof, paid:false, at: Date.now() };
   try{
     await fb.setDoc(budgetRef(), { items: [ ...(budgetData.items||[]), item ] }, { merge:true });
     $("#inBudgetWhere").value = ""; $("#inBudgetAmt").value = ""; $("#inBudgetProof").value = "";
-    showToast("Expense added \u2726");
+    showToast("Expense added — marked not paid \u2726");
   }catch(e){ console.error(e); showToast("Couldn't add — check permissions"); }
+}
+
+async function toggleBudgetPaid(id){
+  if(!isAdmin()) return;
+  const next = (budgetData.items||[]).map(it=> it.id===id ? { ...it, paid: !it.paid } : it);
+  try{
+    await fb.setDoc(budgetRef(), { items: next }, { merge:true });
+    const it = next.find(x=>x.id===id);
+    showToast(it && it.paid ? "Marked paid \u2726" : "Marked not paid");
+  }catch(e){ console.error(e); showToast("Couldn't update — check permissions"); }
 }
 
 async function deleteBudgetItem(id){
@@ -198,7 +207,6 @@ async function deleteBudgetItem(id){
 }
 
 $("#budgetBtn").onclick = ()=>{ openM($("#budgetOverlay")); renderBudget(); subscribeBudget(); };
-$("#saveBudgetTotal").onclick = saveBudgetTotal;
 $("#addBudgetItem").onclick = addBudgetItem;
 const _bo = $("#budgetOverlay"); if(_bo) _bo.addEventListener("click", e=>{ if(e.target===_bo) closeM(_bo); });
 function renderMySubs(){

@@ -225,20 +225,16 @@
     <h3 class="gold-text">Budget Usage</h3>
     <p class="s">Where the Freshers'26 funds are going — updated live.</p>
     <div class="budget-summary">
+      <div class="bstat"><div class="v gold-text" id="budgetNeeded">₹-</div><div class="k">Total Budget Needed</div></div>
       <div class="bstat"><div class="v gold-text" id="budgetTotal">—</div><div class="k">Total Raised</div></div>
       <div class="bstat"><div class="v" id="budgetUsed">—</div><div class="k">Total Used</div></div>
       <div class="bstat"><div class="v" id="budgetLeft">—</div><div class="k">Remaining</div></div>
     </div>
     <div class="budget-bar"><div class="budget-bar-fill" id="budgetBarFill"></div></div>
 
-    <!-- admin-only controls (mirrors the verify-payments admin flow) -->
+    <!-- admin-only controls (add an expense; mark paid from the list below) -->
     <div class="budget-admin" id="budgetAdmin" style="display:none">
-      <div class="ba-row">
-        <input id="inBudgetTotal" type="number" min="0" placeholder="Set total raised (₹)">
-        <button class="bbtn" id="saveBudgetTotal" type="button">Save total</button>
-      </div>
-      <div class="ba-sep"></div>
-      <input id="inBudgetWhere" type="text" placeholder="Where used (e.g. Decorations)">
+      <input id="inBudgetWhere" type="text" placeholder="Purpose (e.g. Decorations, Sound system)">
       <div class="ba-row">
         <input id="inBudgetAmt" type="number" min="1" placeholder="Amount (₹)">
         <input id="inBudgetProof" type="text" placeholder="Proof link (optional)">
@@ -246,7 +242,7 @@
       <button class="bbtn solid" id="addBudgetItem" type="button">+ Add expense</button>
     </div>
 
-    <div class="budget-head"><span>Where used</span><span>Amount</span><span>Proof</span></div>
+    <div class="budget-head"><span>Purpose</span><span>Amount</span></div>
     <div id="budgetList" class="budget-list"><p class="hint">Loading…</p></div>
   </div>
 </div>

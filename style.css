@@ -368,3 +368,15 @@ img:not(#upiQr){
 .bbtn.solid{width:100%;background:var(--grad-gold);color:#120c02;font-weight:700;border:none;margin-top:2px}
 .bdel{margin-left:10px;width:26px;height:26px;flex:0 0 auto;border:1px solid var(--line);background:transparent;color:var(--muted);border-radius:6px;cursor:pointer;font-size:16px;line-height:1;transition:.2s}
 .bdel:hover{border-color:#e05656;color:#ef7b7b}
+
+
+/* ---------- budget rows v2: purpose + paid status ---------- */
+.bmain{flex:1;min-width:0;display:flex;flex-direction:column;align-items:flex-start;gap:6px}
+.bwhere{flex:none;color:var(--ink);font-size:14px;line-height:1.35;word-break:break-word}
+.bstatus{font-family:'Cinzel',serif;font-size:10px;letter-spacing:1px;padding:3px 10px;border-radius:20px;border:1px solid var(--line);background:transparent;cursor:default}
+.bstatus.paid{color:#5fd089;border-color:rgba(63,191,106,.45);background:rgba(63,191,106,.12)}
+.bstatus.unpaid{color:var(--muted)}
+button.bstatus{cursor:pointer;transition:.2s}
+button.bstatus.unpaid:hover{color:var(--gold);border-color:var(--gold)}
+button.bstatus.paid:hover{filter:brightness(1.12)}
+.budget-head span:last-child{width:88px;text-align:right}
