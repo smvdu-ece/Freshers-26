@@ -557,3 +557,15 @@ if(LIVE){
 }
 refreshUserUI();
 repaint();
+
+/* ---------- image protection (casual-save deterrent) ---------- */
+/* Photos render in the browser, so they can never be made truly un-saveable
+   (DevTools / screenshots / the public GitHub repo all still expose them).
+   This just blocks the easy routes for ordinary visitors: right-click
+   "Save image" and dragging a photo out of the page. The UPI QR is excluded
+   on purpose so people can still download it to pay. */
+(function(){
+  const isProtected = el => el && el.tagName === "IMG" && el.id !== "upiQr";
+  document.addEventListener("contextmenu", e=>{ if(isProtected(e.target)) e.preventDefault(); });
+  document.addEventListener("dragstart",  e=>{ if(isProtected(e.target)) e.preventDefault(); });
+})();
