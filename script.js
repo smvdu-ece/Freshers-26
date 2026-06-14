@@ -169,7 +169,7 @@ async function saveBudgetTotal(){
   try{
     await fb.setDoc(budgetRef(), { total: v }, { merge:true });
     $("#inBudgetTotal").value = "";
-    showToast("Total budget updated \u2726");
+    showToast("Total raised updated \u2726");
   }catch(e){ console.error(e); showToast("Couldn't save — check permissions"); }
 }
 
