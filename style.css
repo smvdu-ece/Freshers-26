@@ -400,3 +400,64 @@ button.bstatus.paid:hover{filter:brightness(1.12)}
 .bdel{margin-left:0;justify-self:center}
 .budget-head span:last-child{width:auto}
 .budget-head span.r{justify-self:end;width:auto;text-align:right}
+
+
+/* ============================================================
+   3D ATMOSPHERE + MOTION  (visual upgrade — see effects.js)
+   ============================================================ */
+/* full-screen 3D canvas sits behind all content */
+#bg3d{position:fixed;inset:0;width:100vw;height:100vh;z-index:0;pointer-events:none;display:block}
+.wrap{z-index:2}            /* content floats above the canvas */
+.nav{z-index:60}
+
+/* recurring diamond motif gently turns in 3D */
+.divider .d{animation:dspin 7s linear infinite}
+@keyframes dspin{from{transform:rotate(45deg) rotateY(0deg)}to{transform:rotate(45deg) rotateY(360deg)}}
+
+/* tilt scaffolding */
+[data-tilt]{transform-style:preserve-3d;will-change:transform;transition:box-shadow .4s ease}
+.tilt-glare{position:absolute;inset:0;border-radius:inherit;pointer-events:none;opacity:0;
+  mix-blend-mode:screen;background:transparent;transition:opacity .35s ease;z-index:4}
+[data-tilt].tilting .tilt-glare{opacity:1}
+[data-tilt].tilting{box-shadow:0 32px 80px rgba(0,0,0,.6), 0 0 56px rgba(212,175,55,.14)}
+
+/* contribution shell — floating glass slab */
+.contrib-shell{box-shadow:0 28px 72px rgba(0,0,0,.5)}
+.bar .fill{box-shadow:0 0 18px rgba(212,175,55,.5), 0 0 40px rgba(212,175,55,.22)}
+
+/* detail cards — depth + lifted icon */
+.dcard{will-change:transform;box-shadow:0 16px 38px rgba(0,0,0,.42)}
+.dcard .ic{filter:drop-shadow(0 6px 14px rgba(212,175,55,.4))}
+
+/* memories carousel — deeper presence */
+.carousel{box-shadow:0 30px 72px rgba(0,0,0,.6)}
+#memCarousel{perspective:1200px}
+
+/* ENTRY TICKET — pass / ticket treatment */
+section#reg26{perspective:1400px}
+.reg26{overflow:visible;
+  background:
+    radial-gradient(120% 120% at 0% 0%, rgba(212,175,55,.12), transparent 55%),
+    linear-gradient(180deg, var(--black-2), var(--panel));
+  box-shadow:0 28px 80px rgba(0,0,0,.55)}
+/* torn-ticket notches on each side */
+.reg26::before,.reg26::after{content:"";position:absolute;top:50%;width:34px;height:34px;border-radius:50%;
+  background:var(--black);border:1px solid var(--line);transform:translateY(-50%);z-index:3}
+.reg26::before{left:-17px}
+.reg26::after{right:-17px}
+/* embossed gold-foil year */
+.reg26 .yr{text-shadow:0 1px 0 rgba(212,175,55,.18), 0 16px 32px rgba(212,175,55,.12)}
+/* perforation line under the badge */
+.reg26 .soon{position:relative}
+.reg26 .soon::after{content:"";position:absolute;left:50%;bottom:-16px;transform:translateX(-50%);
+  width:min(70%,440px);height:1px;
+  background:repeating-linear-gradient(90deg, rgba(212,175,55,.5) 0 7px, transparent 7px 14px)}
+
+/* honour reduced-motion: hold everything still */
+@media (prefers-reduced-motion: reduce){
+  .divider .d{animation:none;transform:rotate(45deg)}
+  .bar .fill::after{animation:none}
+  .scroll-cue{animation:none}
+  [data-tilt]{transform:none !important}
+  #bg3d{display:none}
+}

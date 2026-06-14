@@ -207,9 +207,9 @@ async function deleteBudgetItem(id){
   }catch(e){ console.error(e); showToast("Couldn't remove — check permissions"); }
 }
 
-$("#budgetBtn").onclick = ()=>{ openM($("#budgetOverlay")); renderBudget(); subscribeBudget(); };
+const _bb = $("#budgetBtn"); if(_bb) _bb.onclick = ()=>{ openM($("#budgetOverlay")); renderBudget(); subscribeBudget(); };
 const _ns = $("#needStat"); if(_ns) _ns.onclick = ()=>{ openM($("#budgetOverlay")); renderBudget(); subscribeBudget(); };
-$("#addBudgetItem").onclick = addBudgetItem;
+const _ai = $("#addBudgetItem"); if(_ai) _ai.onclick = addBudgetItem;
 const _bo = $("#budgetOverlay"); if(_bo) _bo.addEventListener("click", e=>{ if(e.target===_bo) closeM(_bo); });
 function renderMySubs(){
   const box = $("#mySubsList");
