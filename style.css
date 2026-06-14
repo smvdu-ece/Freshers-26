@@ -187,12 +187,48 @@ section{padding:90px 26px;max-width:1180px;margin:0 auto}
 .stat .k{font-size:11px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-top:4px}
 .note{font-size:12px;color:var(--muted);margin-top:18px;line-height:1.6}
 
-/* REG 26 */
-.reg26{text-align:center;border:1px solid var(--line);border-radius:14px;padding:60px 30px;
-  background:linear-gradient(180deg,var(--black-2),var(--panel));position:relative;overflow:hidden}
-.reg26 .yr{font-family:'Cinzel';font-size:clamp(60px,14vw,150px);line-height:.9;color:transparent;-webkit-text-stroke:1px rgba(212,175,55,.35);letter-spacing:6px}
-.reg26 .soon{display:inline-block;margin:10px 0 22px;font-family:'Cinzel';font-size:12px;letter-spacing:4px;color:var(--silver);
-  border:1px solid var(--line);padding:8px 18px;border-radius:30px;text-transform:uppercase}
+/* ENTRY TICKET */
+.ticket{position:relative;display:flex;align-items:stretch;border-radius:16px;
+  background:linear-gradient(135deg,var(--black-2),var(--panel));
+  border:1px solid var(--line);box-shadow:0 24px 60px rgba(0,0,0,.5)}
+.ticket::before{content:"";position:absolute;inset:0;border-radius:16px;pointer-events:none;
+  background:radial-gradient(130% 130% at 0% 0%,rgba(212,175,55,.10),transparent 55%)}
+.ticket-body{flex:1;padding:46px 44px;position:relative;z-index:1}
+.ticket-row{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:8px}
+.ticket-kicker{font-family:'Cinzel',serif;font-size:11px;letter-spacing:4px;text-transform:uppercase;color:var(--gold-soft)}
+.yr{font-family:'Cinzel',serif;font-size:clamp(54px,12vw,124px);line-height:.9;color:transparent;
+  -webkit-text-stroke:1px rgba(212,175,55,.35);letter-spacing:6px;margin:2px 0 8px}
+.soon{display:inline-block;font-family:'Cinzel',serif;font-size:11px;letter-spacing:3px;color:var(--silver);
+  border:1px solid var(--line);padding:7px 16px;border-radius:30px;text-transform:uppercase;white-space:nowrap}
+.ticket-title{font-size:clamp(26px,4.4vw,40px);line-height:1.05;margin:0 0 12px}
+.ticket-sub{color:var(--muted);max-width:520px;margin:0 0 26px;font-size:15px;line-height:1.7}
+
+/* tear-off stub, divided by a perforation */
+.ticket-stub{position:relative;width:172px;flex:0 0 172px;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;gap:20px;padding:30px 14px;
+  border-left:2px dashed rgba(212,175,55,.3)}
+.ticket-admit{font-family:'Cinzel',serif;font-size:13px;letter-spacing:6px;text-transform:uppercase;
+  color:var(--gold-soft);writing-mode:vertical-rl;transform:rotate(180deg)}
+.ticket-barcode{width:54px;height:120px;border-radius:2px;opacity:.55;
+  background:repeating-linear-gradient(0deg,var(--gold) 0 2px,transparent 2px 4px,var(--gold) 4px 7px,transparent 7px 11px,var(--gold) 11px 12px,transparent 12px 16px)}
+.ticket-serial{font-family:'Cinzel',serif;font-size:12px;letter-spacing:2px;color:var(--muted)}
+/* punched notches where the perforation meets the top & bottom edges */
+.ticket-stub::before,.ticket-stub::after{content:"";position:absolute;left:-12px;width:22px;height:22px;
+  border-radius:50%;background:var(--black);border:1px solid var(--line);z-index:2}
+.ticket-stub::before{top:-12px}
+.ticket-stub::after{bottom:-12px}
+
+@media(max-width:760px){
+  .ticket{flex-direction:column}
+  .ticket-body{padding:36px 28px}
+  .ticket-stub{width:auto;flex:none;flex-direction:row;justify-content:center;
+    border-left:none;border-top:2px dashed rgba(212,175,55,.3);padding:22px 14px;gap:24px}
+  .ticket-admit{writing-mode:horizontal-tb;transform:none;letter-spacing:4px}
+  .ticket-barcode{width:120px;height:46px;
+    background:repeating-linear-gradient(90deg,var(--gold) 0 2px,transparent 2px 4px,var(--gold) 4px 7px,transparent 7px 11px,var(--gold) 11px 12px,transparent 12px 16px)}
+  .ticket-stub::before{left:-12px;top:-12px}
+  .ticket-stub::after{left:auto;right:-12px;top:-12px;bottom:auto}
+}
 
 /* MODAL */
 .overlay{position:fixed;inset:0;z-index:100;background:rgba(5,5,7,.78);backdrop-filter:blur(6px);
