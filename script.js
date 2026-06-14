@@ -68,6 +68,7 @@ function repaint(){
   $("#barPct").textContent = Math.round(pct) + "% complete";
   $("#barLeft").textContent = mine>=GOAL ? (mine>GOAL ? money(mine-GOAL)+" extra \u2726" : "Goal reached \u2726") : money(GOAL-mine)+" to go";
   $("#doneBadge").style.display = mine>=GOAL ? "flex" : "none";
+  $("#extraBtn").style.display = mine>=GOAL ? "none" : "";   // hide "Pay a custom amount" once goal is reached
   $("#totalRaised").textContent = money(total);
   $("#contribCount").textContent = count;
   $("#yourTotal").textContent = money(mine);
