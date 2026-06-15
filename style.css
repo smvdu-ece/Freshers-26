@@ -207,8 +207,8 @@ section{padding:90px 26px;max-width:1180px;margin:0 auto}
 .ticket-stub{position:relative;width:172px;flex:0 0 172px;display:flex;flex-direction:column;
   align-items:center;justify-content:center;gap:18px;padding:30px 14px;
   border-left:2px dashed rgba(212,175,55,.3)}
-.ticket-barcode{background:#efe9da;border-radius:5px;padding:12px 10px;display:flex;align-items:center;justify-content:center}
-.ticket-barcode svg{width:58px;height:auto;display:block}
+.ticket-barcode{display:flex;align-items:center;justify-content:center;opacity:.6}
+.ticket-barcode svg{width:54px;height:auto;display:block}
 .ticket-serial{font-family:'Cinzel',serif;font-size:12px;letter-spacing:2px;color:var(--muted)}
 /* punched notches where the perforation meets the top & bottom edges */
 .ticket-stub::before,.ticket-stub::after{content:"";position:absolute;left:-12px;width:22px;height:22px;
