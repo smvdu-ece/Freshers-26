@@ -395,7 +395,7 @@ document.getElementById("gateGoogleBtn").onclick = async ()=>{
     const btn=document.getElementById("gateGoogleBtn"); btn.disabled=true; gateMsg("Opening Google sign-in\u2026","ok");
     try{
       const provider=new fb.GoogleAuthProvider();
-      provider.setCustomParameters({hd:"smvdu.ac.in", prompt:"select_account"});
+      provider.setCustomParameters({prompt:"select_account"});
       await fb.signInWithPopup(fb.auth,provider); gateMsg("");
     }catch(e){
       const code=e&&e.code?e.code:"";
@@ -428,14 +428,14 @@ $("#googleBtn").onclick = async ()=>{
     $("#googleBtn").disabled = true; msg("Opening Google sign-in\u2026","ok");
     try{
       const provider = new fb.GoogleAuthProvider();
-      provider.setCustomParameters({ hd: ALLOWED_DOMAINS[0], prompt: "select_account" });
+      provider.setCustomParameters({ prompt: "select_account" });
       await fb.signInWithPopup(fb.auth, provider);
       // onAuthStateChanged enforces the domain and updates the UI
       msg(""); closeM(loginOverlay);
     }catch(e){
       const code = e && e.code ? e.code : "";
       if(code === "auth/popup-blocked"){
-        try{ const p = new fb.GoogleAuthProvider(); p.setCustomParameters({hd:ALLOWED_DOMAINS[0]}); await fb.signInWithRedirect(fb.auth, p); }
+        try{ const p = new fb.GoogleAuthProvider(); p.setCustomParameters({prompt:"select_account"}); await fb.signInWithRedirect(fb.auth, p); }
         catch(e2){ msg("Couldn't open Google sign-in.","err"); }
       } else if(code === "auth/popup-closed-by-user" || code === "auth/cancelled-popup-request"){
         msg("");
