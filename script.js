@@ -118,7 +118,7 @@ function setPayFilter(f){
 }
 document.querySelectorAll("#payFilters .fchip").forEach(c=> c.onclick=()=> setPayFilter(c.dataset.filter));
 $("#seePaymentsBtn").onclick = ()=>{ $("#paySearch").value=""; setPayFilter("all"); openM($("#payListOverlay")); };
-$("#contribStat").onclick   = ()=>{ $("#paySearch").value=""; setPayFilter("paid"); openM($("#payListOverlay")); };
+$("#contribStat").onclick   = ()=>{ $("#paySearch").value=""; setPayFilter("all"); openM($("#payListOverlay")); };
 $("#yourStat").onclick = ()=>{ openM($("#mySubsOverlay")); renderMySubs(); };
 
 /* ---------- budget usage (stored in Firebase: doc budget/main) ---------- */
