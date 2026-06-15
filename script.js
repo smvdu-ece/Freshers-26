@@ -36,7 +36,7 @@ const UPI_NAME  = "Freshers-26";                    // name shown in the payer's
 const ADMIN_EMAILS = ["25bec079@smvdu.ac.in"];
 const REG_ADMIN    = "25f2001633@ds.study.iitm.ac.in"; // approves registrations
 const REG_FEE      = 400;     // who can verify & approve payments
-const SHEET_URL    = "https://script.google.com/macros/s/AKfycbwkMsyOVnlygNzGNvF4TGY-vrEcicYAzlnwEao5BToCvs5N0Y6SOj-tJNx-gWC8SzPs/exec";  // Google Apps Script Web App URL
+const SHEET_URL    = "https://script.google.com/macros/s/AKfycbyhLJrFPxSpmjDMeXgclnFhXXOjLCNkFpI0NIbCWlPAPY1C6m9LRCL4hik3R4W7xV3I/exec";  // Google Apps Script Web App URL
 const SHEET_SECRET = "freshers26";                  // must match SECRET in the Apps Script
 /* ---- Budget usage lives in Firebase (Firestore doc: budget/main).
    Admins edit it on the site — set total, add/remove expenses. Everyone sees it live. ---- */
@@ -84,6 +84,8 @@ function repaint(){
   $("#barLeft").textContent = mine>=GOAL ? (mine>GOAL ? money(mine-GOAL)+" extra \u2726" : "Goal reached \u2726") : money(GOAL-mine)+" to go";
   $("#doneBadge").style.display = mine>=GOAL ? "flex" : "none";
   $("#extraBtn").style.display = mine>=GOAL ? "none" : "";   // hide "Pay a custom amount" once goal is reached
+  // ₹260 "go gold" chip — only when full ₹1740 is already approved (1740 + 260 = 2000)
+  const c260=$("#chip260"); if(c260) c260.style.display = (mine>=GOAL && mine<2000) ? "" : "none";
   $("#totalRaised").textContent = money(total);
   totalRaised = total;   // share with the Budget Usage modal
   if($("#budgetOverlay") && $("#budgetOverlay").classList.contains("show")) renderBudget();
@@ -479,16 +481,17 @@ function showRegDone(d){
   window._myRegData=d;
   const card=document.getElementById("regSubmittedCard");
   if(card) card.onclick=()=>openRegDetails(d);
-  /* Rejected → show Re-submit button */
+  /* Rejected OR approved → show Update button (re-opens for approval) */
   let rrbtn=document.getElementById("reregBtn");
-  if(st==="rejected"){
+  if(st==="rejected"||st==="approved"){
     if(!rrbtn){
       rrbtn=document.createElement("button"); rrbtn.id="reregBtn";
-      rrbtn.className="btn solid";
+      rrbtn.className="btn ghost";
       rrbtn.style.cssText="margin:20px auto 0;display:block;";
-      rrbtn.textContent="Re-submit";
       if(rd) rd.appendChild(rrbtn);
     }
+    rrbtn.textContent = st==="approved" ? "Update Details" : "Re-submit";
+    rrbtn.className = st==="approved" ? "btn ghost" : "btn solid";
     rrbtn.style.display="block";
     rrbtn.onclick=()=>{
       if(rd) rd.style.display="none";
