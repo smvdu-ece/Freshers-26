@@ -202,7 +202,8 @@ section{padding:90px 26px;max-width:1180px;margin:0 auto}
 .bar-meta{display:flex;justify-content:space-between;font-size:12px;letter-spacing:1px;color:var(--muted);margin-top:10px}
 .contrib-cta{display:flex;gap:14px;flex-wrap:wrap;margin-top:24px;align-items:center}
 .done-badge{display:none;align-items:center;gap:8px;color:var(--gold);font-family:'Cinzel';font-size:13px;letter-spacing:1px}
-.collective{display:flex;gap:30px;flex-wrap:wrap;margin-top:30px;padding-top:24px;border-top:1px solid var(--line)}
+.collective{display:flex;gap:22px;flex-wrap:wrap;margin-top:30px;padding-top:24px;border-top:1px solid var(--line)}
+.collective .stat{flex:1 1 auto;min-width:120px}
 .stat .v{font-family:'Cinzel';font-size:26px;color:var(--gold-soft)}
 .stat .k{font-size:11px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-top:4px}
 .note{font-size:12px;color:var(--muted);margin-top:18px;line-height:1.6}
@@ -240,7 +241,7 @@ section{padding:90px 26px;max-width:1180px;margin:0 auto}
 
 @media(max-width:760px){
   /* Contribution stats: tidy 2-per-row grid instead of uneven wrap */
-  .collective{display:grid;grid-template-columns:1fr 1fr;gap:18px 14px;}
+  .collective{display:grid;grid-template-columns:1fr 1fr 1fr;gap:18px 10px;}
   .collective .stat{min-width:0;}
   .collective .stat .v{font-size:22px;}
   .collective .stat .k{font-size:10px;letter-spacing:1px;}
