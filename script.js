@@ -36,7 +36,7 @@ const UPI_NAME  = "Freshers-26";                    // name shown in the payer's
 const ADMIN_EMAILS = ["25bec079@smvdu.ac.in"];
 const REG_ADMIN    = "25f2001633@ds.study.iitm.ac.in"; // approves registrations
 const REG_FEE      = 400;     // who can verify & approve payments
-const SHEET_URL    = "https://script.google.com/macros/s/AKfycbw5sM2yZuOrnedLTRKAh56UGngCf83_lY9i2xqty_n0YF219KoYz9KdYWM4jRSBFTnH/exec";  // Google Apps Script Web App URL
+const SHEET_URL    = "https://script.google.com/macros/s/AKfycbyhLJrFPxSpmjDMeXgclnFhXXOjLCNkFpI0NIbCWlPAPY1C6m9LRCL4hik3R4W7xV3I/exec";  // Google Apps Script Web App URL
 const SHEET_SECRET = "freshers26";                  // must match SECRET in the Apps Script
 /* ---- Budget usage lives in Firebase (Firestore doc: budget/main).
    Admins edit it on the site — set total, add/remove expenses. Everyone sees it live. ---- */
@@ -635,10 +635,14 @@ async function syncRegSheet(email){
   }catch(e){console.error("syncRegSheet",e);}
 }
 function syncAllRegsToSheet(){
-  const approved=allRegs.filter(r=>r.status==="approved");
-  if(!approved.length){showToast("No approved registrations to sync");return;}
-  approved.forEach((r,i)=>setTimeout(()=>syncRegSheet(r.email),i*300));
-  showToast("Syncing "+approved.length+" registration(s)\u2026");
+  if(!SHEET_URL){ showToast("Sheet URL not set"); return; }
+  // Push ALL registrations so approvals AND rejections both reconcile.
+  // The Apps Script writes approved ones and removes any that are no longer approved.
+  const emails=Array.from(new Set(allRegs.map(r=>r.email).filter(Boolean)));
+  if(!emails.length){ showToast("No registrations to sync yet"); return; }
+  emails.forEach((em,i)=>setTimeout(()=>syncRegSheet(em),i*250));
+  const appCount=allRegs.filter(r=>r.status==="approved").length;
+  showToast("Syncing "+emails.length+" registration(s) \u2014 "+appCount+" approved \u2726");
 }
 
 /* ══════════════════════════════════════════════════════════════════
