@@ -239,6 +239,11 @@ section{padding:90px 26px;max-width:1180px;margin:0 auto}
 .ticket-stub::after{bottom:-12px}
 
 @media(max-width:760px){
+  /* Contribution stats: tidy 2-per-row grid instead of uneven wrap */
+  .collective{display:grid;grid-template-columns:1fr 1fr;gap:18px 14px;}
+  .collective .stat{min-width:0;}
+  .collective .stat .v{font-size:22px;}
+  .collective .stat .k{font-size:10px;letter-spacing:1px;}
   .ticket{flex-direction:column}
   .ticket-body{padding:36px 28px}
   .ticket-stub{width:auto;flex:none;flex-direction:row;justify-content:center;

@@ -36,7 +36,7 @@ const UPI_NAME  = "Freshers-26";                    // name shown in the payer's
 const ADMIN_EMAILS = ["25bec079@smvdu.ac.in"];
 const REG_ADMIN    = "25f2001633@ds.study.iitm.ac.in"; // approves registrations
 const REG_FEE      = 400;     // who can verify & approve payments
-const SHEET_URL    = "https://script.google.com/macros/s/AKfycbz-ZIfxV9Y6o5YQ0FnlvmCnDLiowpzqUcTSsFjSUKwqcdj2pLGji-nh33MlqzikOL6S/exec";  // Google Apps Script Web App URL
+const SHEET_URL    = "https://script.google.com/macros/s/AKfycbwTgWV-Bfw4OuwITAdLhrxijxrUwTchZAGRyJziUXGM80jwmbtr8iIz04xky7TpZHVh/exec";  // Google Apps Script Web App URL
 const SHEET_SECRET = "freshers26";                  // must match SECRET in the Apps Script
 /* ---- Budget usage lives in Firebase (Firestore doc: budget/main).
    Admins edit it on the site — set total, add/remove expenses. Everyone sees it live. ---- */
@@ -781,8 +781,9 @@ function wantPay(amt, fixed){
   } else {
     $("#amtSection").style.display = "";       // custom -> show amount entry
     $("#inAmt").value = "";
+    is260 = false;
     document.querySelectorAll(".chip").forEach(x=>x.classList.remove("on"));
-    $("#payTo").style.display = "none";        // hide QR/button until amount entered
+    $("#payTo").style.display = "none";        // hide QR/button until valid amount entered
   }
   $("#inUtr").value = "";
   updatePayBtn(); openM(payOverlay);
@@ -795,10 +796,12 @@ $("#contribBtn").onclick = ()=>{
 };
 // Custom amount -> show the amount box first
 $("#extraBtn").onclick   = ()=> wantPay(0, false);
-$("#inAmt").addEventListener("input", updatePayBtn);
+$("#inAmt").addEventListener("input", ()=>{ is260=false; document.querySelectorAll(".chip").forEach(x=>x.classList.remove("on")); updatePayBtn(); });
 document.querySelectorAll(".chip").forEach(c=>c.onclick=()=>{
   document.querySelectorAll(".chip").forEach(x=>x.classList.remove("on"));
-  c.classList.add("on"); $("#inAmt").value=c.dataset.amt; updatePayBtn();
+  c.classList.add("on");
+  is260 = (c.dataset.amt === "260");   // ₹260 is the only valid sub-500 amount, chip-only
+  $("#inAmt").value=c.dataset.amt; updatePayBtn();
 });
 function upiLink(amt){
   return "upi://pay?pa=" + encodeURIComponent(UPI_ID)
@@ -806,16 +809,17 @@ function upiLink(amt){
        + (amt>0 ? "&am=" + amt : "")
        + "&cu=INR&tn=" + encodeURIComponent("Freshers26");
 }
+let is260 = false;   // true when the ₹260 chip is the active selection
 function updatePayBtn(){
   const amt = Number($("#inAmt").value)||0;
   $("#payAmtLbl").textContent = money(amt);
-  // Pay with UPI link carries the amount AND the "Freshers26" note (apps honour it from a direct link)
   const a = $("#openUpi"); if(a) a.setAttribute("href", upiLink(amt));
-  // amount-encoded QR — scanning/downloading it fills in the amount
   const img = $("#upiQr"); if(img) img.src = "https://api.qrserver.com/v1/create-qr-code/?size=240x240&margin=0&data=" + encodeURIComponent(upiLink(amt));
-  // custom mode: only reveal the QR once an amount is entered
+  // custom mode: only reveal the QR once a VALID amount is entered
+  // valid = ₹500+  OR  exactly ₹260 via the chip
   if($("#amtSection").style.display !== "none"){
-    $("#payTo").style.display = amt>0 ? "" : "none";
+    const valid = (amt>=500) || (is260 && amt===260);
+    $("#payTo").style.display = valid ? "" : "none";
   }
 }
 function downloadQR(){
@@ -857,7 +861,9 @@ function submitPayment(amt, utr){
   if(!user){ closeM(payOverlay); openM(loginOverlay); showToast("Please login first"); return; }
   if(amt<1){ showToast("Enter an amount"); $("#inAmt").focus(); return; }
   const customMode = $("#amtSection").style.display !== "none";
-  if(customMode && amt < 500){ showToast("Minimum contribution is \u20b9500"); $("#inAmt").focus(); return; }
+  if(customMode && amt < 500){
+    if(!(is260 && amt===260)){ showToast("Minimum contribution is \u20b9500"); $("#inAmt").focus(); return; }
+  }
   utr = (utr||"").trim();
   if(!/^[a-zA-Z0-9]{3,}$/.test(utr)){ showToast("Enter a valid UPI Ref No. / UTR"); $("#inUtr").focus(); return; }
   if(!LIVE){
