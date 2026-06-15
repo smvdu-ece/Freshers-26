@@ -304,8 +304,14 @@ function refreshUserUI(){
    LOGIN GATE — show / hide
 ══════════════════════════════════════════════════════════════════ */
 const _gate = document.getElementById("gateOverlay");
-function showGate(){ _gate.classList.remove("hidden"); }
-function hideGate(){ _gate.classList.add("hidden"); }
+function showGate(){
+  _gate.classList.remove("hidden");
+  document.documentElement.classList.add("gate-open");
+}
+function hideGate(){
+  _gate.classList.add("hidden");
+  document.documentElement.classList.remove("gate-open");
+}
 function gateMsg(t,cls){ const m=document.getElementById("gateMsg"); if(m){ m.textContent=t||""; m.className="lmsg "+(cls||""); } }
 
 /* ══════════════════════════════════════════════════════════════════

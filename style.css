@@ -465,12 +465,23 @@ button.bstatus.paid:hover{filter:brightness(1.12)}
    LOGIN GATE
    ══════════════════════════════════════════════════════ */
 .gate{
-  position:fixed;inset:0;
+  /* explicit coords — more reliable than inset: 0 on older mobile WebKit */
+  position:fixed;
+  top:0;left:0;right:0;bottom:0;
+  width:100%;
+  /* dvh = device viewport height (excludes browser chrome on mobile) */
+  height:100vh;
+  height:100dvh;
+  overflow:hidden;
   background:var(--black);
   z-index:9000;
   display:flex;align-items:center;justify-content:center;
   padding:24px;
   transition:opacity .5s ease, visibility .5s ease;
+}
+/* iOS Safari fill-available fallback */
+@supports (-webkit-touch-callout:none){
+  .gate{ min-height:-webkit-fill-available; }
 }
 .gate.hidden{
   opacity:0;
@@ -481,6 +492,14 @@ button.bstatus.paid:hover{filter:brightness(1.12)}
 .gate::before{
   content:"";position:absolute;inset:0;pointer-events:none;
   background:radial-gradient(600px 400px at 50% 40%, rgba(212,175,55,.09), transparent 65%);
+}
+
+/* Scroll lock — applied to <html> while gate is visible */
+html.gate-open, html.gate-open body{
+  overflow:hidden !important;
+  /* iOS: prevents rubber-band scroll revealing content beneath gate */
+  position:fixed;
+  width:100%;
 }
 .gate-card{
   position:relative;
