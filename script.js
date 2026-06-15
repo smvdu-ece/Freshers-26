@@ -399,6 +399,13 @@ function populateRegForm(){
   if(ni && !ni.value) ni.value=user.name||"";
   const init=document.getElementById("regPhotoInitial");
   if(init) init.textContent=(user.name||"?")[0].toUpperCase();
+  // Entry No. from email pattern
+  const ri=document.getElementById("regRoll"),ei=document.getElementById("regEmail");
+  if(ei) ei.value=user.email;
+  if(ri){
+    const m=user.email.match(/^(26bec\d+)@smvdu\.ac\.in$/i);
+    ri.value=m?m[1].toUpperCase():user.email.split("@")[0].toUpperCase();
+  }
   initRegQr();
 }
 
@@ -406,7 +413,7 @@ async function loadRegStatus(){
   if(!LIVE||!fb||!user) return;
   try{
     const snap=await fb.getDoc(fb.doc(fb.db,"registrations26",user.email));
-    if(snap.exists()) showRegDone(snap.data());
+    if(snap.exists()){ showRegDone(snap.data()); subscribeMyReg(); }
   }catch(e){ console.error("reg check",e); }
   refreshRegAdminUI();
 }
@@ -418,7 +425,7 @@ async function submitReg(){
   const utr=(document.getElementById("regUtr").value||"").trim();
   if(!name){ showToast("Enter your full name"); return; }
   if(!/^[6-9]\d{9}$/.test(phone)){ showToast("Enter a valid 10-digit phone number"); return; }
-  if(!/^[a-zA-Z0-9]{6,}$/.test(utr)){ showToast("Enter a valid UPI Ref / UTR"); return; }
+  if(utr.trim().length < 3){ showToast("Enter a payment reference or \"cash\""); return; }
   if(!regPhotoData){ showToast("Please upload your photo first"); return; }
   const btn=document.getElementById("regBtn"); btn.disabled=true; btn.textContent="Submitting\u2026";
   const m=user.email.match(/^(26bec\d+)@smvdu\.ac\.in$/i);
@@ -426,10 +433,10 @@ async function submitReg(){
   const payload={email:user.email,name,phone,roll,utr,amount:REG_FEE,photoData:regPhotoData,status:"pending"};
   try{
     if(LIVE) await fb.setDoc(fb.doc(fb.db,"registrations26",user.email),{...payload,at:fb.serverTimestamp()});
-    showSuccessPopup(); showRegDone(payload);
+    showSuccessPopup(); showRegDone(payload); subscribeMyReg();
   }catch(e){
     console.error("reg submit",e); showToast("Submission failed: "+(e.code||e.message));
-    btn.disabled=false; btn.textContent="\u2726 Reserve My Seat";
+    btn.disabled=false; btn.textContent="Submit Registration";
   }
 }
 const _regBtn=document.getElementById("regBtn");
@@ -443,6 +450,23 @@ function showSuccessPopup(){
   setTimeout(()=>{pop.style.transition="opacity .5s";pop.style.opacity="0";setTimeout(()=>pop.remove(),500);},2800);
 }
 
+/* Live listener — updates student badge when admin approves/rejects */
+let unsubMyReg=null;
+function subscribeMyReg(){
+  if(unsubMyReg){ unsubMyReg(); unsubMyReg=null; }
+  if(!LIVE||!fb||!user) return;
+  unsubMyReg=fb.onSnapshot(fb.doc(fb.db,"registrations26",user.email),snap=>{
+    if(!snap.exists()) return;
+    const d=snap.data();
+    // Update badge on the submitted card
+    const badge=document.getElementById("rscBadge");
+    if(badge){ const s=d.status||"pending"; badge.textContent=s==="approved"?"Approved \u2713":s==="rejected"?"Rejected":"Pending Approval"; badge.className="reg-badge "+s; }
+    // Update details overlay data
+    window._myRegData=d;
+    const card=document.getElementById("regSubmittedCard");
+    if(card) card.onclick=()=>openRegDetails(d);
+  },err=>console.error("my-reg snapshot",err));
+}
 function showRegDone(d){
   const fw=document.getElementById("regFormWrap"),rd=document.getElementById("regDone");
   if(fw) fw.style.display="none";
@@ -503,7 +527,7 @@ function renderRegAdmin(){
   const pendCount=allRegs.filter(r=>eff(r)==="pending").length,appCount=allRegs.length-pendCount;
   const pt=document.getElementById("raTabPending"),at2=document.getElementById("raTabApproved");
   if(pt)pt.textContent="Pending"+(pendCount?" ("+pendCount+")":"");
-  if(at2)at2.textContent="Approved"+(appCount?" ("+appCount+")":"");
+  if(at2)at2.textContent="Previous"+(appCount?" ("+appCount+")":"");
   let rows=allRegs.filter(r=>raTab==="approved"?eff(r)!=="pending":eff(r)==="pending");
   if(term)rows=rows.filter(r=>((r.name||"")+" "+(r.email||"")).toLowerCase().includes(term));
   rows.sort((a,b)=>((b.at&&b.at.seconds)||0)-((a.at&&a.at.seconds)||0));
@@ -511,12 +535,33 @@ function renderRegAdmin(){
   box.innerHTML="";
   rows.forEach(r=>{
     const st=eff(r),el=document.createElement("div"); el.className="admin-row";
-    const ph=r.photoData?`style="background-image:url('${r.photoData}')"`:'style=""';
-    el.innerHTML=`<div class="top" style="display:flex;align-items:center;gap:10px"><div class="ra-photo-sm" ${ph}>${r.photoData?"":`<span>${(r.name||"?")[0].toUpperCase()}</span>`}</div><div><span class="nm">${r.name||r.email}</span>&nbsp;<span class="reg-badge ${st}">${st.charAt(0).toUpperCase()+st.slice(1)}</span></div></div><div class="meta">${r.email} &middot; ${r.roll||""} &middot; &#8377;${r.amount||400} &middot; UTR:${r.utr||"&mdash;"}</div><div class="meta" style="margin-top:2px">Phone: ${r.phone||"&mdash;"}</div><div class="acts"><button class="btn solid ap">Approve</button><button class="btn ghost danger rj">Reject</button></div>`;
+    // ⚠ Don't put base64 photoData in innerHTML — it breaks HTML parsing and disables buttons
+    el.innerHTML=`
+      <div class="top" style="display:flex;align-items:center;gap:10px">
+        <div class="ra-photo-sm ra-ph-${_safeId(r.email)}"></div>
+        <div>
+          <span class="nm">${_esc(r.name||r.email)}</span>
+          &nbsp;<span class="reg-badge ${st}">${st.charAt(0).toUpperCase()+st.slice(1)}</span>
+        </div>
+      </div>
+      <div class="meta">${_esc(r.email)} &middot; ${_esc(r.roll||"")} &middot; &#8377;${r.amount||400} &middot; UTR: ${_esc(r.utr||"—")}</div>
+      <div class="meta" style="margin-top:2px">Phone: ${_esc(r.phone||"—")}</div>
+      <div class="acts">
+        <button class="btn solid ap" type="button">Approve</button>
+        <button class="btn ghost danger rj" type="button">Reject</button>
+      </div>`;
+    // Set photo AFTER innerHTML (avoids base64-in-HTML parsing issue)
+    const photoEl=el.querySelector(".ra-ph-"+_safeId(r.email));
+    if(photoEl){
+      if(r.photoData){ photoEl.style.backgroundImage="url('"+r.photoData+"')"; }
+      else { photoEl.innerHTML="<span>"+(r.name||"?")[0].toUpperCase()+"</span>"; }
+    }
     el.querySelector(".ap").onclick=()=>{raOpt[r.email]="approved";renderRegAdmin();approveReg(r);};
     el.querySelector(".rj").onclick=()=>{raOpt[r.email]="rejected";renderRegAdmin();rejectReg(r.email);};
     box.appendChild(el);
   });
+function _safeId(s){ return (s||"").replace(/[^a-z0-9]/gi,"_"); }
+function _esc(s){ return String(s==null?"":s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 }
 document.querySelectorAll("[data-ratab]").forEach(b=>{b.onclick=()=>{raTab=b.dataset.ratab;document.querySelectorAll("[data-ratab]").forEach(x=>x.classList.toggle("on",x.dataset.ratab===raTab));renderRegAdmin();};});
 (function(){

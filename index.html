@@ -27,7 +27,7 @@
       Continue with Google
     </button>
     <div id="gateMsg" class="lmsg"></div>
-    <p class="gate-note">Only verified <strong>SMVDU student</strong> or <strong>authorised</strong> emails are permitted.</p>
+    <p class="gate-note">Only <strong>2025–2029 &amp; 2026–2030 ECE SMVDU</strong> Students or <strong>authorised</strong> emails are permitted.</p>
   </div>
 </div>
 
@@ -126,15 +126,15 @@
 <!-- FRESHER REGISTRATION (shown for 26bec + authorised emails) -->
 <section id="fresher-reg" style="display:none">
   <div class="eyebrow reveal">ECE · 2K26</div>
-  <h2 class="sec-title gold-text reveal d1">Fête des Freshers — Your Seat</h2>
-  <p class="sec-sub reveal d2">Reserve your place at the celebration. Pay the ₹400 entry fee and confirm your spot.</p>
+  <h2 class="sec-title gold-text reveal d1">Register for Freshers'26</h2>
+  <p class="sec-sub reveal d2">You're the new ECE family. Fill in your details and complete the ₹400 registration fee.</p>
   <div class="divider"><span class="l"></span><span class="d"></span><span class="l"></span></div>
 
   <!-- ── Ticket form ── -->
   <div id="regFormWrap" class="reveal d1">
     <div class="reg-ticket">
       <div class="reg-ticket-header">
-        <span class="rth-label">EVENT PASS · ECE · SMVDU</span>
+        <span class="rth-label">REGISTRATION · ECE · SMVDU</span>
         <span class="rth-year">2K26</span>
       </div>
       <div class="reg-ticket-body">
@@ -150,6 +150,14 @@
             Upload Photo
           </label>
           <input type="file" id="regPhotoInput" accept="image/*" style="display:none">
+          <div class="reg-field">
+            <label>Entry No.</label>
+            <input id="regRoll" type="text" readonly tabindex="-1">
+          </div>
+          <div class="reg-field">
+            <label>Email</label>
+            <input id="regEmail" type="text" readonly tabindex="-1">
+          </div>
           <div class="reg-field">
             <label>Full Name</label>
             <input id="regName" type="text" placeholder="Your full name" autocomplete="name">
@@ -181,7 +189,7 @@
         </div>
       </div>
       <div class="reg-ticket-footer">
-        <button class="btn solid reg-main-btn" id="regBtn" type="button">✦ Reserve My Seat</button>
+        <button class="btn solid reg-main-btn" id="regBtn" type="button">Submit Registration</button>
       </div>
     </div>
   </div>
@@ -416,7 +424,7 @@
     </div>
     <div class="admin-tabs">
       <button class="atab on" data-ratab="pending" id="raTabPending">Pending</button>
-      <button class="atab" data-ratab="approved" id="raTabApproved">Approved</button>
+      <button class="atab" data-ratab="approved" id="raTabApproved">Previous</button>
     </div>
     <input id="regAdminSearch" class="admin-search" type="text" placeholder="Search by name or email…">
     <div style="text-align:right;margin:4px 0 8px">

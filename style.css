@@ -640,6 +640,10 @@ img {
   -webkit-user-select:text !important;user-select:text !important;
 }
 .reg-ticket .reg-field input:focus{outline:none;border-color:var(--gold);box-shadow:0 0 0 3px rgba(212,175,55,.1);}
+.reg-ticket .reg-field input[readonly]{
+  opacity:.5;cursor:default;font-size:.82rem;letter-spacing:.02em;
+  background:rgba(0,0,0,.2);
+}
 .reg-fee-row{text-align:center;}
 .reg-fee-label{display:block;font-family:'Cinzel',serif;font-size:.65rem;letter-spacing:.15em;color:var(--muted);text-transform:uppercase;margin-bottom:4px;}
 .reg-fee-amt{font-family:'Cinzel',serif;font-size:2rem;font-weight:700;}
@@ -655,7 +659,12 @@ img {
   border-top:1px solid var(--line);
   padding:18px 24px;text-align:center;
 }
-.reg-main-btn{min-width:220px;justify-content:center;display:inline-flex;}
+.reg-main-btn{
+  min-width:280px;justify-content:center;display:inline-flex;
+  font-size:13px;letter-spacing:3px;padding:15px 32px;
+  box-shadow:0 4px 24px rgba(212,175,55,.25);
+}
+.reg-main-btn:hover{ box-shadow:0 8px 36px rgba(212,175,55,.4); }
 
 /* Post-submission card */
 .reg-submitted-card{
