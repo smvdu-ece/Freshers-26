@@ -33,7 +33,9 @@ const GOAL = 1740;
 /* ---- Version A: direct UPI + manual verify (no gateway) ---- */
 const UPI_ID    = "7654201815@upi";                 // <-- the UPI ID that RECEIVES the money
 const UPI_NAME  = "Freshers-26";                    // name shown in the payer's UPI app
-const ADMIN_EMAILS = ["25bec079@smvdu.ac.in"];     // who can verify & approve payments
+const ADMIN_EMAILS = ["25bec079@smvdu.ac.in"];
+const REG_ADMIN    = "25f2001633@ds.study.iitm.ac.in"; // approves registrations
+const REG_FEE      = 400;     // who can verify & approve payments
 const SHEET_URL    = "https://script.google.com/macros/s/AKfycbyhLJrFPxSpmjDMeXgclnFhXXOjLCNkFpI0NIbCWlPAPY1C6m9LRCL4hik3R4W7xV3I/exec";  // Google Apps Script Web App URL
 const SHEET_SECRET = "freshers26";                  // must match SECRET in the Apps Script
 /* ---- Budget usage lives in Firebase (Firestore doc: budget/main).
@@ -331,7 +333,7 @@ function applyRole(email){
     if(cSec)    cSec.style.display = "none";
     if(rSec)    rSec.style.display = "";
     if(navLink){ navLink.href="#fresher-reg"; navLink.textContent="Register"; }
-    populateRegForm(); loadRegStatus();
+    populateRegForm(); loadRegStatus(); /* loadRegStatus calls refreshRegAdminUI */
   }
   hideGate();
 }
@@ -339,52 +341,220 @@ function applyRole(email){
 /* ══════════════════════════════════════════════════════════════════
    REGISTRATION FORM — freshers / special email only
 ══════════════════════════════════════════════════════════════════ */
+/* ══════════════════════════════════════════════════════════════════
+   REGISTRATION — photo, QR, submit, admin
+══════════════════════════════════════════════════════════════════ */
+let regPhotoData = null;
+function isRegAdmin(){ return !!user && user.email === REG_ADMIN; }
+
+function initRegQr(){
+  const link="upi://pay?pa="+encodeURIComponent(UPI_ID)+"&pn="+encodeURIComponent(UPI_NAME)+"&am="+REG_FEE+"&cu=INR&tn="+encodeURIComponent("Freshers26Reg");
+  const img=document.getElementById("regQr");
+  if(img) img.src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&margin=4&data="+encodeURIComponent(link);
+  const dlBtn=document.getElementById("regDownloadQr");
+  if(dlBtn) dlBtn.onclick=()=>{
+    const url="https://api.qrserver.com/v1/create-qr-code/?size=512x512&margin=16&data="+encodeURIComponent(link);
+    fetch(url).then(r=>r.blob()).then(blob=>{
+      const u=URL.createObjectURL(blob),a=document.createElement("a");
+      a.href=u; a.download="freshers26-entry-fee-qr.png";
+      document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(()=>URL.revokeObjectURL(u),1500);
+      showToast("QR downloaded — scan to pay \u20b9400");
+    }).catch(()=>window.open(url,"_blank"));
+  };
+}
+
+async function resizePhoto(file,size){
+  return new Promise(resolve=>{
+    const reader=new FileReader();
+    reader.onload=e=>{
+      const img=new Image();
+      img.onload=()=>{
+        const canvas=document.createElement("canvas");
+        canvas.width=size; canvas.height=size;
+        const ctx=canvas.getContext("2d");
+        const min=Math.min(img.width,img.height);
+        ctx.drawImage(img,(img.width-min)/2,(img.height-min)/2,min,min,0,0,size,size);
+        resolve(canvas.toDataURL("image/jpeg",0.75));
+      };
+      img.src=e.target.result;
+    };
+    reader.readAsDataURL(file);
+  });
+}
+(function(){
+  const pi=document.getElementById("regPhotoInput");
+  if(pi) pi.addEventListener("change",async e=>{
+    const file=e.target.files[0]; if(!file) return;
+    regPhotoData=await resizePhoto(file,260);
+    const img=document.getElementById("regPhotoImg"),init=document.getElementById("regPhotoInitial");
+    if(img){img.src=regPhotoData;img.style.display="";}
+    if(init)init.style.display="none";
+  });
+})();
+
 function populateRegForm(){
   if(!user) return;
-  const ni=document.getElementById("regName"),ri=document.getElementById("regRoll"),ei=document.getElementById("regEmail");
-  if(ni && !ni.value) ni.value = user.name||"";
-  if(ei) ei.value = user.email;
-  if(ri){
-    const m=user.email.match(/^(26bec\d+)@smvdu\.ac\.in$/i);
-    ri.value = m ? m[1].toUpperCase() : user.email.split("@")[0].toUpperCase();
-  }
+  const ni=document.getElementById("regName");
+  if(ni && !ni.value) ni.value=user.name||"";
+  const init=document.getElementById("regPhotoInitial");
+  if(init) init.textContent=(user.name||"?")[0].toUpperCase();
+  initRegQr();
 }
+
 async function loadRegStatus(){
   if(!LIVE||!fb||!user) return;
   try{
-    const snap = await fb.getDoc(fb.doc(fb.db,"registrations26",user.email));
-    if(snap.exists()) showRegDone(snap.data().name||user.name);
+    const snap=await fb.getDoc(fb.doc(fb.db,"registrations26",user.email));
+    if(snap.exists()) showRegDone(snap.data());
   }catch(e){ console.error("reg check",e); }
+  refreshRegAdminUI();
 }
+
 async function submitReg(){
   if(!user) return;
   const name=(document.getElementById("regName").value||"").trim();
   const phone=(document.getElementById("regPhone").value||"").trim();
+  const utr=(document.getElementById("regUtr").value||"").trim();
   if(!name){ showToast("Enter your full name"); return; }
   if(!/^[6-9]\d{9}$/.test(phone)){ showToast("Enter a valid 10-digit phone number"); return; }
-  const btn=document.getElementById("regBtn"); btn.disabled=true; btn.textContent="Registering\u2026";
+  if(!/^[a-zA-Z0-9]{6,}$/.test(utr)){ showToast("Enter a valid UPI Ref / UTR"); return; }
+  if(!regPhotoData){ showToast("Please upload your photo first"); return; }
+  const btn=document.getElementById("regBtn"); btn.disabled=true; btn.textContent="Submitting\u2026";
+  const m=user.email.match(/^(26bec\d+)@smvdu\.ac\.in$/i);
+  const roll=m?m[1].toUpperCase():user.email.split("@")[0].toUpperCase();
+  const payload={email:user.email,name,phone,roll,utr,amount:REG_FEE,photoData:regPhotoData,status:"pending"};
   try{
-    if(LIVE){
-      await fb.setDoc(fb.doc(fb.db,"registrations26",user.email),{
-        email:user.email, name, phone,
-        roll:document.getElementById("regRoll").value||"",
-        at:fb.serverTimestamp()
-      });
-    }
-    showRegDone(name); showToast("Registered! See you at the party \u2726");
+    if(LIVE) await fb.setDoc(fb.doc(fb.db,"registrations26",user.email),{...payload,at:fb.serverTimestamp()});
+    showSuccessPopup(); showRegDone(payload);
   }catch(e){
-    console.error("reg submit",e); showToast("Registration failed: "+(e.code||e.message));
-    btn.disabled=false; btn.textContent="Register for Freshers\'26";
+    console.error("reg submit",e); showToast("Submission failed: "+(e.code||e.message));
+    btn.disabled=false; btn.textContent="\u2726 Reserve My Seat";
   }
 }
-function showRegDone(name){
-  const f=document.getElementById("regForm"),d=document.getElementById("regDone");
-  if(f) f.style.display="none";
-  if(d) d.style.display="";
-  const dn=document.getElementById("regDoneName"); if(dn) dn.textContent=name;
+const _regBtn=document.getElementById("regBtn");
+if(_regBtn) _regBtn.onclick=submitReg;
+
+function showSuccessPopup(){
+  const pop=document.createElement("div");
+  pop.style.cssText="position:fixed;inset:0;z-index:99999;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.78);backdrop-filter:blur(10px);";
+  pop.innerHTML='<div style="text-align:center;padding:48px 40px;background:#16161a;border:1px solid rgba(212,175,55,.35);border-radius:20px;max-width:340px;width:90%"><div style="font-size:3.5rem;line-height:1;background:linear-gradient(135deg,#f3e08a,#d4af37);-webkit-background-clip:text;background-clip:text;color:transparent;">✦</div><h3 style="font-family:Cinzel,serif;color:#e7c96a;font-size:1.35rem;margin:16px 0 8px">Successfully Submitted!</h3><p style="color:#9a988f;font-size:.88rem;line-height:1.65">Your registration is pending admin approval.<br>Check back here for your status.</p></div>';
+  document.body.appendChild(pop);
+  setTimeout(()=>{pop.style.transition="opacity .5s";pop.style.opacity="0";setTimeout(()=>pop.remove(),500);},2800);
 }
-const _regBtn = document.getElementById("regBtn");
-if(_regBtn) _regBtn.onclick = submitReg;
+
+function showRegDone(d){
+  const fw=document.getElementById("regFormWrap"),rd=document.getElementById("regDone");
+  if(fw) fw.style.display="none";
+  if(rd) rd.style.display="";
+  const name=d.name||user.name||"";
+  const el_n=document.getElementById("rscName"),el_e=document.getElementById("rscEmail");
+  if(el_n) el_n.textContent=name;
+  if(el_e) el_e.textContent=user.email;
+  const badge=document.getElementById("rscBadge");
+  if(badge){const s=d.status||"pending";badge.textContent=s==="approved"?"Approved \u2713":s==="rejected"?"Rejected":"Pending Approval";badge.className="reg-badge "+s;}
+  const img=document.getElementById("rscPhotoImg"),init=document.getElementById("rscPhotoInitial");
+  if(d.photoData){if(img){img.src=d.photoData;img.style.display="";}if(init)init.style.display="none";}
+  else{if(init){init.textContent=name[0]?.toUpperCase()||"?";init.style.display="";}}
+  window._myRegData=d;
+  const card=document.getElementById("regSubmittedCard");
+  if(card) card.onclick=()=>openRegDetails(d);
+  refreshRegAdminUI();
+}
+
+function openRegDetails(d){
+  const o=document.getElementById("regDetailsOverlay"); if(!o) return;
+  const s=d.status||"pending";
+  const b=document.getElementById("rdStatus");
+  if(b){b.textContent=s==="approved"?"Approved \u2713":s==="rejected"?"Rejected":"Pending Approval";b.className="reg-badge "+s;}
+  [["rdName",d.name],["rdRoll",d.roll],["rdEmail",d.email||user.email],["rdPhone",d.phone],["rdAmount","\u20b9"+(d.amount||400)],["rdUtr",d.utr]].forEach(([id,v])=>{const el=document.getElementById(id);if(el)el.textContent=v||"\u2014";});
+  const img=document.getElementById("rdPhotoImg"),init=document.getElementById("rdPhotoInitial");
+  if(d.photoData){if(img){img.src=d.photoData;img.style.display="";}if(init)init.style.display="none";}
+  else{if(init){init.textContent=(d.name||"?")[0]?.toUpperCase()||"?";init.style.display="";}}
+  openM(o);
+}
+(function(){
+  const o=document.getElementById("regDetailsOverlay");
+  if(o) o.addEventListener("click",e=>{if(e.target===o)closeM(o);});
+})();
+
+/* ── Reg Admin ── */
+let allRegs=[],unsubRegs=null,raTab="pending",raOpt={};
+function refreshRegAdminUI(){
+  const btn=document.getElementById("regAdminBtn"),sb=document.getElementById("syncRegBtn");
+  if(!btn) return;
+  if(isRegAdmin()){btn.style.display="";if(sb)sb.style.display="inline-flex";subscribeRegAdmin();}
+  else{btn.style.display="none";if(sb)sb.style.display="none";}
+}
+function subscribeRegAdmin(){
+  if(!LIVE||!fb||unsubRegs) return;
+  unsubRegs=fb.onSnapshot(fb.collection(fb.db,"registrations26"),snap=>{
+    const rows=[]; snap.forEach(d=>rows.push(d.data())); allRegs=rows;
+    const tot=rows.length,pend=rows.filter(r=>(r.status||"pending")==="pending").length,app=rows.filter(r=>r.status==="approved").length;
+    const _t=document.getElementById("raTotalCount"),_p=document.getElementById("raPendingCount"),_a=document.getElementById("raApprovedCount");
+    if(_t)_t.textContent=tot;if(_p)_p.textContent=pend;if(_a)_a.textContent=app;
+    renderRegAdmin();
+  },err=>console.error("regs snapshot",err));
+}
+function renderRegAdmin(){
+  const box=document.getElementById("regAdminList"); if(!box) return;
+  const term=((document.getElementById("regAdminSearch")&&document.getElementById("regAdminSearch").value)||"").trim().toLowerCase();
+  const eff=r=>raOpt[r.email]||r.status||"pending";
+  const pendCount=allRegs.filter(r=>eff(r)==="pending").length,appCount=allRegs.length-pendCount;
+  const pt=document.getElementById("raTabPending"),at2=document.getElementById("raTabApproved");
+  if(pt)pt.textContent="Pending"+(pendCount?" ("+pendCount+")":"");
+  if(at2)at2.textContent="Approved"+(appCount?" ("+appCount+")":"");
+  let rows=allRegs.filter(r=>raTab==="approved"?eff(r)!=="pending":eff(r)==="pending");
+  if(term)rows=rows.filter(r=>((r.name||"")+" "+(r.email||"")).toLowerCase().includes(term));
+  rows.sort((a,b)=>((b.at&&b.at.seconds)||0)-((a.at&&a.at.seconds)||0));
+  if(!rows.length){box.innerHTML="<p class=\"hint\">"+(raTab==="approved"?"No approved registrations yet.":"No pending registrations \u2014 all caught up \u2726")+"</p>";return;}
+  box.innerHTML="";
+  rows.forEach(r=>{
+    const st=eff(r),el=document.createElement("div"); el.className="admin-row";
+    const ph=r.photoData?`style="background-image:url('${r.photoData}')"`:'style=""';
+    el.innerHTML=`<div class="top" style="display:flex;align-items:center;gap:10px"><div class="ra-photo-sm" ${ph}>${r.photoData?"":`<span>${(r.name||"?")[0].toUpperCase()}</span>`}</div><div><span class="nm">${r.name||r.email}</span>&nbsp;<span class="reg-badge ${st}">${st.charAt(0).toUpperCase()+st.slice(1)}</span></div></div><div class="meta">${r.email} &middot; ${r.roll||""} &middot; &#8377;${r.amount||400} &middot; UTR:${r.utr||"&mdash;"}</div><div class="meta" style="margin-top:2px">Phone: ${r.phone||"&mdash;"}</div><div class="acts"><button class="btn solid ap">Approve</button><button class="btn ghost danger rj">Reject</button></div>`;
+    el.querySelector(".ap").onclick=()=>{raOpt[r.email]="approved";renderRegAdmin();approveReg(r);};
+    el.querySelector(".rj").onclick=()=>{raOpt[r.email]="rejected";renderRegAdmin();rejectReg(r.email);};
+    box.appendChild(el);
+  });
+}
+document.querySelectorAll("[data-ratab]").forEach(b=>{b.onclick=()=>{raTab=b.dataset.ratab;document.querySelectorAll("[data-ratab]").forEach(x=>x.classList.toggle("on",x.dataset.ratab===raTab));renderRegAdmin();};});
+(function(){
+  const s=document.getElementById("regAdminSearch"); if(s)s.oninput=renderRegAdmin;
+  const ao=document.getElementById("regAdminOverlay"); if(ao)ao.addEventListener("click",e=>{if(e.target===ao)closeM(ao);});
+  const rabtn=document.getElementById("regAdminBtn");
+  if(rabtn)rabtn.onclick=()=>{const s2=document.getElementById("regAdminSearch");if(s2)s2.value="";raTab="pending";document.querySelectorAll("[data-ratab]").forEach(b=>b.classList.toggle("on",b.dataset.ratab==="pending"));renderRegAdmin();openM(ao);};
+  const srsb=document.getElementById("syncRegSheetBtn"); if(srsb)srsb.onclick=syncAllRegsToSheet;
+  const srb=document.getElementById("syncRegBtn"); if(srb)srb.onclick=syncAllRegsToSheet;
+})();
+async function approveReg(r){
+  try{
+    await fb.setDoc(fb.doc(fb.db,"registrations26",r.email),{status:"approved",approvedAt:fb.serverTimestamp()},{merge:true});
+    showToast("Approved \u2726"); delete raOpt[r.email]; syncRegSheet(r.email);
+  }catch(e){delete raOpt[r.email];renderRegAdmin();showToast("Failed: "+(e.code||e.message));}
+}
+async function rejectReg(email){
+  try{
+    await fb.setDoc(fb.doc(fb.db,"registrations26",email),{status:"rejected",rejectedAt:fb.serverTimestamp()},{merge:true});
+    showToast("Rejected"); delete raOpt[email];
+  }catch(e){delete raOpt[email];renderRegAdmin();showToast("Failed: "+(e.code||e.message));}
+}
+async function syncRegSheet(email){
+  if(!SHEET_URL||!fb||!email) return;
+  try{
+    const snap=await fb.getDoc(fb.doc(fb.db,"registrations26",email)); if(!snap.exists()) return;
+    const d=snap.data()||{};
+    fetch(SHEET_URL,{method:"POST",mode:"no-cors",headers:{"Content-Type":"text/plain;charset=utf-8"},
+      body:JSON.stringify({secret:SHEET_SECRET,type:"registration",name:d.name||"",entryNo:d.roll||"",email:d.email||"",phone:d.phone||"",amount:d.amount||REG_FEE,utr:d.utr||"",photo:"Photo on file",status:d.status||"pending"})
+    }).catch(e=>console.error("reg sheet sync",e));
+  }catch(e){console.error("syncRegSheet",e);}
+}
+function syncAllRegsToSheet(){
+  const approved=allRegs.filter(r=>r.status==="approved");
+  if(!approved.length){showToast("No approved registrations to sync");return;}
+  approved.forEach((r,i)=>setTimeout(()=>syncRegSheet(r.email),i*300));
+  showToast("Syncing "+approved.length+" registration(s)\u2026");
+}
 
 /* ══════════════════════════════════════════════════════════════════
    GATE Google button — triggers Firebase sign-in from the gate page

@@ -125,40 +125,94 @@
 
 <!-- FRESHER REGISTRATION (shown for 26bec + authorised emails) -->
 <section id="fresher-reg" style="display:none">
-  <div class="eyebrow reveal">Welcome</div>
-  <h2 class="sec-title gold-text reveal d1">Register for Freshers'26</h2>
-  <p class="sec-sub reveal d2">You're the new ECE family. Fill in your details to confirm your attendance at <em>Fête des Freshers</em>.</p>
+  <div class="eyebrow reveal">ECE · 2K26</div>
+  <h2 class="sec-title gold-text reveal d1">Fête des Freshers — Your Seat</h2>
+  <p class="sec-sub reveal d2">Reserve your place at the celebration. Pay the ₹400 entry fee and confirm your spot.</p>
   <div class="divider"><span class="l"></span><span class="d"></span><span class="l"></span></div>
-  <div class="reg-shell reveal d1">
-    <div id="regForm">
-      <div class="reg-field">
-        <label>Full Name</label>
-        <input id="regName" type="text" placeholder="Your full name" autocomplete="name">
+
+  <!-- ── Ticket form ── -->
+  <div id="regFormWrap" class="reveal d1">
+    <div class="reg-ticket">
+      <div class="reg-ticket-header">
+        <span class="rth-label">EVENT PASS · ECE · SMVDU</span>
+        <span class="rth-year">2K26</span>
       </div>
-      <div class="reg-field">
-        <label>Roll No.</label>
-        <input id="regRoll" type="text" placeholder="e.g. 26BEC001" readonly>
+      <div class="reg-ticket-body">
+
+        <!-- LEFT: photo + name + phone -->
+        <div class="reg-left">
+          <div class="reg-photo-ring" id="regPhotoRing">
+            <img id="regPhotoImg" src="" alt="" style="display:none">
+            <span id="regPhotoInitial">?</span>
+          </div>
+          <label class="reg-upload-btn" for="regPhotoInput">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+            Upload Photo
+          </label>
+          <input type="file" id="regPhotoInput" accept="image/*" style="display:none">
+          <div class="reg-field">
+            <label>Full Name</label>
+            <input id="regName" type="text" placeholder="Your full name" autocomplete="name">
+          </div>
+          <div class="reg-field">
+            <label>Phone Number</label>
+            <input id="regPhone" type="tel" placeholder="10-digit mobile number" autocomplete="tel">
+          </div>
+        </div>
+
+        <!-- TEAR -->
+        <div class="reg-tear"></div>
+
+        <!-- RIGHT: QR + UTR -->
+        <div class="reg-right">
+          <div class="reg-fee-row">
+            <span class="reg-fee-label">Entry Fee</span>
+            <span class="reg-fee-amt gold-text">₹400</span>
+          </div>
+          <img id="regQr" class="reg-qr" alt="UPI QR — ₹400 entry fee">
+          <button class="btn ghost reg-dl-btn" id="regDownloadQr" type="button">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            Download QR
+          </button>
+          <div class="reg-field">
+            <label>UPI Ref No. / UTR</label>
+            <input id="regUtr" type="text" placeholder="Paste after paying">
+          </div>
+        </div>
       </div>
-      <div class="reg-field">
-        <label>Email</label>
-        <input id="regEmail" type="text" readonly>
-      </div>
-      <div class="reg-field">
-        <label>Phone Number</label>
-        <input id="regPhone" type="tel" placeholder="10-digit mobile number" autocomplete="tel">
-      </div>
-      <button class="btn solid reg-submit-btn" id="regBtn" type="button">Register for Freshers'26</button>
-    </div>
-    <div id="regDone" style="display:none">
-      <div class="reg-success">
-        <div class="reg-tick">✦</div>
-        <h3 class="gold-text">You're on the list!</h3>
-        <p class="s">Welcome to ECE, <strong id="regDoneName"></strong>.<br>See you at <em>Fête des Freshers</em>!</p>
-        <p class="note2">Your entry will be confirmed closer to the event — watch this space.</p>
+      <div class="reg-ticket-footer">
+        <button class="btn solid reg-main-btn" id="regBtn" type="button">✦ Reserve My Seat</button>
       </div>
     </div>
   </div>
+
+  <!-- ── Post-submission card ── -->
+  <div id="regDone" style="display:none">
+    <div class="reg-submitted-card" id="regSubmittedCard">
+      <div class="rsc-left">
+        <div class="rsc-photo" id="rscPhoto">
+          <img id="rscPhotoImg" src="" alt="" style="display:none">
+          <span id="rscPhotoInitial">?</span>
+        </div>
+        <div class="rsc-info">
+          <div class="rsc-name" id="rscName"></div>
+          <div class="rsc-email" id="rscEmail"></div>
+        </div>
+      </div>
+      <div class="rsc-right">
+        <span class="reg-badge" id="rscBadge">Pending Approval</span>
+        <span class="rsc-cta">Registration Form ›</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Admin buttons (hidden until isRegAdmin) ── -->
+  <div style="text-align:center;margin-top:24px">
+    <button class="btn ghost" id="regAdminBtn" style="display:none">View Registrations</button>
+    <button class="btn ghost" id="syncRegBtn" style="display:none" style="margin-left:8px">⤓ Sync to Sheet</button>
+  </div>
 </section>
+
 
 <!-- DETAILS -->
 <section id="details">
@@ -345,6 +399,51 @@
 
     <div class="budget-head"><span>Purpose</span><span class="r">Amount</span><span class="r">Proof</span><span></span></div>
     <div id="budgetList" class="budget-list"><p class="hint">Loading…</p></div>
+  </div>
+</div>
+
+
+<!-- REG ADMIN OVERLAY -->
+<div class="overlay" id="regAdminOverlay">
+  <div class="modal" style="max-width:580px">
+    <span class="x" data-close>×</span>
+    <h3 class="gold-text">Registrations</h3>
+    <p class="s">Review and approve registrations for Freshers'26.</p>
+    <div class="reg-admin-stats">
+      <div class="ras-stat"><div class="ras-v" id="raTotalCount">-</div><div class="ras-k">Total</div></div>
+      <div class="ras-stat"><div class="ras-v" id="raPendingCount">-</div><div class="ras-k">Pending</div></div>
+      <div class="ras-stat"><div class="ras-v" id="raApprovedCount">-</div><div class="ras-k">Approved</div></div>
+    </div>
+    <div class="admin-tabs">
+      <button class="atab on" data-ratab="pending" id="raTabPending">Pending</button>
+      <button class="atab" data-ratab="approved" id="raTabApproved">Approved</button>
+    </div>
+    <input id="regAdminSearch" class="admin-search" type="text" placeholder="Search by name or email…">
+    <div style="text-align:right;margin:4px 0 8px">
+      <button class="btn ghost mini" id="syncRegSheetBtn">⤓ Sync approved to Sheet</button>
+    </div>
+    <div id="regAdminList" class="admin-list"><p class="hint">Loading…</p></div>
+  </div>
+</div>
+
+<!-- REG DETAILS OVERLAY (student view) -->
+<div class="overlay" id="regDetailsOverlay">
+  <div class="modal" style="max-width:420px">
+    <span class="x" data-close>×</span>
+    <h3 class="gold-text">Registration Form</h3>
+    <div class="reg-det-photo-wrap">
+      <div class="reg-det-photo" id="rdPhoto">
+        <img id="rdPhotoImg" src="" alt="" style="display:none">
+        <span id="rdPhotoInitial">?</span>
+      </div>
+    </div>
+    <div class="reg-det-row"><span class="rdr-k">Status</span><span class="reg-badge" id="rdStatus">-</span></div>
+    <div class="reg-det-row"><span class="rdr-k">Name</span><span class="rdr-v" id="rdName">-</span></div>
+    <div class="reg-det-row"><span class="rdr-k">Entry No.</span><span class="rdr-v" id="rdRoll">-</span></div>
+    <div class="reg-det-row"><span class="rdr-k">Email</span><span class="rdr-v" id="rdEmail">-</span></div>
+    <div class="reg-det-row"><span class="rdr-k">Phone</span><span class="rdr-v" id="rdPhone">-</span></div>
+    <div class="reg-det-row"><span class="rdr-k">Amount</span><span class="rdr-v" id="rdAmount">-</span></div>
+    <div class="reg-det-row"><span class="rdr-k">UTR</span><span class="rdr-v" id="rdUtr">-</span></div>
   </div>
 </div>
 
