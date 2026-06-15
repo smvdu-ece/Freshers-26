@@ -485,11 +485,11 @@ function showRegDone(d){
     if(!rrbtn){
       rrbtn=document.createElement("button"); rrbtn.id="reregBtn";
       rrbtn.className="btn solid";
-      rrbtn.style.cssText="margin-top:16px;";
+      rrbtn.style.cssText="margin:20px auto 0;display:block;";
       rrbtn.textContent="Re-submit";
       if(rd) rd.appendChild(rrbtn);
     }
-    rrbtn.style.display="flex";
+    rrbtn.style.display="block";
     rrbtn.onclick=()=>{
       if(rd) rd.style.display="none";
       if(fw) fw.style.display="";
