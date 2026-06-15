@@ -741,3 +741,10 @@ img {
   .rsc-right{align-items:flex-start;}
   .reg-admin-stats{gap:8px;}
 }
+
+.ratab{ /* same styles as .atab but separate class so .atab handler can't overwrite onclick */
+  padding:8px 18px;font-family:'Cinzel',serif;font-size:11px;letter-spacing:1.5px;text-transform:uppercase;
+  background:transparent;border:1px solid var(--line);color:var(--muted);border-radius:4px;cursor:pointer;transition:.2s;
+}
+.ratab.on{background:var(--grad-gold);color:#140f02;border-color:transparent;font-weight:600;}
+.ratab:hover:not(.on){color:var(--gold);border-color:var(--gold);}

@@ -458,13 +458,8 @@ function subscribeMyReg(){
   unsubMyReg=fb.onSnapshot(fb.doc(fb.db,"registrations26",user.email),snap=>{
     if(!snap.exists()) return;
     const d=snap.data();
-    // Update badge on the submitted card
-    const badge=document.getElementById("rscBadge");
-    if(badge){ const s=d.status||"pending"; badge.textContent=s==="approved"?"Approved \u2713":s==="rejected"?"Rejected":"Pending Approval"; badge.className="reg-badge "+s; }
-    // Update details overlay data
-    window._myRegData=d;
-    const card=document.getElementById("regSubmittedCard");
-    if(card) card.onclick=()=>openRegDetails(d);
+    // Full state refresh — showRegDone handles approved / pending / rejected
+    showRegDone(d);
   },err=>console.error("my-reg snapshot",err));
 }
 function showRegDone(d){
@@ -476,13 +471,43 @@ function showRegDone(d){
   if(el_n) el_n.textContent=name;
   if(el_e) el_e.textContent=user.email;
   const badge=document.getElementById("rscBadge");
-  if(badge){const s=d.status||"pending";badge.textContent=s==="approved"?"Approved \u2713":s==="rejected"?"Rejected":"Pending Approval";badge.className="reg-badge "+s;}
+  const st=d.status||"pending";
+  if(badge){badge.textContent=st==="approved"?"Approved ✓":st==="rejected"?"Rejected":"Pending Approval";badge.className="reg-badge "+st;}
   const img=document.getElementById("rscPhotoImg"),init=document.getElementById("rscPhotoInitial");
   if(d.photoData){if(img){img.src=d.photoData;img.style.display="";}if(init)init.style.display="none";}
   else{if(init){init.textContent=name[0]?.toUpperCase()||"?";init.style.display="";}}
   window._myRegData=d;
   const card=document.getElementById("regSubmittedCard");
   if(card) card.onclick=()=>openRegDetails(d);
+  /* Rejected → show Re-submit button */
+  let rrbtn=document.getElementById("reregBtn");
+  if(st==="rejected"){
+    if(!rrbtn){
+      rrbtn=document.createElement("button"); rrbtn.id="reregBtn";
+      rrbtn.className="btn solid";
+      rrbtn.style.cssText="margin-top:20px;width:100%;display:flex;justify-content:center;";
+      rrbtn.textContent="Re-submit Registration";
+      if(rd) rd.appendChild(rrbtn);
+    }
+    rrbtn.style.display="flex";
+    rrbtn.onclick=()=>{
+      if(rd) rd.style.display="none";
+      if(fw) fw.style.display="";
+      const ni=document.getElementById("regName"); if(ni&&d.name)ni.value=d.name;
+      const ph=document.getElementById("regPhone"); if(ph&&d.phone)ph.value=d.phone;
+      const ut=document.getElementById("regUtr"); if(ut&&d.utr)ut.value=d.utr;
+      if(d.photoData){
+        regPhotoData=d.photoData;
+        const pi=document.getElementById("regPhotoImg"),ii=document.getElementById("regPhotoInitial");
+        if(pi){pi.src=d.photoData;pi.style.display="";}
+        if(ii)ii.style.display="none";
+      }
+      populateRegForm();
+      showToast("Update your details and re-submit — status resets to Pending.");
+    };
+  } else {
+    if(rrbtn) rrbtn.style.display="none";
+  }
   refreshRegAdminUI();
 }
 
@@ -527,6 +552,7 @@ function renderRegAdmin(){
   const pendCount=allRegs.filter(r=>eff(r)==="pending").length,appCount=allRegs.length-pendCount;
   const pt=document.getElementById("raTabPending"),at2=document.getElementById("raTabApproved");
   if(pt)pt.textContent="Pending"+(pendCount?" ("+pendCount+")":"");
+  if(pt)pt.textContent="Pending"+(pendCount?" ("+pendCount+")":"");
   if(at2)at2.textContent="Previous"+(appCount?" ("+appCount+")":"");
   let rows=allRegs.filter(r=>raTab==="approved"?eff(r)!=="pending":eff(r)==="pending");
   if(term)rows=rows.filter(r=>((r.name||"")+" "+(r.email||"")).toLowerCase().includes(term));
@@ -563,12 +589,12 @@ function renderRegAdmin(){
 function _safeId(s){ return (s||"").replace(/[^a-z0-9]/gi,"_"); }
 function _esc(s){ return String(s==null?"":s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 }
-document.querySelectorAll("[data-ratab]").forEach(b=>{b.onclick=()=>{raTab=b.dataset.ratab;document.querySelectorAll("[data-ratab]").forEach(x=>x.classList.toggle("on",x.dataset.ratab===raTab));renderRegAdmin();};});
+document.querySelectorAll("[data-ratab]").forEach(b=>{b.onclick=()=>{raTab=b.dataset.ratab;document.querySelectorAll(".ratab").forEach(x=>x.classList.toggle("on",x.dataset.ratab===raTab));renderRegAdmin();};});
 (function(){
   const s=document.getElementById("regAdminSearch"); if(s)s.oninput=renderRegAdmin;
   const ao=document.getElementById("regAdminOverlay"); if(ao)ao.addEventListener("click",e=>{if(e.target===ao)closeM(ao);});
   const rabtn=document.getElementById("regAdminBtn");
-  if(rabtn)rabtn.onclick=()=>{const s2=document.getElementById("regAdminSearch");if(s2)s2.value="";raTab="pending";document.querySelectorAll("[data-ratab]").forEach(b=>b.classList.toggle("on",b.dataset.ratab==="pending"));renderRegAdmin();openM(ao);};
+  if(rabtn)rabtn.onclick=()=>{const s2=document.getElementById("regAdminSearch");if(s2)s2.value="";raTab="pending";document.querySelectorAll(".ratab").forEach(b=>b.classList.toggle("on",b.dataset.ratab==="pending"));renderRegAdmin();openM(ao);};
   const srsb=document.getElementById("syncRegSheetBtn"); if(srsb)srsb.onclick=syncAllRegsToSheet;
   const srb=document.getElementById("syncRegBtn"); if(srb)srb.onclick=syncAllRegsToSheet;
 })();
