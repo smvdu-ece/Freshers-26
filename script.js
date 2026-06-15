@@ -36,7 +36,7 @@ const UPI_NAME  = "Freshers-26";                    // name shown in the payer's
 const ADMIN_EMAILS = ["25bec079@smvdu.ac.in"];
 const REG_ADMIN    = "25f2001633@ds.study.iitm.ac.in"; // approves registrations
 const REG_FEE      = 400;     // who can verify & approve payments
-const SHEET_URL    = "https://script.google.com/macros/s/AKfycbx8kUKpkFXmp4YZN3c8H0yvKEc4e8mGqK6XxyToN3ZnZaOpA3D6sCfNYVyzqHK3Ubhr/exec";  // Google Apps Script Web App URL
+const SHEET_URL    = "https://script.google.com/macros/s/AKfycbz-ZIfxV9Y6o5YQ0FnlvmCnDLiowpzqUcTSsFjSUKwqcdj2pLGji-nh33MlqzikOL6S/exec";  // Google Apps Script Web App URL
 const SHEET_SECRET = "freshers26";                  // must match SECRET in the Apps Script
 /* ---- Budget usage lives in Firebase (Firestore doc: budget/main).
    Admins edit it on the site — set total, add/remove expenses. Everyone sees it live. ---- */
@@ -434,17 +434,7 @@ async function submitReg(){
   const m=user.email.match(/^(26bec\d+)@smvdu\.ac\.in$/i);
   const roll=m?m[1].toUpperCase():user.email.split("@")[0].toUpperCase();
   try{
-    let photoUrl="";
-    if(LIVE && fb.storage && regPhotoData){
-      // Upload photo to Firebase Storage, get a public download URL
-      btn.textContent="Uploading photo\u2026";
-      const safeId=user.email.replace(/[^a-z0-9]/gi,"_");
-      const sRef=fb.ref(fb.storage,"reg-photos/"+safeId+".jpg");
-      await fb.uploadString(sRef, regPhotoData, "data_url");
-      photoUrl=await fb.getDownloadURL(sRef);
-    }
-    btn.textContent="Submitting\u2026";
-    const payload={email:user.email,name,phone,roll,utr,amount:REG_FEE,photoData:regPhotoData,photoUrl,status:"pending"};
+    const payload={email:user.email,name,phone,roll,utr,amount:REG_FEE,photoData:regPhotoData,status:"pending"};
     if(LIVE) await fb.setDoc(fb.doc(fb.db,"registrations26",user.email),{...payload,at:fb.serverTimestamp()});
     const cb=document.getElementById("regCancelBtn"); if(cb)cb.style.display="none";
     showSuccessPopup(); showRegDone(payload); subscribeMyReg();
@@ -646,7 +636,7 @@ async function syncRegSheet(email){
     const snap=await fb.getDoc(fb.doc(fb.db,"registrations26",email)); if(!snap.exists()) return;
     const d=snap.data()||{};
     fetch(SHEET_URL,{method:"POST",mode:"no-cors",headers:{"Content-Type":"text/plain;charset=utf-8"},
-      body:JSON.stringify({secret:SHEET_SECRET,type:"registration",name:d.name||"",entryNo:d.roll||"",email:d.email||"",phone:d.phone||"",amount:d.amount||REG_FEE,utr:d.utr||"",photo:d.photoUrl||"",status:d.status||"pending"})
+      body:JSON.stringify({secret:SHEET_SECRET,type:"registration",name:d.name||"",entryNo:d.roll||"",email:d.email||"",phone:d.phone||"",amount:d.amount||REG_FEE,utr:d.utr||"",photoData:d.photoData||"",status:d.status||"pending"})
     }).catch(e=>console.error("reg sheet sync",e));
   }catch(e){console.error("syncRegSheet",e);}
 }
@@ -701,7 +691,7 @@ function renderJuniors(){
       <div class="jr-amt gold-text">${money(r.amount||REG_FEE)}</div>`;
     const ph=el.querySelector(".jr-ph-"+_safeId(r.email));
     if(ph){
-      const src=r.photoUrl||r.photoData;
+      const src=r.photoData;
       if(src){ ph.style.backgroundImage="url('"+src+"')"; }
       else { ph.innerHTML="<span>"+(r.name||"?")[0].toUpperCase()+"</span>"; }
     }
@@ -1067,11 +1057,10 @@ async function initFirebase(){
     const appMod  = await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js");
     const authMod = await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js");
     const fsMod   = await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js");
-    const stMod   = await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-storage.js");
     const app = appMod.initializeApp(FIREBASE_CONFIG);
     // Force long-polling so reads/writes work on restrictive college / Wi-Fi networks
     const db = fsMod.initializeFirestore(app, { experimentalForceLongPolling: true });
-    fb = { auth: authMod.getAuth(app), db, storage: stMod.getStorage(app), ...authMod, ...fsMod, ...stMod };
+    fb = { auth: authMod.getAuth(app), db, ...authMod, ...fsMod };
     subscribeBudget();   // keep the budget live regardless of whether the modal is open
 
     // complete a redirect sign-in if we came back from one
