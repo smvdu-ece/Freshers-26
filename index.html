@@ -113,6 +113,7 @@
       <div class="stat"><div class="v" id="totalRaised">₹0</div><div class="k">Total Raised</div></div>
       <div class="stat" id="contribStat" style="cursor:pointer" title="See who contributed"><div class="v" id="contribCount">0</div><div class="k">Contributors ›</div></div>
       <div class="stat" id="yourStat" style="cursor:pointer" title="See your submissions"><div class="v" id="yourTotal">₹0</div><div class="k">Your Contribution ›</div><div class="pend-sub" id="yourPending"></div></div>
+      <div class="stat" id="juniorStat" style="cursor:pointer" title="See junior registrations"><div class="v" id="juniorTotal">₹0</div><div class="k">Juniors' Contributions ›</div></div>
     </div>
   </div>
   <div style="text-align:center;margin-top:24px">
@@ -135,7 +136,10 @@
     <div class="reg-ticket">
       <div class="reg-ticket-header">
         <span class="rth-label">REGISTRATION · ECE · SMVDU</span>
-        <span class="rth-year">2K26</span>
+        <span class="rth-right">
+          <span class="rth-year">2K26</span>
+          <button class="reg-cancel-btn" id="regCancelBtn" type="button" style="display:none" title="Cancel">×</button>
+        </span>
       </div>
       <div class="reg-ticket-body">
 
@@ -422,6 +426,7 @@
       <div class="ras-stat"><div class="ras-v" id="raTotalCount">-</div><div class="ras-k">Total</div></div>
       <div class="ras-stat"><div class="ras-v" id="raPendingCount">-</div><div class="ras-k">Pending</div></div>
       <div class="ras-stat"><div class="ras-v" id="raApprovedCount">-</div><div class="ras-k">Approved</div></div>
+      <div class="ras-stat"><div class="ras-v gold-text" id="raTotalAmount">₹0</div><div class="ras-k">Total</div></div>
     </div>
     <div class="admin-tabs">
       <button class="ratab on" data-ratab="pending" id="raTabPending">Pending</button>
@@ -457,6 +462,21 @@
       <span class="rdr-k">Note</span>
       <span class="rdr-v" id="rdComment" style="color:var(--gold-soft);font-style:italic">-</span>
     </div>
+  </div>
+</div>
+
+
+<!-- JUNIORS CONTRIBUTIONS OVERLAY -->
+<div class="overlay" id="juniorOverlay">
+  <div class="modal" style="max-width:520px">
+    <span class="x" data-close>×</span>
+    <h3 class="gold-text">Juniors' Contributions</h3>
+    <p class="s">Approved freshers who paid the ₹400 registration fee.</p>
+    <div class="reg-admin-stats" style="margin-bottom:16px">
+      <div class="ras-stat"><div class="ras-v" id="jrCount">0</div><div class="ras-k">Approved</div></div>
+      <div class="ras-stat"><div class="ras-v gold-text" id="jrTotal">₹0</div><div class="ras-k">Total Raised</div></div>
+    </div>
+    <div id="juniorList" class="admin-list"><p class="hint">Loading…</p></div>
   </div>
 </div>
 

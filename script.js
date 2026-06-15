@@ -36,7 +36,7 @@ const UPI_NAME  = "Freshers-26";                    // name shown in the payer's
 const ADMIN_EMAILS = ["25bec079@smvdu.ac.in"];
 const REG_ADMIN    = "25f2001633@ds.study.iitm.ac.in"; // approves registrations
 const REG_FEE      = 400;     // who can verify & approve payments
-const SHEET_URL    = "https://script.google.com/macros/s/AKfycbweUyOWH1iPzKYM4r79QTiEPRA4Jw1972fe3G5VPuvdulwmiMXI7yaQuroDSTvv6-wZ/exec";  // Google Apps Script Web App URL
+const SHEET_URL    = "https://script.google.com/macros/s/AKfycbyhLJrFPxSpmjDMeXgclnFhXXOjLCNkFpI0NIbCWlPAPY1C6m9LRCL4hik3R4W7xV3I/exec";  // Google Apps Script Web App URL
 const SHEET_SECRET = "freshers26";                  // must match SECRET in the Apps Script
 /* ---- Budget usage lives in Firebase (Firestore doc: budget/main).
    Admins edit it on the site — set total, add/remove expenses. Everyone sees it live. ---- */
@@ -331,6 +331,7 @@ function applyRole(email){
     if(cSec)    cSec.style.display = "";
     if(rSec)    rSec.style.display = "none";
     if(navLink){ navLink.href="#contribute"; navLink.textContent="Contribute"; }
+    subscribeJuniors();
   } else {
     if(cSec)    cSec.style.display = "none";
     if(rSec)    rSec.style.display = "";
@@ -432,9 +433,20 @@ async function submitReg(){
   const btn=document.getElementById("regBtn"); btn.disabled=true; btn.textContent="Submitting\u2026";
   const m=user.email.match(/^(26bec\d+)@smvdu\.ac\.in$/i);
   const roll=m?m[1].toUpperCase():user.email.split("@")[0].toUpperCase();
-  const payload={email:user.email,name,phone,roll,utr,amount:REG_FEE,photoData:regPhotoData,status:"pending"};
   try{
+    let photoUrl="";
+    if(LIVE && fb.storage && regPhotoData){
+      // Upload photo to Firebase Storage, get a public download URL
+      btn.textContent="Uploading photo\u2026";
+      const safeId=user.email.replace(/[^a-z0-9]/gi,"_");
+      const sRef=fb.ref(fb.storage,"reg-photos/"+safeId+".jpg");
+      await fb.uploadString(sRef, regPhotoData, "data_url");
+      photoUrl=await fb.getDownloadURL(sRef);
+    }
+    btn.textContent="Submitting\u2026";
+    const payload={email:user.email,name,phone,roll,utr,amount:REG_FEE,photoData:regPhotoData,photoUrl,status:"pending"};
     if(LIVE) await fb.setDoc(fb.doc(fb.db,"registrations26",user.email),{...payload,at:fb.serverTimestamp()});
+    const cb=document.getElementById("regCancelBtn"); if(cb)cb.style.display="none";
     showSuccessPopup(); showRegDone(payload); subscribeMyReg();
   }catch(e){
     console.error("reg submit",e); showToast("Submission failed: "+(e.code||e.message));
@@ -506,7 +518,10 @@ function showRegDone(d){
         if(ii)ii.style.display="none";
       }
       populateRegForm();
-      showToast("Update your details and re-submit — status resets to Pending.");
+      // Show cancel × so they can back out without changing anything
+      const cb=document.getElementById("regCancelBtn");
+      if(cb){ cb.style.display=""; cb.onclick=()=>{ if(fw)fw.style.display="none"; if(rd)rd.style.display=""; cb.style.display="none"; }; }
+      showToast("Edit your details and submit \u2014 it will go back for approval.");
     };
   } else {
     if(rrbtn) rrbtn.style.display="none";
@@ -545,8 +560,9 @@ function subscribeRegAdmin(){
   unsubRegs=fb.onSnapshot(fb.collection(fb.db,"registrations26"),snap=>{
     const rows=[]; snap.forEach(d=>rows.push(d.data())); allRegs=rows;
     const tot=rows.length,pend=rows.filter(r=>(r.status||"pending")==="pending").length,app=rows.filter(r=>r.status==="approved").length;
-    const _t=document.getElementById("raTotalCount"),_p=document.getElementById("raPendingCount"),_a=document.getElementById("raApprovedCount");
+    const _t=document.getElementById("raTotalCount"),_p=document.getElementById("raPendingCount"),_a=document.getElementById("raApprovedCount"),_amt=document.getElementById("raTotalAmount");
     if(_t)_t.textContent=tot;if(_p)_p.textContent=pend;if(_a)_a.textContent=app;
+    if(_amt)_amt.textContent=money(app*REG_FEE);
     renderRegAdmin();
   },err=>console.error("regs snapshot",err));
 }
@@ -630,7 +646,7 @@ async function syncRegSheet(email){
     const snap=await fb.getDoc(fb.doc(fb.db,"registrations26",email)); if(!snap.exists()) return;
     const d=snap.data()||{};
     fetch(SHEET_URL,{method:"POST",mode:"no-cors",headers:{"Content-Type":"text/plain;charset=utf-8"},
-      body:JSON.stringify({secret:SHEET_SECRET,type:"registration",name:d.name||"",entryNo:d.roll||"",email:d.email||"",phone:d.phone||"",amount:d.amount||REG_FEE,utr:d.utr||"",photo:"Photo on file",status:d.status||"pending"})
+      body:JSON.stringify({secret:SHEET_SECRET,type:"registration",name:d.name||"",entryNo:d.roll||"",email:d.email||"",phone:d.phone||"",amount:d.amount||REG_FEE,utr:d.utr||"",photo:d.photoUrl||"",status:d.status||"pending"})
     }).catch(e=>console.error("reg sheet sync",e));
   }catch(e){console.error("syncRegSheet",e);}
 }
@@ -644,6 +660,60 @@ function syncAllRegsToSheet(){
   const appCount=allRegs.filter(r=>r.status==="approved").length;
   showToast("Syncing "+emails.length+" registration(s) \u2014 "+appCount+" approved \u2726");
 }
+
+
+/* ══════════════════════════════════════════════════════════════════
+   JUNIORS' CONTRIBUTIONS — approved fresher registrations,
+   visible to senior (25bec) students.
+══════════════════════════════════════════════════════════════════ */
+let juniorRegs=[], unsubJuniors=null;
+function subscribeJuniors(){
+  if(!LIVE||!fb||unsubJuniors) return;
+  try{
+    const q=fb.query(fb.collection(fb.db,"registrations26"),fb.where("status","==","approved"));
+    unsubJuniors=fb.onSnapshot(q,snap=>{
+      const rows=[]; snap.forEach(d=>rows.push(d.data())); juniorRegs=rows;
+      paintJuniorStat();
+      if(document.getElementById("juniorOverlay")&&document.getElementById("juniorOverlay").classList.contains("show")) renderJuniors();
+    },err=>console.error("juniors snapshot",err));
+  }catch(e){ console.error("subscribeJuniors",e); }
+}
+function paintJuniorStat(){
+  const t=document.getElementById("juniorTotal");
+  if(t) t.textContent=money(juniorRegs.length*REG_FEE);
+}
+function renderJuniors(){
+  const box=document.getElementById("juniorList"); if(!box) return;
+  const c=document.getElementById("jrCount"),tot=document.getElementById("jrTotal");
+  if(c)c.textContent=juniorRegs.length;
+  if(tot)tot.textContent=money(juniorRegs.length*REG_FEE);
+  if(!juniorRegs.length){ box.innerHTML='<p class="hint">No approved registrations yet.</p>'; return; }
+  const sorted=[...juniorRegs].sort((a,b)=>(a.name||"").localeCompare(b.name||""));
+  box.innerHTML="";
+  sorted.forEach(r=>{
+    const el=document.createElement("div"); el.className="jr-row";
+    el.innerHTML=`
+      <div class="jr-photo jr-ph-${_safeId(r.email)}"></div>
+      <div class="jr-info">
+        <div class="jr-name">${_esc(r.name||r.email)}</div>
+        <div class="jr-email">${_esc(r.email)}</div>
+      </div>
+      <div class="jr-amt gold-text">${money(r.amount||REG_FEE)}</div>`;
+    const ph=el.querySelector(".jr-ph-"+_safeId(r.email));
+    if(ph){
+      const src=r.photoUrl||r.photoData;
+      if(src){ ph.style.backgroundImage="url('"+src+"')"; }
+      else { ph.innerHTML="<span>"+(r.name||"?")[0].toUpperCase()+"</span>"; }
+    }
+    box.appendChild(el);
+  });
+}
+(function(){
+  const js_btn=document.getElementById("juniorStat");
+  if(js_btn) js_btn.onclick=()=>{ renderJuniors(); openM(document.getElementById("juniorOverlay")); };
+  const jo=document.getElementById("juniorOverlay");
+  if(jo) jo.addEventListener("click",e=>{ if(e.target===jo) closeM(jo); });
+})();
 
 /* ══════════════════════════════════════════════════════════════════
    GATE Google button — triggers Firebase sign-in from the gate page
@@ -997,10 +1067,11 @@ async function initFirebase(){
     const appMod  = await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js");
     const authMod = await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js");
     const fsMod   = await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js");
+    const stMod   = await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-storage.js");
     const app = appMod.initializeApp(FIREBASE_CONFIG);
     // Force long-polling so reads/writes work on restrictive college / Wi-Fi networks
     const db = fsMod.initializeFirestore(app, { experimentalForceLongPolling: true });
-    fb = { auth: authMod.getAuth(app), db, ...authMod, ...fsMod };
+    fb = { auth: authMod.getAuth(app), db, storage: stMod.getStorage(app), ...authMod, ...fsMod, ...stMod };
     subscribeBudget();   // keep the budget live regardless of whether the modal is open
 
     // complete a redirect sign-in if we came back from one

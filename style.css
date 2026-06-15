@@ -748,3 +748,36 @@ img {
 }
 .ratab.on{background:var(--grad-gold);color:#140f02;border-color:transparent;font-weight:600;}
 .ratab:hover:not(.on){color:var(--gold);border-color:var(--gold);}
+
+/* ══════════════════════════════════════════════════════
+   REG CANCEL BUTTON (× in ticket header while editing)
+   ══════════════════════════════════════════════════════ */
+.rth-right{ display:flex;align-items:center;gap:12px; }
+.reg-cancel-btn{
+  width:26px;height:26px;border-radius:50%;
+  border:1px solid rgba(26,20,8,.4);background:rgba(26,20,8,.12);
+  color:#1a1408;font-size:1.1rem;line-height:1;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;
+  transition:background .2s;
+}
+.reg-cancel-btn:hover{ background:rgba(26,20,8,.28); }
+
+/* ══════════════════════════════════════════════════════
+   JUNIORS' CONTRIBUTIONS LIST
+   ══════════════════════════════════════════════════════ */
+.jr-row{
+  display:flex;align-items:center;gap:14px;
+  padding:12px 14px;border:1px solid var(--line);border-radius:10px;
+  margin-bottom:10px;background:var(--panel-2);
+}
+.jr-photo{
+  width:44px;height:44px;border-radius:50%;flex-shrink:0;
+  background:var(--panel) center/cover no-repeat;
+  border:2px solid var(--gold-deep);
+  display:flex;align-items:center;justify-content:center;
+}
+.jr-photo span{ font-family:'Cinzel',serif;font-size:1.1rem;color:var(--gold); }
+.jr-info{ flex:1;min-width:0; }
+.jr-name{ color:var(--ink);font-size:.95rem;font-weight:500; }
+.jr-email{ color:var(--muted);font-size:.75rem;word-break:break-all; }
+.jr-amt{ font-family:'Cinzel',serif;font-size:1.05rem;font-weight:600;flex-shrink:0; }
