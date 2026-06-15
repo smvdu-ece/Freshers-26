@@ -7,6 +7,28 @@
 <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;500;600;700&family=Great+Vibes&family=Jost:wght@300;400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="style.css">
 
+<!-- ═══════════════════════════════════════════════════════
+     LOGIN GATE — full-page wall until authenticated
+     ══════════════════════════════════════════════════════ -->
+<div class="gate" id="gateOverlay">
+  <div class="gate-card">
+    <div class="gate-brand">
+      <img src="Files/smvdu_logo.png" alt="SMVDU" class="gate-logo">
+      <span>ECE · Freshers</span>
+    </div>
+    <div class="script gold-text gate-fiesta">Fête des Freshers</div>
+    <div class="gold-text gate-year">ECE · 2K26</div>
+    <div class="gate-div"></div>
+    <p class="gate-desc">Sign in with your <strong>college Google account</strong> to access this site.</p>
+    <button class="gbtn" id="gateGoogleBtn">
+      <svg width="18" height="18" viewBox="0 0 48 48" aria-hidden="true"><path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3c-1.6 4.7-6.1 8-11.3 8-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.9 1.2 8 3.1l5.7-5.7C34.6 6.1 29.6 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20 20-8.9 20-20c0-1.3-.1-2.3-.4-3.5z"/><path fill="#FF3D00" d="M6.3 14.7l6.6 4.8C14.7 16 19 13 24 13c3.1 0 5.9 1.2 8 3.1l5.7-5.7C34.6 6.1 29.6 4 24 4 16.3 4 9.7 8.3 6.3 14.7z"/><path fill="#4CAF50" d="M24 44c5.5 0 10.4-2.1 14.1-5.5l-6.5-5.5C29.6 34.6 26.9 36 24 36c-5.2 0-9.6-3.3-11.3-8l-6.6 5.1C9.5 39.6 16.2 44 24 44z"/><path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-.8 2.2-2.2 4.1-4.1 5.5l6.5 5.5C39.9 36.5 44 31 44 24c0-1.3-.1-2.3-.4-3.5z"/></svg>
+      Continue with Google
+    </button>
+    <div id="gateMsg" class="lmsg"></div>
+    <p class="gate-note">Only verified <strong>SMVDU student</strong> or <strong>authorised</strong> emails are permitted.</p>
+  </div>
+</div>
+
 <div class="wrap">
 
 <div class="preview-banner" id="previewBanner">⚠ Preview mode — add your Firebase config to enable real login &amp; the live bar.</div>
@@ -16,7 +38,7 @@
   <div class="brand"><img class="logo" src="Files/smvdu_logo.png" alt="SMVDU"> ECE · FRESHERS</div>
   <div class="nav-links" id="navLinks">
     <a href="#recap">Freshers'25</a>
-    <a href="#contribute">Contribute</a>
+    <a href="#contribute" id="contributeNavLink">Contribute</a>
     <a href="#details">The Day</a>
     <a href="#reg26">Freshers'26</a>
   </div>
@@ -95,6 +117,44 @@
     <button class="btn ghost" id="seePaymentsBtn">See Payments</button>
     <button class="btn ghost" id="budgetBtn">Budget usage</button>
     <button class="btn ghost" id="adminBtn" style="display:none">Verify payments</button>
+  </div>
+</section>
+
+
+<!-- FRESHER REGISTRATION (shown for 26bec + authorised emails) -->
+<section id="fresher-reg" style="display:none">
+  <div class="eyebrow reveal">Welcome</div>
+  <h2 class="sec-title gold-text reveal d1">Register for Freshers'26</h2>
+  <p class="sec-sub reveal d2">You're the new ECE family. Fill in your details to confirm your attendance at <em>Fête des Freshers</em>.</p>
+  <div class="divider"><span class="l"></span><span class="d"></span><span class="l"></span></div>
+  <div class="reg-shell reveal d1">
+    <div id="regForm">
+      <div class="reg-field">
+        <label>Full Name</label>
+        <input id="regName" type="text" placeholder="Your full name" autocomplete="name">
+      </div>
+      <div class="reg-field">
+        <label>Roll No.</label>
+        <input id="regRoll" type="text" placeholder="e.g. 26BEC001" readonly>
+      </div>
+      <div class="reg-field">
+        <label>Email</label>
+        <input id="regEmail" type="text" readonly>
+      </div>
+      <div class="reg-field">
+        <label>Phone Number</label>
+        <input id="regPhone" type="tel" placeholder="10-digit mobile number" autocomplete="tel">
+      </div>
+      <button class="btn solid reg-submit-btn" id="regBtn" type="button">Register for Freshers'26</button>
+    </div>
+    <div id="regDone" style="display:none">
+      <div class="reg-success">
+        <div class="reg-tick">✦</div>
+        <h3 class="gold-text">You're on the list!</h3>
+        <p class="s">Welcome to ECE, <strong id="regDoneName"></strong>.<br>See you at <em>Fête des Freshers</em>!</p>
+        <p class="note2">Your entry will be confirmed closer to the event — watch this space.</p>
+      </div>
+    </div>
   </div>
 </section>
 

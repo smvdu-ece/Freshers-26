@@ -13,7 +13,22 @@ const FIREBASE_CONFIG = {
   appId: "1:566795663580:web:4147de852c048261b49c19",
   measurementId: "G-VDRX1RRYJE"
 };
-const ALLOWED_DOMAINS = ["smvdu.ac.in"];   // <-- only these email domains can log in
+// ── Allowed email patterns ─────────────────────────────────────────
+// 25bec0…@smvdu.ac.in   → senior (2025 batch) — sees contribution section
+// 26bec…@smvdu.ac.in    → fresher (2026 batch) — sees registration section
+// 25f2001633@ds.…        → special access       — sees registration section
+const ALLOWED_DOMAINS = ["smvdu.ac.in"];   // kept for hd hint in Google provider
+const SENIOR_RE  = /^25bec0[^@]+@smvdu\.ac\.in$/i;
+const FRESHER_RE = /^26bec[^@]+@smvdu\.ac\.in$/i;
+const SPECIAL_EMAIL = "25f2001633@ds.study.iitm.ac.in";
+function emailAllowed(email){
+  const e=(email||"").toLowerCase().trim();
+  return SENIOR_RE.test(e) || FRESHER_RE.test(e) || e===SPECIAL_EMAIL;
+}
+function userRole(email){
+  const e=(email||"").toLowerCase().trim();
+  return SENIOR_RE.test(e) ? "senior" : "fresher";
+}
 const GOAL = 1740;
 /* ---- Version A: direct UPI + manual verify (no gateway) ---- */
 const UPI_ID    = "7654201815@upi";                 // <-- the UPI ID that RECEIVES the money
@@ -41,11 +56,7 @@ function showToast(m){ toast.textContent = m; toast.classList.add("show"); setTi
 function openM(o){ o.classList.add("show"); }
 function closeM(o){ o.classList.remove("show"); }
 function msg(t,cls){ const m=$("#loginMsg"); m.textContent=t||""; m.className="lmsg "+(cls||""); }
-function domainOK(email){
-  const at = (email||"").lastIndexOf("@"); if(at<0) return false;
-  const dom = email.slice(at+1).toLowerCase();
-  return ALLOWED_DOMAINS.some(d => dom===d || dom.endsWith("."+d));
-}
+/* domainOK replaced by emailAllowed — see top of file */
 document.querySelectorAll("[data-close]").forEach(x=>x.onclick=()=>{ const o=x.closest(".overlay"); if(o) o.classList.remove("show"); });
 [loginOverlay,payOverlay,adminOverlay,document.getElementById("mySubsOverlay"),document.getElementById("payListOverlay")].forEach(o=>o&&o.addEventListener("click",e=>{ if(e.target===o) closeM(o); }));
 
@@ -288,11 +299,120 @@ function refreshUserUI(){
   refreshAdminUI();
 }
 
+
+/* ══════════════════════════════════════════════════════════════════
+   LOGIN GATE — show / hide
+══════════════════════════════════════════════════════════════════ */
+const _gate = document.getElementById("gateOverlay");
+function showGate(){ _gate.classList.remove("hidden"); }
+function hideGate(){ _gate.classList.add("hidden"); }
+function gateMsg(t,cls){ const m=document.getElementById("gateMsg"); if(m){ m.textContent=t||""; m.className="lmsg "+(cls||""); } }
+
+/* ══════════════════════════════════════════════════════════════════
+   ROLE — switch between contribution view (senior) and
+           registration view (fresher / special)
+══════════════════════════════════════════════════════════════════ */
+function applyRole(email){
+  const role = userRole(email);
+  const cSec    = document.getElementById("contribute");
+  const rSec    = document.getElementById("fresher-reg");
+  const navLink = document.getElementById("contributeNavLink");
+  if(role==="senior"){
+    if(cSec)    cSec.style.display = "";
+    if(rSec)    rSec.style.display = "none";
+    if(navLink){ navLink.href="#contribute"; navLink.textContent="Contribute"; }
+  } else {
+    if(cSec)    cSec.style.display = "none";
+    if(rSec)    rSec.style.display = "";
+    if(navLink){ navLink.href="#fresher-reg"; navLink.textContent="Register"; }
+    populateRegForm(); loadRegStatus();
+  }
+  hideGate();
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   REGISTRATION FORM — freshers / special email only
+══════════════════════════════════════════════════════════════════ */
+function populateRegForm(){
+  if(!user) return;
+  const ni=document.getElementById("regName"),ri=document.getElementById("regRoll"),ei=document.getElementById("regEmail");
+  if(ni && !ni.value) ni.value = user.name||"";
+  if(ei) ei.value = user.email;
+  if(ri){
+    const m=user.email.match(/^(26bec\d+)@smvdu\.ac\.in$/i);
+    ri.value = m ? m[1].toUpperCase() : user.email.split("@")[0].toUpperCase();
+  }
+}
+async function loadRegStatus(){
+  if(!LIVE||!fb||!user) return;
+  try{
+    const snap = await fb.getDoc(fb.doc(fb.db,"registrations26",user.email));
+    if(snap.exists()) showRegDone(snap.data().name||user.name);
+  }catch(e){ console.error("reg check",e); }
+}
+async function submitReg(){
+  if(!user) return;
+  const name=(document.getElementById("regName").value||"").trim();
+  const phone=(document.getElementById("regPhone").value||"").trim();
+  if(!name){ showToast("Enter your full name"); return; }
+  if(!/^[6-9]\d{9}$/.test(phone)){ showToast("Enter a valid 10-digit phone number"); return; }
+  const btn=document.getElementById("regBtn"); btn.disabled=true; btn.textContent="Registering\u2026";
+  try{
+    if(LIVE){
+      await fb.setDoc(fb.doc(fb.db,"registrations26",user.email),{
+        email:user.email, name, phone,
+        roll:document.getElementById("regRoll").value||"",
+        at:fb.serverTimestamp()
+      });
+    }
+    showRegDone(name); showToast("Registered! See you at the party \u2726");
+  }catch(e){
+    console.error("reg submit",e); showToast("Registration failed: "+(e.code||e.message));
+    btn.disabled=false; btn.textContent="Register for Freshers\'26";
+  }
+}
+function showRegDone(name){
+  const f=document.getElementById("regForm"),d=document.getElementById("regDone");
+  if(f) f.style.display="none";
+  if(d) d.style.display="";
+  const dn=document.getElementById("regDoneName"); if(dn) dn.textContent=name;
+}
+const _regBtn = document.getElementById("regBtn");
+if(_regBtn) _regBtn.onclick = submitReg;
+
+/* ══════════════════════════════════════════════════════════════════
+   GATE Google button — triggers Firebase sign-in from the gate page
+══════════════════════════════════════════════════════════════════ */
+document.getElementById("gateGoogleBtn").onclick = async ()=>{
+  if(LIVE){
+    if(!fb){ gateMsg("Still connecting \u2014 try again in a second.","err"); return; }
+    const btn=document.getElementById("gateGoogleBtn"); btn.disabled=true; gateMsg("Opening Google sign-in\u2026","ok");
+    try{
+      const provider=new fb.GoogleAuthProvider();
+      provider.setCustomParameters({hd:"smvdu.ac.in", prompt:"select_account"});
+      await fb.signInWithPopup(fb.auth,provider); gateMsg("");
+    }catch(e){
+      const code=e&&e.code?e.code:"";
+      if(code==="auth/popup-blocked"){
+        try{ const p=new fb.GoogleAuthProvider(); p.setCustomParameters({prompt:"select_account"}); await fb.signInWithRedirect(fb.auth,p); }
+        catch(e2){ gateMsg("Couldn't open sign-in.","err"); }
+      } else if(code==="auth/popup-closed-by-user"||code==="auth/cancelled-popup-request"){ gateMsg(""); }
+      else { gateMsg("Sign-in failed: "+(code||e.message||e),"err"); }
+      document.getElementById("gateGoogleBtn").disabled=false;
+    }
+  } else {
+    // Preview: sign in as senior by default
+    user={ email:"25bec001@smvdu.ac.in", name:"Demo Student" };
+    applyRole(user.email); refreshUserUI(); subscribeMyPending(); repaint();
+    showToast("Welcome, Demo Student! (preview — senior view)");
+  }
+};
+
 /* ---------- login ---------- */
 $("#loginBtn").onclick = async ()=>{
   if(user){
-    if(LIVE && fb){ try{ await fb.signOut(fb.auth); }catch(e){} }
-    user=null; refreshUserUI(); subscribeMyPending(); repaint(); showToast("Logged out");
+    if(LIVE && fb){ try{ await fb.signOut(fb.auth); }catch(e){} /* onAuthStateChanged → showGate */ }
+    else { user=null; showGate(); refreshUserUI(); subscribeMyPending(); repaint(); showToast("Logged out"); }
   } else { msg(""); openM(loginOverlay); }
 };
 
@@ -623,14 +743,16 @@ async function initFirebase(){
 
     fb.onAuthStateChanged(fb.auth, async u=>{
       if(u){
-        if(!domainOK(u.email||"")){
+        const email=(u.email||"").toLowerCase();
+        if(!emailAllowed(email)){
           await fb.signOut(fb.auth);
-          showToast("Use your @"+ALLOWED_DOMAINS[0]+" student email to sign in");
-          user=null;
+          gateMsg("Only authorised SMVDU / IITM student emails are permitted.","err");
+          user=null; showGate();
         } else {
-          user = { email:(u.email||"").toLowerCase(), name: u.displayName || (u.email||"").split("@")[0] };
+          user = { email, name: u.displayName || email.split("@")[0] };
+          applyRole(email);
         }
-      } else user=null;
+      } else { user=null; showGate(); }
       refreshUserUI(); subscribeMyPending(); repaint();
     });
     subscribe();
