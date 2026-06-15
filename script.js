@@ -36,7 +36,7 @@ const UPI_NAME  = "Freshers-26";                    // name shown in the payer's
 const ADMIN_EMAILS = ["25bec079@smvdu.ac.in"];
 const REG_ADMIN    = "25f2001633@ds.study.iitm.ac.in"; // approves registrations
 const REG_FEE      = 400;     // who can verify & approve payments
-const SHEET_URL    = "https://script.google.com/macros/s/AKfycbwnUuTp5GkKCxSV7SHV0nHdy_3_Fv7FLpkR-xQfZS_TbzfLqWDgKkDu7BMaco7k3dTK/exec";  // Google Apps Script Web App URL
+const SHEET_URL    = "https://script.google.com/macros/s/AKfycbw_Bx9urYUTTUqol4LvGwdBUujvQSNT6LBoiQf73vDmqjAPvWdoqHRBKQuD7cM5fb_x/exec";  // Google Apps Script Web App URL
 const SHEET_SECRET = "freshers26";                  // must match SECRET in the Apps Script
 /* ---- Budget usage lives in Firebase (Firestore doc: budget/main).
    Admins edit it on the site — set total, add/remove expenses. Everyone sees it live. ---- */
