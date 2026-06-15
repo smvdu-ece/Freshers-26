@@ -485,8 +485,8 @@ function showRegDone(d){
     if(!rrbtn){
       rrbtn=document.createElement("button"); rrbtn.id="reregBtn";
       rrbtn.className="btn solid";
-      rrbtn.style.cssText="margin-top:20px;width:100%;display:flex;justify-content:center;";
-      rrbtn.textContent="Re-submit Registration";
+      rrbtn.style.cssText="margin-top:16px;";
+      rrbtn.textContent="Re-submit";
       if(rd) rd.appendChild(rrbtn);
     }
     rrbtn.style.display="flex";
@@ -517,6 +517,8 @@ function openRegDetails(d){
   const b=document.getElementById("rdStatus");
   if(b){b.textContent=s==="approved"?"Approved \u2713":s==="rejected"?"Rejected":"Pending Approval";b.className="reg-badge "+s;}
   [["rdName",d.name],["rdRoll",d.roll],["rdEmail",d.email||user.email],["rdPhone",d.phone],["rdAmount","\u20b9"+(d.amount||400)],["rdUtr",d.utr]].forEach(([id,v])=>{const el=document.getElementById(id);if(el)el.textContent=v||"\u2014";});
+  const cRow=document.getElementById("rdCommentRow"),cEl=document.getElementById("rdComment");
+  if(d.adminComment){if(cEl)cEl.textContent=d.adminComment;if(cRow)cRow.style.display="";}else{if(cRow)cRow.style.display="none";}
   const img=document.getElementById("rdPhotoImg"),init=document.getElementById("rdPhotoInitial");
   if(d.photoData){if(img){img.src=d.photoData;img.style.display="";}if(init)init.style.display="none";}
   else{if(init){init.textContent=(d.name||"?")[0]?.toUpperCase()||"?";init.style.display="";}}
@@ -572,6 +574,11 @@ function renderRegAdmin(){
       </div>
       <div class="meta">${_esc(r.email)} &middot; ${_esc(r.roll||"")} &middot; &#8377;${r.amount||400} &middot; UTR: ${_esc(r.utr||"—")}</div>
       <div class="meta" style="margin-top:2px">Phone: ${_esc(r.phone||"—")}</div>
+      ${r.adminComment?`<div class="meta" style="color:var(--gold-soft);margin-top:4px;font-style:italic">Note: ${_esc(r.adminComment)}</div>`:""}
+      <input class="msg-in ra-comment-in" type="text" maxlength="120"
+             placeholder="Optional note to student (e.g. bring college ID)"
+             value="${_esc(r.adminComment||"")}"
+             style="margin:10px 0 4px;width:100%;background:#0c0c0e;border:1px solid var(--line);color:var(--ink);padding:9px 12px;border-radius:6px;font-family:Jost,sans-serif;font-size:.85rem;">
       <div class="acts">
         <button class="btn solid ap" type="button">Approve</button>
         <button class="btn ghost danger rj" type="button">Reject</button>
@@ -582,8 +589,8 @@ function renderRegAdmin(){
       if(r.photoData){ photoEl.style.backgroundImage="url('"+r.photoData+"')"; }
       else { photoEl.innerHTML="<span>"+(r.name||"?")[0].toUpperCase()+"</span>"; }
     }
-    el.querySelector(".ap").onclick=()=>{raOpt[r.email]="approved";renderRegAdmin();approveReg(r);};
-    el.querySelector(".rj").onclick=()=>{raOpt[r.email]="rejected";renderRegAdmin();rejectReg(r.email);};
+    el.querySelector(".ap").onclick=()=>{const c=el.querySelector(".ra-comment-in")?.value.trim()||"";raOpt[r.email]="approved";renderRegAdmin();approveReg(r,c);};
+    el.querySelector(".rj").onclick=()=>{const c=el.querySelector(".ra-comment-in")?.value.trim()||"";raOpt[r.email]="rejected";renderRegAdmin();rejectReg(r.email,c);};
     box.appendChild(el);
   });
 function _safeId(s){ return (s||"").replace(/[^a-z0-9]/gi,"_"); }
@@ -598,15 +605,19 @@ document.querySelectorAll("[data-ratab]").forEach(b=>{b.onclick=()=>{raTab=b.dat
   const srsb=document.getElementById("syncRegSheetBtn"); if(srsb)srsb.onclick=syncAllRegsToSheet;
   const srb=document.getElementById("syncRegBtn"); if(srb)srb.onclick=syncAllRegsToSheet;
 })();
-async function approveReg(r){
+async function approveReg(r,comment){
   try{
-    await fb.setDoc(fb.doc(fb.db,"registrations26",r.email),{status:"approved",approvedAt:fb.serverTimestamp()},{merge:true});
+    const upd={status:"approved",approvedAt:fb.serverTimestamp()};
+    if(comment) upd.adminComment=comment; else upd.adminComment="";
+    await fb.setDoc(fb.doc(fb.db,"registrations26",r.email),upd,{merge:true});
     showToast("Approved \u2726"); delete raOpt[r.email]; syncRegSheet(r.email);
   }catch(e){delete raOpt[r.email];renderRegAdmin();showToast("Failed: "+(e.code||e.message));}
 }
-async function rejectReg(email){
+async function rejectReg(email,comment){
   try{
-    await fb.setDoc(fb.doc(fb.db,"registrations26",email),{status:"rejected",rejectedAt:fb.serverTimestamp()},{merge:true});
+    const upd={status:"rejected",rejectedAt:fb.serverTimestamp()};
+    if(comment) upd.adminComment=comment; else upd.adminComment="";
+    await fb.setDoc(fb.doc(fb.db,"registrations26",email),upd,{merge:true});
     showToast("Rejected"); delete raOpt[email];
   }catch(e){delete raOpt[email];renderRegAdmin();showToast("Failed: "+(e.code||e.message));}
 }
