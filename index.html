@@ -5,7 +5,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;500;600;700&family=Great+Vibes&family=Jost:wght@300;400;500;600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=9">
+<link rel="stylesheet" href="style.css?v=10">
 
 <!-- ═══════════════════════════════════════════════════════
      LOGIN GATE — full-page wall until authenticated
@@ -315,6 +315,7 @@
     <div id="amtSection">
       <label>Amount (₹)</label>
       <input id="inAmt" type="number" min="500" placeholder="Min ₹500">
+      <div class="amt-warn" id="amtWarn" style="display:none">Please enter ₹500 or more.</div>
       <div class="chip-row">
         <span class="chip" data-amt="1740">₹1740 (full)</span>
         <span class="chip" data-amt="740">₹740</span>
@@ -495,5 +496,5 @@
 
 <div class="toast" id="toast"></div>
 
-<script src="script.js?v=9"></script>
-<script src="privacy.js?v=9"></script>
+<script src="script.js?v=10"></script>
+<script src="privacy.js?v=10"></script>

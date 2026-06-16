@@ -845,6 +845,12 @@ function updatePayBtn(){
   if($("#amtSection").style.display !== "none"){
     const valid = (amt>=500) || (is260 && amt===260);
     $("#payTo").style.display = valid ? "" : "none";
+    // live warning when amount is entered but below ₹500 (and not the ₹260 chip case)
+    const warn = $("#amtWarn");
+    if(warn){
+      const showWarn = amt>0 && amt<500 && !(is260 && amt===260);
+      warn.style.display = showWarn ? "block" : "none";
+    }
   }
 }
 function downloadQR(){
