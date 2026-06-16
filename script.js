@@ -16,14 +16,12 @@ const FIREBASE_CONFIG = {
 // ── Allowed email patterns ─────────────────────────────────────────
 // 25bec0…@smvdu.ac.in   → senior (2025 batch) — sees contribution section
 // 26bec…@smvdu.ac.in    → fresher (2026 batch) — sees registration section
-// 25f2001633@ds.…        → special access       — sees registration section
 const ALLOWED_DOMAINS = ["smvdu.ac.in"];   // kept for hd hint in Google provider
 const SENIOR_RE  = /^25bec0[^@]+@smvdu\.ac\.in$/i;
 const FRESHER_RE = /^26bec[^@]+@smvdu\.ac\.in$/i;
-const SPECIAL_EMAIL = "25f2001633@ds.study.iitm.ac.in";
 function emailAllowed(email){
   const e=(email||"").toLowerCase().trim();
-  return SENIOR_RE.test(e) || FRESHER_RE.test(e) || e===SPECIAL_EMAIL;
+  return SENIOR_RE.test(e) || FRESHER_RE.test(e);
 }
 function userRole(email){
   const e=(email||"").toLowerCase().trim();
@@ -34,7 +32,7 @@ const GOAL = 1740;
 const UPI_ID    = "7654201815@upi";                 // <-- the UPI ID that RECEIVES the money
 const UPI_NAME  = "Freshers-26";                    // name shown in the payer's UPI app
 const ADMIN_EMAILS = ["25bec079@smvdu.ac.in"];
-const REG_ADMIN    = "25f2001633@ds.study.iitm.ac.in"; // approves registrations
+const REG_ADMIN    = "25bec079@smvdu.ac.in"; // approves registrations (same as contribution admin)
 const REG_FEE      = 400;     // who can verify & approve payments
 const SHEET_URL    = "https://script.google.com/macros/s/AKfycbyYrfjGJYmyQyOU1vmAOHxMrfeMXVvFKQbrJ-gW9vR91M-k8VNwYS_thjTu8aZKjNs8/exec";  // Google Apps Script Web App URL
 const SHEET_SECRET = "freshers26";                  // must match SECRET in the Apps Script
@@ -340,7 +338,21 @@ function applyRole(email){
   const cSec    = document.getElementById("contribute");
   const rSec    = document.getElementById("fresher-reg");
   const navLink = document.getElementById("contributeNavLink");
-  if(role==="senior"){
+  const adminUser = isAdmin() || isRegAdmin();
+  if(adminUser){
+    // Admin sees BOTH sections: contributions + registration admin panel
+    if(cSec)    cSec.style.display = "";
+    if(rSec)    rSec.style.display = "";
+    if(navLink){ navLink.href="#contribute"; navLink.textContent="Contribute"; }
+    // Admin doesn't fill the registration form — hide form + done card,
+    // show only the section heading + "View Registrations" button.
+    const _ff=document.getElementById("regFormWrap"); if(_ff)_ff.style.display="none";
+    const _fd=document.getElementById("regDone"); if(_fd)_fd.style.display="none";
+    const _sub=document.querySelector("#fresher-reg .sec-sub");
+    if(_sub)_sub.textContent="Review and approve fresher registrations for Freshers'26.";
+    subscribeJuniors();
+    refreshRegAdminUI();   // shows "View Registrations" admin button
+  } else if(role==="senior"){
     if(cSec)    cSec.style.display = "";
     if(rSec)    rSec.style.display = "none";
     if(navLink){ navLink.href="#contribute"; navLink.textContent="Contribute"; }
