@@ -698,12 +698,19 @@ function renderJuniors(){
     box.appendChild(el);
   });
 }
-(function(){
-  const js_btn=document.getElementById("juniorStat");
-  if(js_btn) js_btn.onclick=()=>{ renderJuniors(); openM(document.getElementById("juniorOverlay")); };
-  const jo=document.getElementById("juniorOverlay");
-  if(jo) jo.addEventListener("click",e=>{ if(e.target===jo) closeM(jo); });
-})();
+/* Wire junior stat button — same top-level pattern as the working stats */
+const _juniorStatBtn = document.getElementById("juniorStat");
+if(_juniorStatBtn){
+  _juniorStatBtn.onclick = function(){
+    try { renderJuniors(); } catch(e){ console.error("renderJuniors error", e); }
+    const ov = document.getElementById("juniorOverlay");
+    if(ov) openM(ov);
+  };
+}
+const _juniorOv = document.getElementById("juniorOverlay");
+if(_juniorOv){
+  _juniorOv.addEventListener("click", function(e){ if(e.target===_juniorOv) closeM(_juniorOv); });
+}
 
 /* ══════════════════════════════════════════════════════════════════
    GATE Google button — triggers Firebase sign-in from the gate page
