@@ -361,11 +361,15 @@ function applyRole(email){
     if(cSec)    cSec.style.display = "";
     if(rSec)    rSec.style.display = "none";
     if(navLink){ navLink.href="#contribute"; navLink.textContent="Contribute"; }
+    const hero=document.getElementById("heroCtaBtn");
+    if(hero){ hero.setAttribute("href","#contribute"); hero.textContent="Contribute to '26"; }
     subscribeJuniors();
   } else {
     if(cSec)    cSec.style.display = "none";
     if(rSec)    rSec.style.display = "";
     if(navLink){ navLink.href="#fresher-reg"; navLink.textContent="Register"; }
+    const hero=document.getElementById("heroCtaBtn");
+    if(hero){ hero.setAttribute("href","#fresher-reg"); hero.textContent="Register for Freshers'26"; }
     populateRegForm(); loadRegStatus(); /* loadRegStatus calls refreshRegAdminUI */
   }
   hideGate();
