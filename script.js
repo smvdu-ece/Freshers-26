@@ -36,7 +36,7 @@ const UPI_NAME  = "Freshers-26";                    // name shown in the payer's
 const ADMIN_EMAILS = ["25bec079@smvdu.ac.in"];
 const REG_ADMIN    = "25f2001633@ds.study.iitm.ac.in"; // approves registrations
 const REG_FEE      = 400;     // who can verify & approve payments
-const SHEET_URL    = "https://script.google.com/macros/s/AKfycbw_Bx9urYUTTUqol4LvGwdBUujvQSNT6LBoiQf73vDmqjAPvWdoqHRBKQuD7cM5fb_x/exec";  // Google Apps Script Web App URL
+const SHEET_URL    = "https://script.google.com/macros/s/AKfycbyYrfjGJYmyQyOU1vmAOHxMrfeMXVvFKQbrJ-gW9vR91M-k8VNwYS_thjTu8aZKjNs8/exec";  // Google Apps Script Web App URL
 const SHEET_SECRET = "freshers26";                  // must match SECRET in the Apps Script
 /* ---- Budget usage lives in Firebase (Firestore doc: budget/main).
    Admins edit it on the site — set total, add/remove expenses. Everyone sees it live. ---- */
@@ -575,7 +575,7 @@ function renderRegAdmin(){
     // ⚠ Don't put base64 photoData in innerHTML — it breaks HTML parsing and disables buttons
     el.innerHTML=`
       <div class="top" style="display:flex;align-items:center;gap:10px">
-        <div class="ra-photo-sm ra-ph-${_safeId(r.email)}"></div>
+        <div class="ra-photo-sm ra-photo-target"></div>
         <div>
           <span class="nm">${_esc(r.name||r.email)}</span>
           &nbsp;<span class="reg-badge ${st}">${st.charAt(0).toUpperCase()+st.slice(1)}</span>
@@ -592,11 +592,12 @@ function renderRegAdmin(){
         <button class="btn solid ap" type="button">Approve</button>
         <button class="btn ghost danger rj" type="button">Reject</button>
       </div>`;
-    // Set photo AFTER innerHTML (avoids base64-in-HTML parsing issue)
-    const photoEl=el.querySelector(".ra-ph-"+_safeId(r.email));
+    // Set photo AFTER innerHTML (static class avoids invalid-selector crash)
+    const photoEl=el.querySelector(".ra-photo-target");
     if(photoEl){
-      if(r.photoData){ photoEl.style.backgroundImage="url('"+r.photoData+"')"; }
-      else { photoEl.innerHTML="<span>"+(r.name||"?")[0].toUpperCase()+"</span>"; }
+      const psrc=r.photoData||r.photoUrl;
+      if(psrc){ photoEl.style.backgroundImage="url('"+psrc+"')"; }
+      else { photoEl.innerHTML="<span>"+(((r.name||"?")[0])||"?").toUpperCase()+"</span>"; }
     }
     el.querySelector(".ap").onclick=()=>{const c=el.querySelector(".ra-comment-in")?.value.trim()||"";raOpt[r.email]="approved";renderRegAdmin();approveReg(r,c);};
     el.querySelector(".rj").onclick=()=>{const c=el.querySelector(".ra-comment-in")?.value.trim()||"";raOpt[r.email]="rejected";renderRegAdmin();rejectReg(r.email,c);};
@@ -682,19 +683,22 @@ function renderJuniors(){
   box.innerHTML="";
   sorted.forEach(r=>{
     const el=document.createElement("div"); el.className="jr-row";
-    el.innerHTML=`
-      <div class="jr-photo jr-ph-${_safeId(r.email)}"></div>
-      <div class="jr-info">
-        <div class="jr-name">${_esc(r.name||r.email)}</div>
-        <div class="jr-email">${_esc(r.email)}</div>
-      </div>
-      <div class="jr-amt gold-text">${money(r.amount||REG_FEE)}</div>`;
-    const ph=el.querySelector(".jr-ph-"+_safeId(r.email));
-    if(ph){
-      const src=r.photoData;
-      if(src){ ph.style.backgroundImage="url('"+src+"')"; }
-      else { ph.innerHTML="<span>"+(r.name||"?")[0].toUpperCase()+"</span>"; }
-    }
+
+    // Photo (build as element — avoids invalid CSS selectors from digit-leading emails)
+    const photo=document.createElement("div"); photo.className="jr-photo";
+    const src=r.photoData||r.photoUrl;
+    if(src){ photo.style.backgroundImage="url('"+src+"')"; }
+    else { photo.innerHTML="<span>"+(((r.name||"?")[0])||"?").toUpperCase()+"</span>"; }
+
+    const info=document.createElement("div"); info.className="jr-info";
+    const nm=document.createElement("div"); nm.className="jr-name"; nm.textContent=r.name||r.email||"";
+    const em=document.createElement("div"); em.className="jr-email"; em.textContent=r.email||"";
+    info.appendChild(nm); info.appendChild(em);
+
+    const amt=document.createElement("div"); amt.className="jr-amt gold-text";
+    amt.textContent=money(r.amount||REG_FEE);
+
+    el.appendChild(photo); el.appendChild(info); el.appendChild(amt);
     box.appendChild(el);
   });
 }
