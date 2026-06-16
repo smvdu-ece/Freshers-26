@@ -86,8 +86,17 @@ function repaint(){
   $("#extraBtn").style.display = mine>=GOAL ? "none" : "";   // hide "Pay a custom amount" once goal is reached
   // ₹260 "go gold" chip — only when full ₹1740 is already approved (1740 + 260 = 2000)
   const c260=$("#chip260"); if(c260) c260.style.display = (mine>=GOAL && mine<2000) ? "" : "none";
-  $("#totalRaised").textContent = money(total);
-  totalRaised = total;   // share with the Budget Usage modal
+  // Total Raised = senior contributions + juniors (approved freshers × REG_FEE)
+  const juniorTotalAmt = (typeof juniorRegs !== "undefined" ? juniorRegs.length : 0) * REG_FEE;
+  const combinedRaised = total + juniorTotalAmt;
+  seniorRaised = total;                 // 2025-2029 batch only
+  $("#totalRaised").textContent = money(combinedRaised);
+  totalRaised = combinedRaised;         // share with the Budget Usage modal
+  // feed the raised-breakdown overlay
+  const _rs=$("#raisedSeniors"),_rj=$("#raisedJuniors"),_rg=$("#raisedGrand");
+  if(_rs)_rs.textContent=money(total);
+  if(_rj)_rj.textContent=money(juniorTotalAmt);
+  if(_rg)_rg.textContent=money(combinedRaised);
   if($("#budgetOverlay") && $("#budgetOverlay").classList.contains("show")) renderBudget();
   $("#contribCount").textContent = count;
   $("#yourTotal").textContent = money(mine);
@@ -109,8 +118,10 @@ for(let n=1;n<=90;n++){ if(EXCLUDE.includes(n)) continue; ROSTER.push({ email:"2
 function renderPayments(){
   const q = ($("#paySearch").value||"").toLowerCase();
   let gold=0, full=0, part=0, none=0;
-  ROSTER.forEach(p=>{ const a=data[p.email]||0; if(a>=2000) gold++; else if(a>=GOAL) full++; else if(a>0) part++; else none++; });
+  let payTotal=0;
+  ROSTER.forEach(p=>{ const a=data[p.email]||0; payTotal+=a; if(a>=2000) gold++; else if(a>=GOAL) full++; else if(a>0) part++; else none++; });
   $("#paySummary").innerHTML = '<span class="s-gold">'+gold+' gold</span> · <span class="s-g">'+full+' full</span> · <span class="s-y">'+part+' partial</span> · <span class="s-r">'+none+' pending</span>';
+  const _pt=$("#payTotalAmt"); if(_pt) _pt.textContent=money(payTotal);
   const match = (a)=> payFilter==="gold" ? a>=2000
     : payFilter==="full" ? (a>=GOAL && a<2000)
     : payFilter==="partial" ? (a>0 && a<GOAL)
@@ -133,13 +144,15 @@ function setPayFilter(f){
 }
 document.querySelectorAll("#payFilters .fchip").forEach(c=> c.onclick=()=> setPayFilter(c.dataset.filter));
 $("#seePaymentsBtn").onclick = ()=>{ $("#paySearch").value=""; setPayFilter("all"); openM($("#payListOverlay")); };
+const _raisedStat=$("#raisedStat"); if(_raisedStat) _raisedStat.onclick=()=>{ repaint(); openM($("#raisedOverlay")); };
 $("#contribStat").onclick   = ()=>{ $("#paySearch").value=""; setPayFilter("all"); openM($("#payListOverlay")); };
 $("#yourStat").onclick = ()=>{ openM($("#mySubsOverlay")); renderMySubs(); };
 
 /* ---------- budget usage (stored in Firebase: doc budget/main) ---------- */
 let budgetData = { items: [] };   // live snapshot: { items:[{id, where, amount, proof, paid}] }
 let unsubBudget = null;
-let totalRaised = 0;              // mirrors the contribution "Total Raised" (kept in sync by repaint)
+let totalRaised = 0;              // combined raised (seniors + juniors), used by Budget Usage modal
+let seniorRaised = 0;             // 2025-2029 batch contributions only
 function _bEsc(s){ return String(s==null?"":s).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 function budgetRef(){ return fb.doc(fb.db, "budget", "main"); }
 
@@ -665,6 +678,7 @@ function subscribeJuniors(){
     unsubJuniors=fb.onSnapshot(q,snap=>{
       const rows=[]; snap.forEach(d=>rows.push(d.data())); juniorRegs=rows;
       paintJuniorStat();
+      repaint();   // refresh combined Total Raised
       if(document.getElementById("juniorOverlay")&&document.getElementById("juniorOverlay").classList.contains("show")) renderJuniors();
     },err=>console.error("juniors snapshot",err));
   }catch(e){ console.error("subscribeJuniors",e); }

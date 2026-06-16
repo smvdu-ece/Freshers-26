@@ -5,7 +5,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;500;600;700&family=Great+Vibes&family=Jost:wght@300;400;500;600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=8">
+<link rel="stylesheet" href="style.css?v=9">
 
 <!-- ═══════════════════════════════════════════════════════
      LOGIN GATE — full-page wall until authenticated
@@ -110,7 +110,7 @@
     </div>
     <div class="collective">
       <div class="stat" id="needStat" style="cursor:pointer" title="See budget usage"><div class="v" id="totalNeed">₹-</div><div class="k">Total Budget Needed ›</div></div>
-      <div class="stat"><div class="v" id="totalRaised">₹0</div><div class="k">Total Raised</div></div>
+      <div class="stat" id="raisedStat" style="cursor:pointer" title="See raised breakdown"><div class="v" id="totalRaised">₹0</div><div class="k">Total Raised ›</div></div>
       <div class="stat" id="contribStat" style="cursor:pointer" title="See who contributed"><div class="v" id="contribCount">0</div><div class="k">Contributors ›</div></div>
       <div class="stat" id="yourStat" style="cursor:pointer" title="See your submissions"><div class="v" id="yourTotal">₹0</div><div class="k">Your Contribution ›</div><div class="pend-sub" id="yourPending"></div></div>
       <div class="stat" id="juniorStat" style="cursor:pointer" title="See approved junior registrations"><div class="v" id="juniorTotal">₹0</div><div class="k">Juniors ›</div></div>
@@ -380,6 +380,7 @@
       <span class="fchip" data-filter="pending">Pending</span>
     </div>
     <input id="paySearch" placeholder="Search name or email…" autocomplete="off" style="margin-bottom:4px">
+    <div class="pay-total-bar"><span>Total Amount</span><span class="gold-text" id="payTotalAmt">₹0</span></div>
     <div class="pay-list" id="payList"></div>
     <div class="legend"><span class="dot gold"></span>Gold <span class="dot g"></span>Full <span class="dot y"></span>Partial <span class="dot r"></span>Pending</div>
   </div>
@@ -479,7 +480,20 @@
   </div>
 </div>
 
+
+<!-- TOTAL RAISED BREAKDOWN OVERLAY -->
+<div class="overlay" id="raisedOverlay">
+  <div class="modal" style="max-width:420px">
+    <span class="x" data-close>×</span>
+    <h3 class="gold-text">Total Raised</h3>
+    <p class="s">Combined contributions toward Freshers'26.</p>
+    <div class="raised-row"><span class="rr-k">2025–2029 Batch</span><span class="rr-v" id="raisedSeniors">₹0</span></div>
+    <div class="raised-row"><span class="rr-k">Juniors (2026–2030)</span><span class="rr-v" id="raisedJuniors">₹0</span></div>
+    <div class="raised-row raised-total"><span class="rr-k">Total Raised</span><span class="rr-v gold-text" id="raisedGrand">₹0</span></div>
+  </div>
+</div>
+
 <div class="toast" id="toast"></div>
 
-<script src="script.js?v=8"></script>
-<script src="privacy.js?v=8"></script>
+<script src="script.js?v=9"></script>
+<script src="privacy.js?v=9"></script>

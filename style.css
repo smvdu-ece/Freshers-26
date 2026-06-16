@@ -792,3 +792,29 @@ img {
 .jr-name{ color:var(--ink);font-size:.95rem;font-weight:500; }
 .jr-email{ color:var(--muted);font-size:.75rem;word-break:break-all; }
 .jr-amt{ font-family:'Cinzel',serif;font-size:1.05rem;font-weight:600;flex-shrink:0; }
+/* ══════════════════════════════════════════════════════
+   PAYMENTS TOTAL BAR + RAISED BREAKDOWN
+   ══════════════════════════════════════════════════════ */
+.pay-total-bar{
+  display:flex;justify-content:space-between;align-items:center;
+  padding:11px 14px;margin-bottom:10px;
+  background:var(--panel-2);border:1px solid rgba(212,175,55,.25);
+  border-radius:8px;
+  font-family:'Cinzel',serif;font-size:.78rem;letter-spacing:.06em;
+  text-transform:uppercase;color:var(--muted);
+}
+.pay-total-bar span:last-child{font-size:1.15rem;letter-spacing:0;}
+
+.raised-row{
+  display:flex;justify-content:space-between;align-items:center;
+  padding:13px 4px;border-bottom:1px solid rgba(212,175,55,.08);
+}
+.raised-row:last-child{border-bottom:none;}
+.rr-k{font-family:'Cinzel',serif;font-size:.72rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);}
+.rr-v{color:var(--ink);font-size:1rem;}
+.raised-total{
+  margin-top:8px;padding-top:16px;
+  border-top:1px solid rgba(212,175,55,.3);
+}
+.raised-total .rr-k{color:var(--gold-soft);}
+.raised-total .rr-v{font-family:'Cinzel',serif;font-size:1.4rem;font-weight:600;}
