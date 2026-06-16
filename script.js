@@ -55,15 +55,15 @@ let remainingAmt = GOAL, allSubs = [];
 
 /* ---------- helpers ---------- */
 const $ = s => document.querySelector(s);
-const loginOverlay = $("#loginOverlay"), payOverlay = $("#payOverlay"), adminOverlay = $("#adminOverlay"), toast = $("#toast");
+const payOverlay = $("#payOverlay"), adminOverlay = $("#adminOverlay"), toast = $("#toast");
 function money(n){ return "\u20b9" + Number(n||0).toLocaleString("en-IN"); }
 function showToast(m){ toast.textContent = m; toast.classList.add("show"); setTimeout(()=>toast.classList.remove("show"),2800); }
 function openM(o){ o.classList.add("show"); }
 function closeM(o){ o.classList.remove("show"); }
-function msg(t,cls){ const m=$("#loginMsg"); m.textContent=t||""; m.className="lmsg "+(cls||""); }
+function msg(t,cls){ const m=$("#loginMsg"); if(m){ m.textContent=t||""; m.className="lmsg "+(cls||""); } }
 /* domainOK replaced by emailAllowed — see top of file */
 document.querySelectorAll("[data-close]").forEach(x=>x.onclick=()=>{ const o=x.closest(".overlay"); if(o) o.classList.remove("show"); });
-[loginOverlay,payOverlay,adminOverlay,document.getElementById("mySubsOverlay"),document.getElementById("payListOverlay")].forEach(o=>o&&o.addEventListener("click",e=>{ if(e.target===o) closeM(o); }));
+[payOverlay,adminOverlay,document.getElementById("mySubsOverlay"),document.getElementById("payListOverlay")].forEach(o=>o&&o.addEventListener("click",e=>{ if(e.target===o) closeM(o); }));
 
 /* ---------- mobile hamburger menu ---------- */
 const navLinks = document.getElementById("navLinks"), hamburger = document.getElementById("hamburger");
@@ -363,6 +363,8 @@ function applyRole(email){
     if(navLink){ navLink.href="#contribute"; navLink.textContent="Contribute"; }
     const hero=document.getElementById("heroCtaBtn");
     if(hero){ hero.setAttribute("href","#contribute"); hero.textContent="Contribute to '26"; }
+    const et=document.getElementById("entryTicketNav");
+    if(et){ et.setAttribute("href","#reg26"); et.textContent="Entry Ticket"; }
     subscribeJuniors();
   } else {
     if(cSec)    cSec.style.display = "none";
@@ -370,6 +372,8 @@ function applyRole(email){
     if(navLink){ navLink.href="#fresher-reg"; navLink.textContent="Register"; }
     const hero=document.getElementById("heroCtaBtn");
     if(hero){ hero.setAttribute("href","#fresher-reg"); hero.textContent="Register for Freshers'26"; }
+    const et=document.getElementById("entryTicketNav");
+    if(et){ et.setAttribute("href","#fresher-reg"); et.textContent="Register"; }
     populateRegForm(); loadRegStatus(); /* loadRegStatus calls refreshRegAdminUI */
   }
   hideGate();
@@ -784,42 +788,12 @@ $("#loginBtn").onclick = async ()=>{
   if(user){
     if(LIVE && fb){ try{ await fb.signOut(fb.auth); }catch(e){} /* onAuthStateChanged → showGate */ }
     else { user=null; showGate(); refreshUserUI(); subscribeMyPending(); repaint(); showToast("Logged out"); }
-  } else { msg(""); openM(loginOverlay); }
-};
-
-$("#googleBtn").onclick = async ()=>{
-  if(LIVE){
-    if(!fb){ msg("Still connecting to Firebase \u2014 try again in a second.","err"); return; }
-    $("#googleBtn").disabled = true; msg("Opening Google sign-in\u2026","ok");
-    try{
-      const provider = new fb.GoogleAuthProvider();
-      provider.setCustomParameters({ prompt: "select_account" });
-      await fb.signInWithPopup(fb.auth, provider);
-      // onAuthStateChanged enforces the domain and updates the UI
-      msg(""); closeM(loginOverlay);
-    }catch(e){
-      const code = e && e.code ? e.code : "";
-      if(code === "auth/popup-blocked"){
-        try{ const p = new fb.GoogleAuthProvider(); p.setCustomParameters({prompt:"select_account"}); await fb.signInWithRedirect(fb.auth, p); }
-        catch(e2){ msg("Couldn't open Google sign-in.","err"); }
-      } else if(code === "auth/popup-closed-by-user" || code === "auth/cancelled-popup-request"){
-        msg("");
-      } else {
-        msg("Sign-in failed: " + (code || e.message || e), "err");
-      }
-    }
-    $("#googleBtn").disabled = false;
-  } else {
-    // preview demo login
-    user = { email: "demo@"+ALLOWED_DOMAINS[0], name: "Demo Student" };
-    refreshUserUI(); subscribeMyPending(); closeM(loginOverlay); repaint();
-    showToast("Welcome, Demo Student! (preview)");
-  }
+  } else { showGate(); }
 };
 
 /* ---------- pay ---------- */
 function wantPay(amt, fixed){
-  if(!user){ openM(loginOverlay); showToast("Please login first"); return; }
+  if(!user){ showGate(); showToast("Please login first"); return; }
   if(fixed){
     $("#amtSection").style.display = "none";   // fixed amount -> no amount entry
     $("#inAmt").value = amt;
@@ -836,7 +810,7 @@ function wantPay(amt, fixed){
 }
 // Full amount -> pay the remaining toward the goal, no amount entry
 $("#contribBtn").onclick = ()=>{
-  if(!user){ openM(loginOverlay); showToast("Please login first"); return; }
+  if(!user){ showGate(); showToast("Please login first"); return; }
   if(remainingAmt > 0) wantPay(remainingAmt, true);
   else wantPay(0, false);                      // goal met -> custom extra
 };
@@ -910,7 +884,7 @@ function saveContribution(amt, paymentId){
   }
 }
 function submitPayment(amt, utr){
-  if(!user){ closeM(payOverlay); openM(loginOverlay); showToast("Please login first"); return; }
+  if(!user){ closeM(payOverlay); showGate(); showToast("Please login first"); return; }
   if(amt<1){ showToast("Enter an amount"); $("#inAmt").focus(); return; }
   const customMode = $("#amtSection").style.display !== "none";
   if(customMode && amt < 500){
@@ -1151,11 +1125,9 @@ document.querySelectorAll(".reveal:not(.in)").forEach(el=>io.observe(el));
 
 /* ---------- boot ---------- */
 if(LIVE){
-  $("#loginHint").innerHTML = "Sign in with your <strong style='color:var(--gold-soft)'>college Google account</strong> to contribute toward Freshers'26.";
   initFirebase();
 } else {
-  $("#previewBanner").classList.add("show");
-  $("#loginHint").innerHTML = "<strong style='color:var(--gold-soft)'>Preview mode</strong> \u2014 the Google button signs you in instantly so you can try the flow.";
+  const pb=$("#previewBanner"); if(pb) pb.classList.add("show");
 }
 refreshUserUI();
 repaint();
