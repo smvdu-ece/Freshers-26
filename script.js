@@ -372,8 +372,9 @@ function applyRole(email){
     if(navLink){ navLink.href="#fresher-reg"; navLink.textContent="Register"; }
     const hero=document.getElementById("heroCtaBtn");
     if(hero){ hero.setAttribute("href","#fresher-reg"); hero.textContent="Register for Freshers'26"; }
+    // Entry Ticket nav stays as Entry Ticket → the ticket section
     const et=document.getElementById("entryTicketNav");
-    if(et){ et.setAttribute("href","#fresher-reg"); et.textContent="Register"; }
+    if(et){ et.setAttribute("href","#reg26"); et.textContent="Entry Ticket"; }
     populateRegForm(); loadRegStatus(); /* loadRegStatus calls refreshRegAdminUI */
   }
   hideGate();
@@ -521,17 +522,16 @@ function showRegDone(d){
   window._myRegData=d;
   const card=document.getElementById("regSubmittedCard");
   if(card) card.onclick=()=>openRegDetails(d);
-  /* Rejected OR approved → show Update button (re-opens for approval) */
+  /* Any status → show Update button (re-opens form; submitting sends back for approval) */
   let rrbtn=document.getElementById("reregBtn");
-  if(st==="rejected"||st==="approved"){
+  {
     if(!rrbtn){
       rrbtn=document.createElement("button"); rrbtn.id="reregBtn";
-      rrbtn.className="btn ghost";
       rrbtn.style.cssText="margin:20px auto 0;display:block;";
       if(rd) rd.appendChild(rrbtn);
     }
-    rrbtn.textContent = st==="approved" ? "Update Details" : "Re-submit";
-    rrbtn.className = st==="approved" ? "btn ghost" : "btn solid";
+    rrbtn.textContent = st==="rejected" ? "Re-submit" : "Update Details";
+    rrbtn.className = st==="rejected" ? "btn solid" : "btn ghost";
     rrbtn.style.display="block";
     rrbtn.onclick=()=>{
       if(rd) rd.style.display="none";
@@ -551,8 +551,6 @@ function showRegDone(d){
       if(cb){ cb.style.display=""; cb.onclick=()=>{ if(fw)fw.style.display="none"; if(rd)rd.style.display=""; cb.style.display="none"; }; }
       showToast("Edit your details and submit \u2014 it will go back for approval.");
     };
-  } else {
-    if(rrbtn) rrbtn.style.display="none";
   }
   refreshRegAdminUI();
 }
