@@ -43,8 +43,16 @@
   /* ══════════════════════════════════════════════════════════════
      3.  COPY / CUT / PASTE  events
   ══════════════════════════════════════════════════════════════ */
+  function isEditable(el) {
+    if (!el) return false;
+    const tag = el.tagName;
+    return tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT'
+        || el.isContentEditable;
+  }
   ['copy', 'cut', 'paste'].forEach(function (eventName) {
     document.addEventListener(eventName, function (e) {
+      // Allow copy/cut/paste inside form fields (UTR, phone, name, etc.)
+      if (isEditable(e.target)) return;
       e.preventDefault();
       return false;
     });
@@ -58,8 +66,10 @@
     const shift = e.shiftKey;
     const k = e.key;
 
+    const inField = isEditable(e.target);
+
     const blocked =
-      // DevTools / Inspector
+      // DevTools / Inspector  (always blocked)
       k === 'F12' ||
       (ctrl && shift && ['i', 'I', 'j', 'J', 'c', 'C', 'k', 'K'].includes(k)) ||
       // View Source
@@ -68,10 +78,8 @@
       (ctrl && ['s', 'S'].includes(k)) ||
       // Print (can screenshot page)
       (ctrl && ['p', 'P'].includes(k)) ||
-      // Select All
-      (ctrl && ['a', 'A'].includes(k)) ||
-      // Copy / Cut
-      (ctrl && ['c', 'C', 'x', 'X'].includes(k));
+      // Select All / Copy / Cut — blocked ONLY outside form fields
+      (!inField && ctrl && ['a', 'A', 'c', 'C', 'x', 'X'].includes(k));
 
     if (blocked) {
       e.preventDefault();
