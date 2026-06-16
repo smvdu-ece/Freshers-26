@@ -19,13 +19,18 @@ const FIREBASE_CONFIG = {
 const ALLOWED_DOMAINS = ["smvdu.ac.in"];   // kept for hd hint in Google provider
 const SENIOR_RE  = /^25bec0[^@]+@smvdu\.ac\.in$/i;
 const FRESHER_RE = /^26bec[^@]+@smvdu\.ac\.in$/i;
+// Manually-authorised emails outside the batch patterns:
+const EXTRA_SENIORS  = ["sujitsingh8389@gmail.com"];          // log in as senior
+const EXTRA_FRESHERS = ["25f2001633@ds.study.iitm.ac.in"];     // log in as junior
 function emailAllowed(email){
   const e=(email||"").toLowerCase().trim();
-  return SENIOR_RE.test(e) || FRESHER_RE.test(e);
+  return SENIOR_RE.test(e) || FRESHER_RE.test(e)
+      || EXTRA_SENIORS.includes(e) || EXTRA_FRESHERS.includes(e);
 }
 function userRole(email){
   const e=(email||"").toLowerCase().trim();
-  return SENIOR_RE.test(e) ? "senior" : "fresher";
+  if(SENIOR_RE.test(e) || EXTRA_SENIORS.includes(e)) return "senior";
+  return "fresher";
 }
 const GOAL = 1740;
 /* ---- Version A: direct UPI + manual verify (no gateway) ---- */
