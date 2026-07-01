@@ -1,33 +1,27 @@
-/**
- * privacy.js — Freshers-26 (smvdu-ece)
- * ─────────────────────────────────────
- * Drop this file in your project root and add ONE line to every HTML file:
- *   <script src="privacy.js"></script>   ← just before </body>
- *
- * Also add this CSS block inside your existing <style> or .css file:
- *   * { -webkit-user-select:none!important; user-select:none!important; }
- *   img { -webkit-user-drag:none; pointer-events:none; }
- *
- * What this does:
- *   ✅ Disables right-click / context menu
- *   ✅ Disables Ctrl+C, Ctrl+X, Ctrl+A, Ctrl+S, Ctrl+U, Ctrl+P
- *   ✅ Disables F12, Ctrl+Shift+I / J / C (DevTools shortcuts)
- *   ✅ Detects when DevTools is opened → blurs page + shows overlay
- *   ✅ Disables image drag
- *   ✅ Blocks copy / cut / paste events
- *
- * ⚠️  Honest note: These are strong deterrents against casual users.
- *     A determined developer can always bypass browser-side JS.
- *     For real sensitive data, protect it server-side, not client-side.
- */
-
 (function () {
   'use strict';
+
+  /* Shared helper — is this element a field the user can type / paste into? */
+  function isEditable(el) {
+    if (!el) return false;
+    const tag = el.tagName;
+    return tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT'
+        || el.isContentEditable;
+  }
+
+  /* Touch / mobile devices.  The DevTools size-detection further down is
+     meaningless on a phone (you can't dock DevTools there) AND the on-screen
+     keyboard shrinks innerHeight enough to trigger a false positive — which
+     blurred the page and broke the UTR paste flow.  So we skip it on touch. */
+  const IS_TOUCH = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
 
   /* ══════════════════════════════════════════════════════════════
      1.  RIGHT-CLICK  (context menu)
   ══════════════════════════════════════════════════════════════ */
   document.addEventListener('contextmenu', function (e) {
+    // Allow the long-press / right-click menu inside form fields so mobile
+    // users can tap "Paste" for their UTR, phone number, name, etc.
+    if (isEditable(e.target)) return;
     e.preventDefault();
     return false;
   });
@@ -43,12 +37,6 @@
   /* ══════════════════════════════════════════════════════════════
      3.  COPY / CUT / PASTE  events
   ══════════════════════════════════════════════════════════════ */
-  function isEditable(el) {
-    if (!el) return false;
-    const tag = el.tagName;
-    return tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT'
-        || el.isContentEditable;
-  }
   ['copy', 'cut', 'paste'].forEach(function (eventName) {
     document.addEventListener(eventName, function (e) {
       // Allow copy/cut/paste inside form fields (UTR, phone, name, etc.)
@@ -153,22 +141,27 @@
 
   let wasOpen = false;
 
-  setInterval(function () {
-    const open = devToolsOpen();
+  /* Only run the size-based DevTools check on non-touch (desktop) devices.
+     On phones the on-screen keyboard shrinks innerHeight and would otherwise
+     trigger a false "DevTools detected" blur every time the UTR field opens. */
+  if (!IS_TOUCH) {
+    setInterval(function () {
+      const open = devToolsOpen();
 
-    if (open && !wasOpen) {
-      wasOpen = true;
-      /* Blur page content */
-      document.documentElement.style.filter      = 'blur(12px)';
-      document.documentElement.style.pointerEvents = 'none';
-      overlay.style.display = 'block';
-    } else if (!open && wasOpen) {
-      wasOpen = false;
-      document.documentElement.style.filter      = '';
-      document.documentElement.style.pointerEvents = '';
-      overlay.style.display = 'none';
-    }
-  }, 400); // check every 400 ms
+      if (open && !wasOpen) {
+        wasOpen = true;
+        /* Blur page content */
+        document.documentElement.style.filter      = 'blur(12px)';
+        document.documentElement.style.pointerEvents = 'none';
+        overlay.style.display = 'block';
+      } else if (!open && wasOpen) {
+        wasOpen = false;
+        document.documentElement.style.filter      = '';
+        document.documentElement.style.pointerEvents = '';
+        overlay.style.display = 'none';
+      }
+    }, 400); // check every 400 ms
+  }
 
   /* ══════════════════════════════════════════════════════════════
      7.  CONSOLE TRAP
