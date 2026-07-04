@@ -39,7 +39,7 @@ const UPI_NAME  = "Freshers-26";                    // name shown in the payer's
 const ADMIN_EMAILS = ["25bec079@smvdu.ac.in"];
 const REG_ADMIN    = "25bec079@smvdu.ac.in"; // approves registrations (same as contribution admin)
 const REG_FEE      = 400;     // who can verify & approve payments
-const SHEET_URL    = "https://script.google.com/macros/s/AKfycbyYrfjGJYmyQyOU1vmAOHxMrfeMXVvFKQbrJ-gW9vR91M-k8VNwYS_thjTu8aZKjNs8/exec";  // Google Apps Script Web App URL
+const SHEET_URL    = "https://script.google.com/macros/s/AKfycbwelwlc-hBmFQ7W2HGuwpsgKwU6nWcy-3It98K6gsJPGrBOkbkWyzs5CD88ELdRgMOJ/exec";  // Google Apps Script Web App URL
 const SHEET_SECRET = "freshers26";                  // must match SECRET in the Apps Script
 /* ---- Budget usage lives in Firebase (Firestore doc: budget/main).
    Admins edit it on the site — set total, add/remove expenses. Everyone sees it live. ---- */
@@ -656,7 +656,7 @@ async function approveReg(r,comment){
     const upd={status:"approved",approvedAt:fb.serverTimestamp()};
     if(comment) upd.adminComment=comment; else upd.adminComment="";
     await fb.setDoc(fb.doc(fb.db,"registrations26",r.email),upd,{merge:true});
-    showToast("Approved \u2726"); delete raOpt[r.email]; syncRegSheet(r.email);
+    showToast("Approved \u2726"); delete raOpt[r.email];   // sheet updates only via the Sync button
   }catch(e){delete raOpt[r.email];renderRegAdmin();showToast("Failed: "+(e.code||e.message));}
 }
 async function rejectReg(email,comment){
@@ -1028,7 +1028,7 @@ function approvePending(utr, note){
     }, { merge:true });
     t.update(pRef, { status:"approved", note:(note||"").trim(), approvedAt: fb.serverTimestamp() });
   })
-    .then(()=>{ showToast("Approved \u2726"); if(email) syncSheet(email); })
+    .then(()=>{ showToast("Approved \u2726"); })   // sheet updates only via the Sync button
     .catch(e=>{ delete optStatus[utr]; renderAdmin(); showToast("Approve failed: " + (e.code||e.message)); console.error(e); });
 }
 function rejectPending(utr, note){
@@ -1048,7 +1048,7 @@ function rejectPending(utr, note){
     }
     t.update(pRef, { status:"rejected", note:(note||"").trim(), rejectedAt: fb.serverTimestamp() });
   })
-    .then(()=>{ showToast("Rejected"); if(email) syncSheet(email); })
+    .then(()=>{ showToast("Rejected"); })   // sheet updates only via the Sync button
     .catch(e=>{ delete optStatus[utr]; renderAdmin(); showToast("Reject failed: " + (e.code||e.message)); console.error(e); });
 }
 
