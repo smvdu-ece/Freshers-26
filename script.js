@@ -295,11 +295,18 @@ function renderBudget(){
           + '<button class="bstatus reject" data-paydecline="'+_bEsc(it.id)+'">Decline</button>'
         : '<span class="bstatus pending">Payment requested</span>';
     } else {
-      /* Even the owner files a request rather than flipping the flag directly,
-         so a proof link is always attached before anything reads as paid. */
+      /* Same form for both, but the owner's submission applies straight away
+         while an admin's becomes a request. Either way a proof link is
+         attached before anything reads as paid. */
       status = admin
-        ? '<button class="bstatus unpaid" data-request="'+_bEsc(it.id)+'">Request paid</button>'
+        ? '<button class="bstatus unpaid" data-request="'+_bEsc(it.id)+'">'+(owner?'Mark paid':'Request paid')+'</button>'
         : '<span class="bstatus unpaid">Not paid</span>';
+    }
+
+    /* An approval isn't final — the owner can pull anything back to pending,
+       which also clears any payment on it. */
+    if(owner && !pending){
+      status += '<button class="bstatus reject" data-unapprove="'+_bEsc(it.id)+'">Unapprove</button>';
     }
 
     // Only the owner may delete outright; an admin's own pending item is still theirs to withdraw.
@@ -332,9 +339,9 @@ function renderBudget(){
     if(payFormFor === it.id){
       form = '<div class="breq-form">'
            + '<input type="text" id="reqProof" placeholder="Proof link (required)" value="'+_bEsc(it.proof||"")+'">'
-           + '<input type="text" id="reqMsg" maxlength="200" placeholder="Message for the owner (optional)">'
+           + '<input type="text" id="reqMsg" maxlength="200" placeholder="'+(owner?'Note about this payment (optional)':'Message for the owner (optional)')+'">'
            + '<div class="breq-actions">'
-           + '<button class="bbtn solid" data-submitreq="'+_bEsc(it.id)+'">Send request</button>'
+           + '<button class="bbtn solid" data-submitreq="'+_bEsc(it.id)+'">'+(owner?'Mark paid':'Send request')+'</button>'
            + '<button class="bbtn" data-cancelreq="1">Cancel</button>'
            + '</div></div>';
     }
@@ -348,6 +355,7 @@ function renderBudget(){
 
   list.querySelectorAll("[data-approve]").forEach(b=>     b.onclick = ()=> approveBudgetItem(b.dataset.approve));
   list.querySelectorAll("[data-reject]").forEach(b=>      b.onclick = ()=> rejectBudgetItem(b.dataset.reject));
+  list.querySelectorAll("[data-unapprove]").forEach(b=>   b.onclick = ()=> unapproveBudgetItem(b.dataset.unapprove));
   list.querySelectorAll("[data-unpay]").forEach(b=>       b.onclick = ()=> toggleBudgetPaid(b.dataset.unpay));
   list.querySelectorAll("[data-request]").forEach(b=>     b.onclick = ()=> openPayRequest(b.dataset.request));
   list.querySelectorAll("[data-submitreq]").forEach(b=>   b.onclick = ()=> submitPayRequest(b.dataset.submitreq));
@@ -393,6 +401,18 @@ async function approveBudgetItem(id){
   await patchBudgetItem(id, it=> ({ ...it, status:"approved" }), "Expense approved \u2726");
 }
 
+/* Undo an approval: back to pending, and any payment on it is dropped too,
+   since the proof was accepted under the approval being withdrawn. */
+async function unapproveBudgetItem(id){
+  if(!isOwner()) return;
+  const it = (budgetData.items||[]).find(x=> x.id===id);
+  const wasPaid = it && it.paid;
+  if(!confirm('Send "' + (it ? it.where : "this expense") + '" back to pending?'
+     + (wasPaid ? " It is currently marked paid — that will be cleared." : ""))) return;
+  await patchBudgetItem(id, x=> ({ ...x, status:"pending", paid:false, payReq:null }),
+                        "Moved back to pending");
+}
+
 async function rejectBudgetItem(id){
   if(!isOwner()) return;
   const it = (budgetData.items||[]).find(x=> x.id===id);
@@ -429,10 +449,17 @@ async function submitPayRequest(id){
   const proofEl = $("#reqProof"), msgEl = $("#reqMsg");
   const proof = proofEl ? proofEl.value.trim() : "";
   const msg   = msgEl ? msgEl.value.trim().slice(0,200) : "";
-  if(!proof){ showToast("Add a proof link so the owner can verify it"); return; }
-  const req = { by: (user && user.email) || "", proof, msg, at: Date.now() };
+  if(!proof){ showToast(isOwner() ? "Add the payment proof link" : "Add a proof link so the owner can verify it"); return; }
+  const who = (user && user.email) || "";
   payFormFor = null;
-  await patchBudgetItem(id, it=> ({ ...it, payReq: req }), "Sent to the owner for approval \u2726");
+  if(isOwner()){
+    // The approver is already here — no point queuing a request to themselves.
+    await patchBudgetItem(id, it=> ({ ...it, paid:true, proof, msg: msg || it.msg || "", payReq:null }),
+                          "Marked paid \u2726");
+    return;
+  }
+  await patchBudgetItem(id, it=> ({ ...it, payReq: { by: who, proof, msg, at: Date.now() } }),
+                        "Sent to the owner for approval \u2726");
 }
 
 /* ---------- shared writers ---------- */
