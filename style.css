@@ -847,3 +847,4 @@ img {
 .cat-chip{display:inline-flex;align-items:center;gap:6px;background:rgba(212,175,55,.07);border:1px solid var(--line);color:var(--ink);padding:5px 6px 5px 12px;border-radius:20px;font-size:12.5px}
 .cat-x{background:none;border:none;color:var(--muted);font-size:15px;line-height:1;cursor:pointer;padding:0 5px;border-radius:50%;transition:.2s}
 .cat-x:hover{color:#e05252;background:rgba(224,82,82,.12)}
+.bby{font-size:11.5px;color:var(--muted);opacity:.8;word-break:break-all}

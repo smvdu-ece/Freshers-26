@@ -40,7 +40,7 @@ const ADMIN_EMAILS = ["25bec079@smvdu.ac.in"];
 const REG_ADMIN    = "25bec079@smvdu.ac.in"; // approves registrations (same as contribution admin)
 const OWNER_EMAIL  = "25bec079@smvdu.ac.in"; // only the owner can create/remove budget categories
 const REG_FEE      = 400;     // who can verify & approve payments
-const SHEET_URL    = "https://script.google.com/macros/s/AKfycbzAFF3SuI81_o7Op2Stxoo9BOv2x0gVuK0CX1eONC13_rtXZbbeHHqBy2liM5lh3tcY/exec";  // Google Apps Script Web App URL
+const SHEET_URL    = "https://script.google.com/macros/s/AKfycbyuevvGmWwMahELzjv3pBhk1_e7C3rAAuD75c_Rt5ScBsuO8-3v2uFVddWjp1FGWoLS/exec";  // Google Apps Script Web App URL
 const SHEET_SECRET = "freshers26";                  // must match SECRET in the Apps Script
 /* ---- Budget usage lives in Firebase (Firestore doc: budget/main).
    Admins edit it on the site — set total, add/remove expenses. Everyone sees it live. ---- */
@@ -267,7 +267,10 @@ function renderBudget(){
     const del = admin ? '<button class="bdel" data-id="'+_bEsc(it.id)+'" title="Remove">×</button>' : '';
     const cat  = it.category ? '<span class="bcat">'+_bEsc(it.category)+'</span>' : '';
     const note = it.msg ? '<div class="bnote">'+_bEsc(it.msg)+'</div>' : '';
-    return '<div class="brow"><div class="bmain"><div class="bwhere">'+_bEsc(it.where)+'</div>'+note+'<div class="bmeta">'+status+cat+'</div></div>'
+    /* Swap the next line for `const by = admin && it.by ? ... : "";` to hide
+       the filer's email from non-admins. */
+    const by = it.by ? '<span class="bby">by '+_bEsc(it.by)+'</span>' : '';
+    return '<div class="brow"><div class="bmain"><div class="bwhere">'+_bEsc(it.where)+'</div>'+note+'<div class="bmeta">'+status+cat+by+'</div></div>'
          + '<span class="bamt">'+money(it.amount)+'</span>'+proof+del+'</div>';
   }).join("");
   list.querySelectorAll(".bstatus[data-toggle]").forEach(b=> b.onclick = ()=> toggleBudgetPaid(b.dataset.toggle));
@@ -287,7 +290,8 @@ async function addBudgetItem(){
     showToast(budgetCatList().length ? "Pick a category" : "No categories yet \u2014 ask the owner to add one");
     return;
   }
-  const item = { id: "b" + Date.now() + Math.floor(Math.random()*1000), where, amount, proof, category, msg, paid:false, at: Date.now() };
+  const by = (user && user.email) || "";   // who filed this expense
+  const item = { id: "b" + Date.now() + Math.floor(Math.random()*1000), where, amount, proof, category, msg, by, paid:false, at: Date.now() };
   try{
     await fb.setDoc(budgetRef(), { items: [ ...(budgetData.items||[]), item ] }, { merge:true });
     $("#inBudgetWhere").value = ""; $("#inBudgetAmt").value = ""; $("#inBudgetProof").value = "";
@@ -353,7 +357,7 @@ function syncBudgetToSheet(){
   if(!SHEET_URL){ showToast("Sheet URL not set"); return; }
   const items = (budgetData.items||[]).map(it=>({
     id: it.id||"", where: it.where||"", category: it.category||"",
-    amount: Number(it.amount)||0, proof: it.proof||"", msg: it.msg||"",
+    amount: Number(it.amount)||0, proof: it.proof||"", msg: it.msg||"", by: it.by||"",
     paid: !!it.paid, at: Number(it.at)||0
   }));
   fetch(SHEET_URL, {
