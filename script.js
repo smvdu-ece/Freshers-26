@@ -39,6 +39,10 @@ const UPI_NAME  = "Freshers-26";                    // name shown in the payer's
 const ADMIN_EMAILS = ["25bec079@smvdu.ac.in"];
 const REG_ADMIN    = "25bec079@smvdu.ac.in"; // approves registrations (same as contribution admin)
 const OWNER_EMAIL  = "25bec079@smvdu.ac.in"; // only the owner can create/remove budget categories
+/* Budget admins may file expense requests and nothing else: no contributions
+   panel, no registrations, no payment requests, no sheet sync. Everything they
+   add waits for the owner like any other pending expense. */
+const BUDGET_ADMINS = ["kumarsujit73775@gmail.com"];
 const REG_FEE      = 400;     // who can verify & approve payments
 const SHEET_URL    = "https://script.google.com/macros/s/AKfycbwelwlc-hBmFQ7W2HGuwpsgKwU6nWcy-3It98K6gsJPGrBOkbkWyzs5CD88ELdRgMOJ/exec";  // Google Apps Script Web App URL
 const SHEET_SECRET = "freshers26";                  // must match SECRET in the Apps Script
@@ -161,8 +165,9 @@ let payFormFor = null;            // id of the item whose "request paid" form is
 function isApproved(it){ return !it || it.status !== "pending"; }
 function budgetApprovedItems(){ return (budgetData.items||[]).filter(isApproved); }
 /* Pending expenses are internal: admins see them, contributors don't. */
-function budgetVisibleItems(){ return isAdmin() ? (budgetData.items||[]) : budgetApprovedItems(); }
+function budgetVisibleItems(){ return isBudgetAdmin() ? (budgetData.items||[]) : budgetApprovedItems(); }
 function isOwner(){ return !!user && user.email === OWNER_EMAIL; }
+function isBudgetAdmin(){ return isAdmin() || (!!user && BUDGET_ADMINS.indexOf(user.email) > -1); }
 let unsubBudget = null;
 let totalRaised = 0;              // combined raised (seniors + juniors), used by Budget Usage modal
 let seniorRaised = 0;             // 2025-2029 batch contributions only
@@ -241,9 +246,12 @@ function renderBudgetFilters(){
 
 function renderBudget(){
   const list  = $("#budgetList");
-  const admin = isAdmin();
+  const admin = isBudgetAdmin();   // may file an expense request
+  const payAdmin = isAdmin();      // may also request/approve payments and sync
   const owner = isOwner();
   $("#budgetAdmin").style.display = admin ? "block" : "none";
+  const syncBtn = $("#syncBudgetBtn");
+  if(syncBtn) syncBtn.style.display = payAdmin ? "" : "none";
   renderCatOptions();
   renderCatAdmin();
   renderBudgetFilters();
@@ -298,7 +306,7 @@ function renderBudget(){
       /* Same form for both, but the owner's submission applies straight away
          while an admin's becomes a request. Either way a proof link is
          attached before anything reads as paid. */
-      status = admin
+      status = payAdmin
         ? '<button class="bstatus unpaid" data-request="'+_bEsc(it.id)+'">'+(owner?'Mark paid':'Request paid')+'</button>'
         : '<span class="bstatus unpaid">Not paid</span>';
     }
@@ -366,7 +374,7 @@ function renderBudget(){
 }
 
 async function addBudgetItem(){
-  if(!isAdmin()) return;
+  if(!isBudgetAdmin()) return;
   const where = $("#inBudgetWhere").value.trim();
   const amount = Number($("#inBudgetAmt").value);
   const proof = $("#inBudgetProof").value.trim();
@@ -482,7 +490,7 @@ async function toggleBudgetPaid(id){
 async function deleteBudgetItem(id, quiet){
   const it = (budgetData.items||[]).find(x=> x.id===id);
   const mine = it && it.by && user && it.by === user.email && !isApproved(it);
-  if(!isOwner() && !(isAdmin() && mine)){
+  if(!isOwner() && !(isBudgetAdmin() && mine)){
     showToast("Only the owner can remove an approved expense");
     return;
   }
