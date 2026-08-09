@@ -169,6 +169,15 @@ function budgetApprovedItems(){ return (budgetData.items||[]).filter(isApproved)
 function budgetVisibleItems(){ return isBudgetAdmin() ? (budgetData.items||[]) : budgetApprovedItems(); }
 function isOwner(){ return !!user && user.email === OWNER_EMAIL; }
 function isBudgetAdmin(){ return isAdmin() || (!!user && BUDGET_ADMINS.indexOf(user.email) > -1); }
+/* Only whoever filed the expense may ask for it to be marked paid — they are
+   the one holding the receipt. Items filed before `by` was recorded have no
+   owner to fall back on, so the owner picks those up. */
+function canRequestPay(it){
+  if(!it || it.paid || !isApproved(it) || it.payReq) return false;
+  if(!isBudgetAdmin()) return false;
+  const me = (user && user.email) || "";
+  return it.by ? it.by === me : isOwner();
+}
 let unsubBudget = null;
 let totalRaised = 0;              // combined raised (seniors + juniors), used by Budget Usage modal
 let seniorRaised = 0;             // 2025-2029 batch contributions only
@@ -307,7 +316,7 @@ function renderBudget(){
       /* Same form for both, but the owner's submission applies straight away
          while an admin's becomes a request. Either way a proof link is
          attached before anything reads as paid. */
-      status = payAdmin
+      status = canRequestPay(it)
         ? '<button class="bstatus unpaid" data-request="'+_bEsc(it.id)+'">'+(owner?'Mark paid':'Request paid')+'</button>'
         : '<span class="bstatus unpaid">Not paid</span>';
     }
@@ -448,13 +457,15 @@ async function declinePayment(id){
 
 /* ---------- budget-admin requests ---------- */
 function openPayRequest(id){
-  if(!isAdmin()) return;
+  const it = (budgetData.items||[]).find(x=> x.id===id);
+  if(!canRequestPay(it)){ showToast("Only whoever added this expense can request payment"); return; }
   payFormFor = id;
   renderBudget();
 }
 
 async function submitPayRequest(id){
-  if(!isAdmin()) return;
+  const item = (budgetData.items||[]).find(x=> x.id===id);
+  if(!canRequestPay(item)){ showToast("Only whoever added this expense can request payment"); return; }
   const proofEl = $("#reqProof"), msgEl = $("#reqMsg");
   const proof = proofEl ? proofEl.value.trim() : "";
   const msg   = msgEl ? msgEl.value.trim().slice(0,200) : "";
