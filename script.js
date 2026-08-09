@@ -40,7 +40,7 @@ const ADMIN_EMAILS = ["25bec079@smvdu.ac.in"];
 const REG_ADMIN    = "25bec079@smvdu.ac.in"; // approves registrations (same as contribution admin)
 const OWNER_EMAIL  = "25bec079@smvdu.ac.in"; // only the owner can create/remove budget categories
 const REG_FEE      = 400;     // who can verify & approve payments
-const SHEET_URL    = "https://script.google.com/macros/s/AKfycbwdLvdcudmwg--vzF-lPFb2NJFigHmk4ryvbtMiBn5LzMhsrQ5EKUAA7-GDWGbiLzVP/exec";  // Google Apps Script Web App URL
+const SHEET_URL    = "https://script.google.com/macros/library/d/16eQ22Cu_N0eHnRikYypxeq0f_aBOK8Yh9wSy7Sps5dFTdD9FJAhM-hu9/37";  // Google Apps Script Web App URL
 const SHEET_SECRET = "freshers26";                  // must match SECRET in the Apps Script
 /* ---- Budget usage lives in Firebase (Firestore doc: budget/main).
    Admins edit it on the site — set total, add/remove expenses. Everyone sees it live. ---- */
@@ -155,6 +155,13 @@ $("#yourStat").onclick = ()=>{ openM($("#mySubsOverlay")); renderMySubs(); };
 /* ---------- budget usage (stored in Firebase: doc budget/main) ---------- */
 let budgetData = { items: [], categories: [] };  // live snapshot of doc budget/main
 let budgetFilter = "__all";       // which category chip is selected in the list below
+let payFormFor = null;            // id of the item whose "request paid" form is open
+/* Items filed before approvals existed have no status — treat them as approved
+   so nothing that was already live silently disappears. */
+function isApproved(it){ return !it || it.status !== "pending"; }
+function budgetApprovedItems(){ return (budgetData.items||[]).filter(isApproved); }
+/* Pending expenses are internal: admins see them, contributors don't. */
+function budgetVisibleItems(){ return isAdmin() ? (budgetData.items||[]) : budgetApprovedItems(); }
 function isOwner(){ return !!user && user.email === OWNER_EMAIL; }
 let unsubBudget = null;
 let totalRaised = 0;              // combined raised (seniors + juniors), used by Budget Usage modal
@@ -179,7 +186,7 @@ function subscribeBudget(){
    used by an item (so nothing disappears if a category is later removed). */
 function budgetCatList(){
   const out = (budgetData.categories||[]).map(c=>String(c||"").trim()).filter(Boolean);
-  (budgetData.items||[]).forEach(it=>{
+  budgetVisibleItems().forEach(it=>{
     const c = String(it.category||"").trim();
     if(c && out.indexOf(c) < 0) out.push(c);
   });
@@ -210,7 +217,7 @@ function renderCatAdmin(){
 }
 
 function budgetItemsFor(key){
-  const items = budgetData.items || [];
+  const items = budgetVisibleItems();
   if(key === "__all")  return items;
   if(key === "__none") return items.filter(it=> !String(it.category||"").trim());
   return items.filter(it=> String(it.category||"").trim() === key);
@@ -218,7 +225,7 @@ function budgetItemsFor(key){
 
 function renderBudgetFilters(){
   const wrap = $("#budgetFilters"); if(!wrap) return;
-  const items = budgetData.items || [];
+  const items = budgetVisibleItems();
   const hasUncat = items.some(it=> !String(it.category||"").trim());
   const keys = ["__all"].concat(budgetCatList()).concat(hasUncat ? ["__none"] : []);
   if(keys.indexOf(budgetFilter) < 0) budgetFilter = "__all";   // selected category vanished
@@ -233,16 +240,19 @@ function renderBudgetFilters(){
 }
 
 function renderBudget(){
-  const list = $("#budgetList");
+  const list  = $("#budgetList");
   const admin = isAdmin();
+  const owner = isOwner();
   $("#budgetAdmin").style.display = admin ? "block" : "none";
   renderCatOptions();
   renderCatAdmin();
   renderBudgetFilters();
 
-  const items     = budgetData.items || [];
-  const needed    = items.reduce((t,it)=> t + (Number(it.amount)||0), 0);                  // every listed amount
-  const used      = items.reduce((t,it)=> t + (it.paid ? (Number(it.amount)||0) : 0), 0);  // only items marked paid
+  /* Only approved expenses count towards the public numbers. A pending one
+     hasn't been agreed yet, so it must not move the needle for contributors. */
+  const approved  = budgetApprovedItems();
+  const needed    = approved.reduce((t,it)=> t + (Number(it.amount)||0), 0);
+  const used      = approved.reduce((t,it)=> t + (it.paid ? (Number(it.amount)||0) : 0), 0);
   const remaining = totalRaised - used;
 
   $("#budgetNeeded").textContent = needed>0 ? money(needed) : "\u20b9-";
@@ -253,31 +263,98 @@ function renderBudget(){
   $("#budgetBarFill").style.width = (totalRaised>0 ? Math.min(Math.max(used/totalRaised,0),1)*100 : 0) + "%";
 
   if(!LIVE || !fb){ list.innerHTML = '<p class="hint">Connect Firebase to enable the live budget.</p>'; return; }
-  if(!items.length){ list.innerHTML = '<p class="hint">No expenses added yet.</p>'; return; }
+  if(!budgetVisibleItems().length){ list.innerHTML = '<p class="hint">No expenses added yet.</p>'; return; }
   const view = budgetItemsFor(budgetFilter);
   if(!view.length){ list.innerHTML = '<p class="hint">No expenses in this category yet.</p>'; return; }
+
   list.innerHTML = view.map(it=>{
-    const paid = !!it.paid;
+    const paid    = !!it.paid;
+    const pending = !isApproved(it);
+    const req     = it.payReq || null;
+
     const proof = it.proof
       ? '<a class="bproof" href="'+_bEsc(it.proof)+'" target="_blank" rel="noopener">Proof ›</a>'
       : '<span class="bproof none">—</span>';
-    const status = admin
-      ? '<button class="bstatus '+(paid?'paid':'unpaid')+'" data-toggle="'+_bEsc(it.id)+'">'+(paid?'Paid \u2713':'Mark paid')+'</button>'
-      : '<span class="bstatus '+(paid?'paid':'unpaid')+'">'+(paid?'Paid':'Not paid')+'</span>';
-    const del = admin ? '<button class="bdel" data-id="'+_bEsc(it.id)+'" title="Remove">×</button>' : '';
+
+    /* The status cell says something different to each of the three audiences:
+       the owner gets the decision buttons, a budget admin gets the request
+       button, everyone else gets a plain read-only label. */
+    let status;
+    if(pending){
+      status = owner
+        ? '<button class="bstatus approve" data-approve="'+_bEsc(it.id)+'">Approve</button>'
+          + '<button class="bstatus reject" data-reject="'+_bEsc(it.id)+'">Reject</button>'
+        : '<span class="bstatus pending">Awaiting approval</span>';
+    } else if(paid){
+      status = owner
+        ? '<button class="bstatus paid" data-unpay="'+_bEsc(it.id)+'">Paid \u2713</button>'
+        : '<span class="bstatus paid">Paid</span>';
+    } else if(req){
+      status = owner
+        ? '<button class="bstatus approve" data-paypprove="'+_bEsc(it.id)+'">Approve payment</button>'
+          + '<button class="bstatus reject" data-paydecline="'+_bEsc(it.id)+'">Decline</button>'
+        : '<span class="bstatus pending">Payment requested</span>';
+    } else {
+      status = owner
+        ? '<button class="bstatus unpaid" data-unpay="'+_bEsc(it.id)+'">Mark paid</button>'
+        : (admin
+            ? '<button class="bstatus unpaid" data-request="'+_bEsc(it.id)+'">Request paid</button>'
+            : '<span class="bstatus unpaid">Not paid</span>');
+    }
+
+    // Only the owner may delete outright; an admin's own pending item is still theirs to withdraw.
+    const canDelete = owner || (admin && pending && it.by && user && it.by === user.email);
+    const del = canDelete ? '<button class="bdel" data-id="'+_bEsc(it.id)+'" title="Remove">×</button>' : '<span></span>';
+
     const cat  = it.category ? '<span class="bcat">'+_bEsc(it.category)+'</span>' : '';
     const note = it.msg ? '<div class="bnote">'+_bEsc(it.msg)+'</div>' : '';
+    const flag = pending ? '<span class="bflag">Pending</span>' : '';
+
     /* Add `admin &&` to both lines below to hide the filer's email from non-admins.
        bby-col is its own grid cell left of the amount (desktop); bby-inline sits
        with the chips on narrow screens. The empty span still has to be printed or
        rows without an email would shift a column left. */
     const byCol    = '<span class="bby bby-col">'+(it.by ? _bEsc(it.by) : '')+'</span>';
     const byInline = it.by ? '<span class="bby bby-inline">by '+_bEsc(it.by)+'</span>' : '';
-    return '<div class="brow"><div class="bmain"><div class="bwhere">'+_bEsc(it.where)+'</div>'+note+'<div class="bmeta">'+status+cat+byInline+'</div></div>'
+
+    // Details of a pending payment request — admins only, since it's internal
+    let reqBox = '';
+    if(req && admin && !paid){
+      reqBox = '<div class="breq"><b>Payment requested</b>'
+             + (req.by ? ' by '+_bEsc(req.by) : '')
+             + (req.proof ? '<br>Proof: <a href="'+_bEsc(req.proof)+'" target="_blank" rel="noopener">'+_bEsc(req.proof)+'</a>' : '')
+             + (req.msg ? '<br>'+_bEsc(req.msg) : '')
+             + '</div>';
+    }
+
+    // Inline form, shown in place when this admin clicked "Request paid"
+    let form = '';
+    if(payFormFor === it.id){
+      form = '<div class="breq-form">'
+           + '<input type="text" id="reqProof" placeholder="Proof link (required)" value="'+_bEsc(it.proof||"")+'">'
+           + '<input type="text" id="reqMsg" maxlength="200" placeholder="Message for the owner (optional)">'
+           + '<div class="breq-actions">'
+           + '<button class="bbtn solid" data-submitreq="'+_bEsc(it.id)+'">Send request</button>'
+           + '<button class="bbtn" data-cancelreq="1">Cancel</button>'
+           + '</div></div>';
+    }
+
+    return '<div class="brow'+(pending?' is-pending':'')+'">'
+         + '<div class="bmain"><div class="bwhere">'+_bEsc(it.where)+flag+'</div>'
+         + note + reqBox + form
+         + '<div class="bmeta">'+status+cat+byInline+'</div></div>'
          + byCol + '<span class="bamt">'+money(it.amount)+'</span>'+proof+del+'</div>';
   }).join("");
-  list.querySelectorAll(".bstatus[data-toggle]").forEach(b=> b.onclick = ()=> toggleBudgetPaid(b.dataset.toggle));
-  list.querySelectorAll(".bdel").forEach(b=> b.onclick = ()=> deleteBudgetItem(b.dataset.id));
+
+  list.querySelectorAll("[data-approve]").forEach(b=>     b.onclick = ()=> approveBudgetItem(b.dataset.approve));
+  list.querySelectorAll("[data-reject]").forEach(b=>      b.onclick = ()=> rejectBudgetItem(b.dataset.reject));
+  list.querySelectorAll("[data-unpay]").forEach(b=>       b.onclick = ()=> toggleBudgetPaid(b.dataset.unpay));
+  list.querySelectorAll("[data-request]").forEach(b=>     b.onclick = ()=> openPayRequest(b.dataset.request));
+  list.querySelectorAll("[data-submitreq]").forEach(b=>   b.onclick = ()=> submitPayRequest(b.dataset.submitreq));
+  list.querySelectorAll("[data-cancelreq]").forEach(b=>   b.onclick = ()=> { payFormFor = null; renderBudget(); });
+  list.querySelectorAll("[data-paypprove]").forEach(b=>   b.onclick = ()=> approvePayment(b.dataset.paypprove));
+  list.querySelectorAll("[data-paydecline]").forEach(b=>  b.onclick = ()=> declinePayment(b.dataset.paydecline));
+  list.querySelectorAll(".bdel").forEach(b=>              b.onclick = ()=> deleteBudgetItem(b.dataset.id));
 }
 
 async function addBudgetItem(){
@@ -294,32 +371,98 @@ async function addBudgetItem(){
     return;
   }
   const by = (user && user.email) || "";   // who filed this expense
-  const item = { id: "b" + Date.now() + Math.floor(Math.random()*1000), where, amount, proof, category, msg, by, paid:false, at: Date.now() };
+  // The owner's own entries need nobody's sign-off; everyone else's wait.
+  const status = isOwner() ? "approved" : "pending";
+  const item = { id: "b" + Date.now() + Math.floor(Math.random()*1000),
+                 where, amount, proof, category, msg, by, status,
+                 paid:false, payReq:null, at: Date.now() };
   try{
     await fb.setDoc(budgetRef(), { items: [ ...(budgetData.items||[]), item ] }, { merge:true });
     $("#inBudgetWhere").value = ""; $("#inBudgetAmt").value = ""; $("#inBudgetProof").value = "";
     if($("#inBudgetCat")) $("#inBudgetCat").value = "";
     if($("#inBudgetMsg")) $("#inBudgetMsg").value = "";
-    showToast("Expense added — marked not paid \u2726");
+    showToast(status==="approved" ? "Expense added \u2726" : "Sent to the owner for approval \u2726");
   }catch(e){ console.error(e); showToast("Couldn't add — check permissions"); }
 }
 
-async function toggleBudgetPaid(id){
+/* ---------- owner decisions ---------- */
+async function approveBudgetItem(id){
+  if(!isOwner()) return;
+  await patchBudgetItem(id, it=> ({ ...it, status:"approved" }), "Expense approved \u2726");
+}
+
+async function rejectBudgetItem(id){
+  if(!isOwner()) return;
+  const it = (budgetData.items||[]).find(x=> x.id===id);
+  if(!confirm('Reject "' + (it ? it.where : "this expense") + '"? It will be removed from the list.')) return;
+  await deleteBudgetItem(id, true);
+}
+
+async function approvePayment(id){
+  if(!isOwner()) return;
+  await patchBudgetItem(id, it=>{
+    const r = it.payReq || {};
+    return { ...it,
+      paid: true,
+      proof: r.proof || it.proof || "",          // the request's proof replaces the old one
+      msg:   r.msg   || it.msg   || "",
+      payReq: null };
+  }, "Payment approved \u2726");
+}
+
+async function declinePayment(id){
+  if(!isOwner()) return;
+  await patchBudgetItem(id, it=> ({ ...it, payReq:null }), "Payment request declined");
+}
+
+/* ---------- budget-admin requests ---------- */
+function openPayRequest(id){
   if(!isAdmin()) return;
-  const next = (budgetData.items||[]).map(it=> it.id===id ? { ...it, paid: !it.paid } : it);
+  payFormFor = id;
+  renderBudget();
+}
+
+async function submitPayRequest(id){
+  if(!isAdmin()) return;
+  const proofEl = $("#reqProof"), msgEl = $("#reqMsg");
+  const proof = proofEl ? proofEl.value.trim() : "";
+  const msg   = msgEl ? msgEl.value.trim().slice(0,200) : "";
+  if(!proof){ showToast("Add a proof link so the owner can verify it"); return; }
+  const req = { by: (user && user.email) || "", proof, msg, at: Date.now() };
+  payFormFor = null;
+  await patchBudgetItem(id, it=> ({ ...it, payReq: req }), "Sent to the owner for approval \u2726");
+}
+
+/* ---------- shared writers ---------- */
+// One place that reads the list, swaps a single item and writes it back.
+async function patchBudgetItem(id, fn, okMsg){
+  const next = (budgetData.items||[]).map(it=> it.id===id ? fn(it) : it);
   try{
     await fb.setDoc(budgetRef(), { items: next }, { merge:true });
-    const it = next.find(x=>x.id===id);
-    showToast(it && it.paid ? "Marked paid \u2726" : "Marked not paid");
+    if(okMsg) showToast(okMsg);
   }catch(e){ console.error(e); showToast("Couldn't update — check permissions"); }
 }
 
-async function deleteBudgetItem(id){
-  if(!isAdmin()) return;
-  const next = (budgetData.items||[]).filter(it=> it.id !== id);
+// Owner-only direct toggle. Admins go through the request flow instead.
+async function toggleBudgetPaid(id){
+  if(!isOwner()){ showToast("Only the owner can mark an expense paid"); return; }
+  const cur = (budgetData.items||[]).find(x=> x.id===id);
+  const nowPaid = !(cur && cur.paid);
+  await patchBudgetItem(id, it=> ({ ...it, paid: !it.paid, payReq:null }),
+                        nowPaid ? "Marked paid \u2726" : "Marked not paid");
+}
+
+async function deleteBudgetItem(id, quiet){
+  const it = (budgetData.items||[]).find(x=> x.id===id);
+  const mine = it && it.by && user && it.by === user.email && !isApproved(it);
+  if(!isOwner() && !(isAdmin() && mine)){
+    showToast("Only the owner can remove an approved expense");
+    return;
+  }
+  const next = (budgetData.items||[]).filter(x=> x.id !== id);
   try{
     await fb.setDoc(budgetRef(), { items: next }, { merge:true });
-    showToast("Expense removed");
+    showToast(quiet ? "Expense rejected" : "Expense removed");
   }catch(e){ console.error(e); showToast("Couldn't remove — check permissions"); }
 }
 
@@ -358,7 +501,7 @@ async function removeBudgetCategory(name){
 function syncBudgetToSheet(){
   if(!isAdmin()) return;
   if(!SHEET_URL){ showToast("Sheet URL not set"); return; }
-  const items = (budgetData.items||[]).map(it=>({
+  const items = budgetApprovedItems().map(it=>({
     id: it.id||"", where: it.where||"", category: it.category||"",
     amount: Number(it.amount)||0, proof: it.proof||"", msg: it.msg||"", by: it.by||"",
     paid: !!it.paid, at: Number(it.at)||0

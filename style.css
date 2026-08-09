@@ -860,3 +860,20 @@ img {
   .bby-col, .bhead-by{display:none}
   .bby-inline{display:inline}
 }
+
+/* ---------- budget: owner approval workflow ---------- */
+.brow.is-pending{background:rgba(212,175,55,.04)}
+.bflag{margin-left:9px;font-family:'Cinzel',serif;font-size:9px;letter-spacing:1.2px;text-transform:uppercase;padding:2px 8px;border-radius:20px;border:1px solid rgba(212,175,55,.45);color:var(--gold-soft);vertical-align:middle}
+.bstatus.pending{border-color:rgba(212,175,55,.45);color:var(--gold-soft)}
+button.bstatus.approve{border-color:rgba(46,160,90,.5);color:#6fcf97}
+button.bstatus.approve:hover{background:rgba(46,160,90,.12)}
+button.bstatus.reject{border-color:rgba(224,86,86,.45);color:#ef7b7b}
+button.bstatus.reject:hover{background:rgba(224,86,86,.1)}
+.breq{width:100%;margin:2px 0 4px;padding:9px 11px;border-left:2px solid var(--gold-soft);background:rgba(212,175,55,.05);border-radius:0 6px 6px 0;font-size:12.5px;line-height:1.55;color:var(--muted);word-break:break-word}
+.breq b{color:var(--gold-soft);font-weight:600}
+.breq a{color:var(--gold);word-break:break-all}
+.breq-form{width:100%;margin:6px 0 4px;display:flex;flex-direction:column;gap:8px}
+.breq-form input{width:100%;background:#0c0c0e;border:1px solid var(--line);color:var(--ink);padding:9px 11px;border-radius:6px;font-family:'Jost';font-size:13px}
+.breq-form input:focus{border-color:var(--gold);outline:none}
+.breq-actions{display:flex;gap:8px}
+.breq-actions .bbtn{flex:1;margin:0;padding:9px 12px;font-size:12px}
