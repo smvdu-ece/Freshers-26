@@ -38,8 +38,9 @@ const UPI_ID    = "7654201815@upi";                 // <-- the UPI ID that RECEI
 const UPI_NAME  = "Freshers-26";                    // name shown in the payer's UPI app
 const ADMIN_EMAILS = ["25bec079@smvdu.ac.in"];
 const REG_ADMIN    = "25bec079@smvdu.ac.in"; // approves registrations (same as contribution admin)
+const OWNER_EMAIL  = "25bec079@smvdu.ac.in"; // only the owner can create/remove budget categories
 const REG_FEE      = 400;     // who can verify & approve payments
-const SHEET_URL    = "https://script.google.com/macros/s/AKfycbzTvZlJkUgvBjDfDuJ6CCTBk697IsxGzMfM43jdx28dTzEW1fMXeK0nHzYLYwaLsvbW/exec";  // Google Apps Script Web App URL
+const SHEET_URL    = "https://script.google.com/macros/s/AKfycbwelwlc-hBmFQ7W2HGuwpsgKwU6nWcy-3It98K6gsJPGrBOkbkWyzs5CD88ELdRgMOJ/exec";  // Google Apps Script Web App URL
 const SHEET_SECRET = "freshers26";                  // must match SECRET in the Apps Script
 /* ---- Budget usage lives in Firebase (Firestore doc: budget/main).
    Admins edit it on the site — set total, add/remove expenses. Everyone sees it live. ---- */
@@ -152,7 +153,9 @@ $("#contribStat").onclick   = ()=>{ $("#paySearch").value=""; setPayFilter("all"
 $("#yourStat").onclick = ()=>{ openM($("#mySubsOverlay")); renderMySubs(); };
 
 /* ---------- budget usage (stored in Firebase: doc budget/main) ---------- */
-let budgetData = { items: [] };   // live snapshot: { items:[{id, where, amount, proof, paid}] }
+let budgetData = { items: [], categories: [] };  // live snapshot of doc budget/main
+let budgetFilter = "__all";       // which category chip is selected in the list below
+function isOwner(){ return !!user && user.email === OWNER_EMAIL; }
 let unsubBudget = null;
 let totalRaised = 0;              // combined raised (seniors + juniors), used by Budget Usage modal
 let seniorRaised = 0;             // 2025-2029 batch contributions only
@@ -164,15 +167,78 @@ function subscribeBudget(){
   if(unsubBudget) return;                       // already listening
   unsubBudget = fb.onSnapshot(budgetRef(), snap=>{
     const d = snap.exists() ? (snap.data()||{}) : {};
-    budgetData = { items: Array.isArray(d.items)? d.items : [] };
+    budgetData = {
+      items: Array.isArray(d.items) ? d.items : [],
+      categories: Array.isArray(d.categories) ? d.categories : []
+    };
     renderBudget();
   }, err=>{ console.error("budget sub", err); });
+}
+
+/* Every category to offer: the owner-defined list, plus any category already
+   used by an item (so nothing disappears if a category is later removed). */
+function budgetCatList(){
+  const out = (budgetData.categories||[]).map(c=>String(c||"").trim()).filter(Boolean);
+  (budgetData.items||[]).forEach(it=>{
+    const c = String(it.category||"").trim();
+    if(c && out.indexOf(c) < 0) out.push(c);
+  });
+  return out;
+}
+
+function renderCatOptions(){
+  const sel = $("#inBudgetCat"); if(!sel) return;
+  const cur = sel.value;
+  const cats = budgetCatList();
+  sel.innerHTML = '<option value="">Category (required)</option>'
+    + cats.map(c=> '<option value="'+_bEsc(c)+'">'+_bEsc(c)+'</option>').join("");
+  if(cats.indexOf(cur) > -1) sel.value = cur;   // keep what the admin had picked
+}
+
+/* Owner-only chips for removing a category. Removing one never touches the
+   expenses already filed under it \u2014 they keep their category text. */
+function renderCatAdmin(){
+  const box = $("#catAdmin"); if(!box) return;
+  box.style.display = isOwner() ? "block" : "none";
+  if(!isOwner()) return;
+  const chips = $("#catChips"); if(!chips) return;
+  const cats = (budgetData.categories||[]).map(c=>String(c||"").trim()).filter(Boolean);
+  chips.innerHTML = cats.length
+    ? cats.map(c=> '<span class="cat-chip">'+_bEsc(c)+'<button class="cat-x" data-cat="'+_bEsc(c)+'" title="Remove">\u00d7</button></span>').join("")
+    : '<span class="hint">No categories yet \u2014 add one above.</span>';
+  chips.querySelectorAll(".cat-x").forEach(b=> b.onclick = ()=> removeBudgetCategory(b.dataset.cat));
+}
+
+function budgetItemsFor(key){
+  const items = budgetData.items || [];
+  if(key === "__all")  return items;
+  if(key === "__none") return items.filter(it=> !String(it.category||"").trim());
+  return items.filter(it=> String(it.category||"").trim() === key);
+}
+
+function renderBudgetFilters(){
+  const wrap = $("#budgetFilters"); if(!wrap) return;
+  const items = budgetData.items || [];
+  const hasUncat = items.some(it=> !String(it.category||"").trim());
+  const keys = ["__all"].concat(budgetCatList()).concat(hasUncat ? ["__none"] : []);
+  if(keys.indexOf(budgetFilter) < 0) budgetFilter = "__all";   // selected category vanished
+  if(!items.length){ wrap.innerHTML = ""; return; }
+  wrap.innerHTML = keys.map(k=>{
+    const label = k==="__all" ? "All" : (k==="__none" ? "Uncategorised" : k);
+    const sub   = budgetItemsFor(k).reduce((t,it)=> t + (Number(it.amount)||0), 0);
+    return '<button class="bchip'+(k===budgetFilter?' active':'')+'" data-cat="'+_bEsc(k)+'">'
+         + _bEsc(label) + '<span class="bchip-n">'+money(sub)+'</span></button>';
+  }).join("");
+  wrap.querySelectorAll(".bchip").forEach(b=> b.onclick = ()=>{ budgetFilter = b.dataset.cat; renderBudget(); });
 }
 
 function renderBudget(){
   const list = $("#budgetList");
   const admin = isAdmin();
   $("#budgetAdmin").style.display = admin ? "block" : "none";
+  renderCatOptions();
+  renderCatAdmin();
+  renderBudgetFilters();
 
   const items     = budgetData.items || [];
   const needed    = items.reduce((t,it)=> t + (Number(it.amount)||0), 0);                  // every listed amount
@@ -188,7 +254,9 @@ function renderBudget(){
 
   if(!LIVE || !fb){ list.innerHTML = '<p class="hint">Connect Firebase to enable the live budget.</p>'; return; }
   if(!items.length){ list.innerHTML = '<p class="hint">No expenses added yet.</p>'; return; }
-  list.innerHTML = items.map(it=>{
+  const view = budgetItemsFor(budgetFilter);
+  if(!view.length){ list.innerHTML = '<p class="hint">No expenses in this category yet.</p>'; return; }
+  list.innerHTML = view.map(it=>{
     const paid = !!it.paid;
     const proof = it.proof
       ? '<a class="bproof" href="'+_bEsc(it.proof)+'" target="_blank" rel="noopener">Proof ›</a>'
@@ -215,6 +283,10 @@ async function addBudgetItem(){
   const msg = $("#inBudgetMsg") ? $("#inBudgetMsg").value.trim().slice(0,200) : "";
   if(!where){ showToast("Add what it's for"); return; }
   if(!(amount>0)){ showToast("Add a valid amount"); return; }
+  if(!category){
+    showToast(budgetCatList().length ? "Pick a category" : "No categories yet \u2014 ask the owner to add one");
+    return;
+  }
   const item = { id: "b" + Date.now() + Math.floor(Math.random()*1000), where, amount, proof, category, msg, paid:false, at: Date.now() };
   try{
     await fb.setDoc(budgetRef(), { items: [ ...(budgetData.items||[]), item ] }, { merge:true });
@@ -244,6 +316,35 @@ async function deleteBudgetItem(id){
   }catch(e){ console.error(e); showToast("Couldn't remove — check permissions"); }
 }
 
+/* ---------- categories (owner only) ---------- */
+async function addBudgetCategory(){
+  if(!isOwner()){ showToast("Only the owner can add categories"); return; }
+  const inp = $("#inNewCat"); if(!inp) return;
+  const name = inp.value.trim().slice(0,40);
+  if(!name){ showToast("Type a category name"); return; }
+  const cats = (budgetData.categories||[]).map(c=>String(c||"").trim()).filter(Boolean);
+  if(cats.some(c=> c.toLowerCase() === name.toLowerCase())){ showToast("That category already exists"); return; }
+  try{
+    await fb.setDoc(budgetRef(), { categories: [...cats, name] }, { merge:true });
+    inp.value = "";
+    showToast("Category added \u2726");
+  }catch(e){ console.error(e); showToast("Couldn't add \u2014 check permissions"); }
+}
+
+async function removeBudgetCategory(name){
+  if(!isOwner()) return;
+  const used = (budgetData.items||[]).filter(it=> String(it.category||"").trim() === name).length;
+  const warn = used
+    ? "Remove \"" + name + "\"? " + used + " expense(s) already filed under it keep the label, but no new expense can use it."
+    : "Remove category \"" + name + "\"?";
+  if(!confirm(warn)) return;
+  const next = (budgetData.categories||[]).filter(c=> String(c||"").trim() !== name);
+  try{
+    await fb.setDoc(budgetRef(), { categories: next }, { merge:true });
+    showToast("Category removed");
+  }catch(e){ console.error(e); showToast("Couldn't remove \u2014 check permissions"); }
+}
+
 /* Push the WHOLE expense list to the Sheet in one request.
    The Apps Script wipes and rewrites the Expenses tab from this array,
    so deletes and edits reconcile and rows can never duplicate. */
@@ -267,6 +368,8 @@ $("#budgetBtn").onclick = ()=>{ openM($("#budgetOverlay")); renderBudget(); subs
 const _ns = $("#needStat"); if(_ns) _ns.onclick = ()=>{ openM($("#budgetOverlay")); renderBudget(); subscribeBudget(); };
 $("#addBudgetItem").onclick = addBudgetItem;
 const _sb = $("#syncBudgetBtn"); if(_sb) _sb.onclick = syncBudgetToSheet;
+const _ac = $("#addCatBtn"); if(_ac) _ac.onclick = addBudgetCategory;
+const _nc = $("#inNewCat"); if(_nc) _nc.addEventListener("keydown", e=>{ if(e.key==="Enter"){ e.preventDefault(); addBudgetCategory(); } });
 const _bo = $("#budgetOverlay"); if(_bo) _bo.addEventListener("click", e=>{ if(e.target===_bo) closeM(_bo); });
 function renderMySubs(){
   const box = $("#mySubsList");

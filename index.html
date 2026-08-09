@@ -393,18 +393,24 @@
         <input id="inBudgetAmt" type="number" min="1" placeholder="Amount (₹)">
         <input id="inBudgetProof" type="text" placeholder="Proof link (optional)">
       </div>
-      <select id="inBudgetCat">
-        <option value="">Category (optional)</option>
-        <!-- Add categories here later, e.g.:
-        <option value="Decoration">Decoration</option>
-        <option value="Sound &amp; Light">Sound &amp; Light</option>
-        -->
-      </select>
+      <!-- options are filled from budget/main -> categories by renderCatOptions() -->
+      <select id="inBudgetCat"><option value="">Category (required)</option></select>
       <input id="inBudgetMsg" type="text" maxlength="200" placeholder="Message / note (optional) — shown under this expense">
       <button class="bbtn solid" id="addBudgetItem" type="button">+ Add expense</button>
       <button class="bbtn wide" id="syncBudgetBtn" type="button">Sync expenses to Sheet</button>
+
+      <!-- owner-only: create the categories everyone else picks from -->
+      <div class="cat-admin" id="catAdmin" style="display:none">
+        <div class="cat-admin-label">Categories</div>
+        <div class="ba-row">
+          <input id="inNewCat" type="text" maxlength="40" placeholder="New category name">
+          <button class="bbtn" id="addCatBtn" type="button">+ Add category</button>
+        </div>
+        <div id="catChips" class="cat-chips"></div>
+      </div>
     </div>
 
+    <div id="budgetFilters" class="bfilters"></div>
     <div class="budget-head"><span>Purpose</span><span class="r">Amount</span><span class="r">Proof</span><span></span></div>
     <div id="budgetList" class="budget-list"><p class="hint">Loading…</p></div>
   </div>
