@@ -40,7 +40,7 @@ const ADMIN_EMAILS = ["25bec079@smvdu.ac.in"];
 const REG_ADMIN    = "25bec079@smvdu.ac.in"; // approves registrations (same as contribution admin)
 const OWNER_EMAIL  = "25bec079@smvdu.ac.in"; // only the owner can create/remove budget categories
 const REG_FEE      = 400;     // who can verify & approve payments
-const SHEET_URL    = "https://script.google.com/macros/s/AKfycbwelwlc-hBmFQ7W2HGuwpsgKwU6nWcy-3It98K6gsJPGrBOkbkWyzs5CD88ELdRgMOJ/exec";  // Google Apps Script Web App URL
+const SHEET_URL    = "https://script.google.com/macros/s/AKfycbzAFF3SuI81_o7Op2Stxoo9BOv2x0gVuK0CX1eONC13_rtXZbbeHHqBy2liM5lh3tcY/exec";  // Google Apps Script Web App URL
 const SHEET_SECRET = "freshers26";                  // must match SECRET in the Apps Script
 /* ---- Budget usage lives in Firebase (Firestore doc: budget/main).
    Admins edit it on the site — set total, add/remove expenses. Everyone sees it live. ---- */
