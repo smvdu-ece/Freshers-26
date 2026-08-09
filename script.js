@@ -45,7 +45,7 @@ const OWNER_EMAIL  = "25bec079@smvdu.ac.in"; // only the owner can create/remove
    add waits for the owner like any other pending expense. */
 const BUDGET_ADMINS = ["kumarsujit73775@gmail.com"];
 const REG_FEE      = 400;     // who can verify & approve payments
-const SHEET_URL    = "https://script.google.com/macros/s/AKfycbwelwlc-hBmFQ7W2HGuwpsgKwU6nWcy-3It98K6gsJPGrBOkbkWyzs5CD88ELdRgMOJ/exec";  // Google Apps Script Web App URL
+const SHEET_URL    = "https://script.google.com/macros/s/AKfycbxbATnFbmAk_g-HFBsA9vCEO49BVKPolD1J3kbNwfbxV6_7lMBiBydxuOg3pDsf46Tu/exec";  // Google Apps Script Web App URL
 const SHEET_SECRET = "freshers26";                  // must match SECRET in the Apps Script
 /* ---- Budget usage lives in Firebase (Firestore doc: budget/main).
    Admins edit it on the site — set total, add/remove expenses. Everyone sees it live. ---- */
