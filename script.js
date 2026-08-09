@@ -1416,7 +1416,9 @@ async function initFirebase(){
         const email=(u.email||"").toLowerCase();
         if(!emailAllowed(email)){
           await fb.signOut(fb.auth);
-          gateMsg("Only authorised SMVDU / IITM student emails are permitted.","err");
+          /* Name the account that was refused — otherwise a wrong-account sign-in
+             and a stale script.js look identical from the outside. */
+          gateMsg("Not authorised: " + email + " \u2014 only approved SMVDU / IITM student emails are permitted.","err");
           user=null; showGate();
         } else {
           user = { email, name: u.displayName || email.split("@")[0] };
