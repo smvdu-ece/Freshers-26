@@ -20,7 +20,8 @@ const ALLOWED_DOMAINS = ["smvdu.ac.in"];   // kept for hd hint in Google provide
 const SENIOR_RE  = /^25bec0[^@]+@smvdu\.ac\.in$/i;
 const FRESHER_RE = /^26bec[^@]+@smvdu\.ac\.in$/i;
 // Manually-authorised emails outside the batch patterns:
-const EXTRA_SENIORS  = ["sujitsingh8389@gmail.com"];          // log in as senior
+const EXTRA_SENIORS  = ["sujitsingh8389@gmail.com",
+                        "kumarsujit73775@gmail.com"];         // log in as senior
 const EXTRA_FRESHERS = ["25f2001633@ds.study.iitm.ac.in"];     // log in as junior
 function emailAllowed(email){
   const e=(email||"").toLowerCase().trim();
