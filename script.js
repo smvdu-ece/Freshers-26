@@ -40,7 +40,7 @@ const ADMIN_EMAILS = ["25bec079@smvdu.ac.in"];
 const REG_ADMIN    = "25bec079@smvdu.ac.in"; // approves registrations (same as contribution admin)
 const OWNER_EMAIL  = "25bec079@smvdu.ac.in"; // only the owner can create/remove budget categories
 const REG_FEE      = 400;     // who can verify & approve payments
-const SHEET_URL    = "https://script.google.com/macros/s/AKfycbyuevvGmWwMahELzjv3pBhk1_e7C3rAAuD75c_Rt5ScBsuO8-3v2uFVddWjp1FGWoLS/exec";  // Google Apps Script Web App URL
+const SHEET_URL    = "https://script.google.com/macros/library/d/16eQ22Cu_N0eHnRikYypxeq0f_aBOK8Yh9wSy7Sps5dFTdD9FJAhM-hu9/35";  // Google Apps Script Web App URL
 const SHEET_SECRET = "freshers26";                  // must match SECRET in the Apps Script
 /* ---- Budget usage lives in Firebase (Firestore doc: budget/main).
    Admins edit it on the site — set total, add/remove expenses. Everyone sees it live. ---- */
@@ -267,11 +267,14 @@ function renderBudget(){
     const del = admin ? '<button class="bdel" data-id="'+_bEsc(it.id)+'" title="Remove">×</button>' : '';
     const cat  = it.category ? '<span class="bcat">'+_bEsc(it.category)+'</span>' : '';
     const note = it.msg ? '<div class="bnote">'+_bEsc(it.msg)+'</div>' : '';
-    /* Swap the next line for `const by = admin && it.by ? ... : "";` to hide
-       the filer's email from non-admins. */
-    const by = it.by ? '<span class="bby">by '+_bEsc(it.by)+'</span>' : '';
-    return '<div class="brow"><div class="bmain"><div class="bwhere">'+_bEsc(it.where)+'</div>'+note+'<div class="bmeta">'+status+cat+by+'</div></div>'
-         + '<span class="bamt">'+money(it.amount)+'</span>'+proof+del+'</div>';
+    /* Add `admin &&` to both lines below to hide the filer's email from non-admins.
+       bby-col is its own grid cell left of the amount (desktop); bby-inline sits
+       with the chips on narrow screens. The empty span still has to be printed or
+       rows without an email would shift a column left. */
+    const byCol    = '<span class="bby bby-col">'+(it.by ? _bEsc(it.by) : '')+'</span>';
+    const byInline = it.by ? '<span class="bby bby-inline">by '+_bEsc(it.by)+'</span>' : '';
+    return '<div class="brow"><div class="bmain"><div class="bwhere">'+_bEsc(it.where)+'</div>'+note+'<div class="bmeta">'+status+cat+byInline+'</div></div>'
+         + byCol + '<span class="bamt">'+money(it.amount)+'</span>'+proof+del+'</div>';
   }).join("");
   list.querySelectorAll(".bstatus[data-toggle]").forEach(b=> b.onclick = ()=> toggleBudgetPaid(b.dataset.toggle));
   list.querySelectorAll(".bdel").forEach(b=> b.onclick = ()=> deleteBudgetItem(b.dataset.id));
