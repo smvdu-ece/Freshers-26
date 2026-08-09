@@ -39,7 +39,7 @@ const UPI_NAME  = "Freshers-26";                    // name shown in the payer's
 const ADMIN_EMAILS = ["25bec079@smvdu.ac.in"];
 const REG_ADMIN    = "25bec079@smvdu.ac.in"; // approves registrations (same as contribution admin)
 const REG_FEE      = 400;     // who can verify & approve payments
-const SHEET_URL    = "https://script.google.com/macros/s/AKfycbwelwlc-hBmFQ7W2HGuwpsgKwU6nWcy-3It98K6gsJPGrBOkbkWyzs5CD88ELdRgMOJ/exec";  // Google Apps Script Web App URL
+const SHEET_URL    = "https://script.google.com/macros/s/AKfycbzTvZlJkUgvBjDfDuJ6CCTBk697IsxGzMfM43jdx28dTzEW1fMXeK0nHzYLYwaLsvbW/exec";  // Google Apps Script Web App URL
 const SHEET_SECRET = "freshers26";                  // must match SECRET in the Apps Script
 /* ---- Budget usage lives in Firebase (Firestore doc: budget/main).
    Admins edit it on the site — set total, add/remove expenses. Everyone sees it live. ---- */
@@ -197,7 +197,9 @@ function renderBudget(){
       ? '<button class="bstatus '+(paid?'paid':'unpaid')+'" data-toggle="'+_bEsc(it.id)+'">'+(paid?'Paid \u2713':'Mark paid')+'</button>'
       : '<span class="bstatus '+(paid?'paid':'unpaid')+'">'+(paid?'Paid':'Not paid')+'</span>';
     const del = admin ? '<button class="bdel" data-id="'+_bEsc(it.id)+'" title="Remove">×</button>' : '';
-    return '<div class="brow"><div class="bmain"><div class="bwhere">'+_bEsc(it.where)+'</div>'+status+'</div>'
+    const cat  = it.category ? '<span class="bcat">'+_bEsc(it.category)+'</span>' : '';
+    const note = it.msg ? '<div class="bnote">'+_bEsc(it.msg)+'</div>' : '';
+    return '<div class="brow"><div class="bmain"><div class="bwhere">'+_bEsc(it.where)+'</div>'+note+'<div class="bmeta">'+status+cat+'</div></div>'
          + '<span class="bamt">'+money(it.amount)+'</span>'+proof+del+'</div>';
   }).join("");
   list.querySelectorAll(".bstatus[data-toggle]").forEach(b=> b.onclick = ()=> toggleBudgetPaid(b.dataset.toggle));
@@ -209,12 +211,16 @@ async function addBudgetItem(){
   const where = $("#inBudgetWhere").value.trim();
   const amount = Number($("#inBudgetAmt").value);
   const proof = $("#inBudgetProof").value.trim();
+  const category = $("#inBudgetCat") ? $("#inBudgetCat").value.trim() : "";
+  const msg = $("#inBudgetMsg") ? $("#inBudgetMsg").value.trim().slice(0,200) : "";
   if(!where){ showToast("Add what it's for"); return; }
   if(!(amount>0)){ showToast("Add a valid amount"); return; }
-  const item = { id: "b" + Date.now() + Math.floor(Math.random()*1000), where, amount, proof, paid:false, at: Date.now() };
+  const item = { id: "b" + Date.now() + Math.floor(Math.random()*1000), where, amount, proof, category, msg, paid:false, at: Date.now() };
   try{
     await fb.setDoc(budgetRef(), { items: [ ...(budgetData.items||[]), item ] }, { merge:true });
     $("#inBudgetWhere").value = ""; $("#inBudgetAmt").value = ""; $("#inBudgetProof").value = "";
+    if($("#inBudgetCat")) $("#inBudgetCat").value = "";
+    if($("#inBudgetMsg")) $("#inBudgetMsg").value = "";
     showToast("Expense added — marked not paid \u2726");
   }catch(e){ console.error(e); showToast("Couldn't add — check permissions"); }
 }
@@ -238,9 +244,29 @@ async function deleteBudgetItem(id){
   }catch(e){ console.error(e); showToast("Couldn't remove — check permissions"); }
 }
 
+/* Push the WHOLE expense list to the Sheet in one request.
+   The Apps Script wipes and rewrites the Expenses tab from this array,
+   so deletes and edits reconcile and rows can never duplicate. */
+function syncBudgetToSheet(){
+  if(!isAdmin()) return;
+  if(!SHEET_URL){ showToast("Sheet URL not set"); return; }
+  const items = (budgetData.items||[]).map(it=>({
+    id: it.id||"", where: it.where||"", category: it.category||"",
+    amount: Number(it.amount)||0, proof: it.proof||"", msg: it.msg||"",
+    paid: !!it.paid, at: Number(it.at)||0
+  }));
+  fetch(SHEET_URL, {
+    method:"POST", mode:"no-cors",
+    headers:{ "Content-Type":"text/plain;charset=utf-8" },
+    body: JSON.stringify({ secret: SHEET_SECRET, type:"expense", items })
+  }).catch(e=>console.error("budget sheet sync", e));
+  showToast("Syncing " + items.length + " expense(s) to the sheet\u2026");
+}
+
 $("#budgetBtn").onclick = ()=>{ openM($("#budgetOverlay")); renderBudget(); subscribeBudget(); };
 const _ns = $("#needStat"); if(_ns) _ns.onclick = ()=>{ openM($("#budgetOverlay")); renderBudget(); subscribeBudget(); };
 $("#addBudgetItem").onclick = addBudgetItem;
+const _sb = $("#syncBudgetBtn"); if(_sb) _sb.onclick = syncBudgetToSheet;
 const _bo = $("#budgetOverlay"); if(_bo) _bo.addEventListener("click", e=>{ if(e.target===_bo) closeM(_bo); });
 function renderMySubs(){
   const box = $("#mySubsList");

@@ -393,7 +393,16 @@
         <input id="inBudgetAmt" type="number" min="1" placeholder="Amount (₹)">
         <input id="inBudgetProof" type="text" placeholder="Proof link (optional)">
       </div>
+      <select id="inBudgetCat">
+        <option value="">Category (optional)</option>
+        <!-- Add categories here later, e.g.:
+        <option value="Decoration">Decoration</option>
+        <option value="Sound &amp; Light">Sound &amp; Light</option>
+        -->
+      </select>
+      <input id="inBudgetMsg" type="text" maxlength="200" placeholder="Message / note (optional) — shown under this expense">
       <button class="bbtn solid" id="addBudgetItem" type="button">+ Add expense</button>
+      <button class="bbtn wide" id="syncBudgetBtn" type="button">Sync expenses to Sheet</button>
     </div>
 
     <div class="budget-head"><span>Purpose</span><span class="r">Amount</span><span class="r">Proof</span><span></span></div>
