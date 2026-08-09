@@ -40,7 +40,7 @@ const ADMIN_EMAILS = ["25bec079@smvdu.ac.in"];
 const REG_ADMIN    = "25bec079@smvdu.ac.in"; // approves registrations (same as contribution admin)
 const OWNER_EMAIL  = "25bec079@smvdu.ac.in"; // only the owner can create/remove budget categories
 const REG_FEE      = 400;     // who can verify & approve payments
-const SHEET_URL    = "https://script.google.com/macros/library/d/16eQ22Cu_N0eHnRikYypxeq0f_aBOK8Yh9wSy7Sps5dFTdD9FJAhM-hu9/37";  // Google Apps Script Web App URL
+const SHEET_URL    = "https://script.google.com/macros/s/AKfycbwelwlc-hBmFQ7W2HGuwpsgKwU6nWcy-3It98K6gsJPGrBOkbkWyzs5CD88ELdRgMOJ/exec";  // Google Apps Script Web App URL
 const SHEET_SECRET = "freshers26";                  // must match SECRET in the Apps Script
 /* ---- Budget usage lives in Firebase (Firestore doc: budget/main).
    Admins edit it on the site — set total, add/remove expenses. Everyone sees it live. ---- */
@@ -295,11 +295,11 @@ function renderBudget(){
           + '<button class="bstatus reject" data-paydecline="'+_bEsc(it.id)+'">Decline</button>'
         : '<span class="bstatus pending">Payment requested</span>';
     } else {
-      status = owner
-        ? '<button class="bstatus unpaid" data-unpay="'+_bEsc(it.id)+'">Mark paid</button>'
-        : (admin
-            ? '<button class="bstatus unpaid" data-request="'+_bEsc(it.id)+'">Request paid</button>'
-            : '<span class="bstatus unpaid">Not paid</span>');
+      /* Even the owner files a request rather than flipping the flag directly,
+         so a proof link is always attached before anything reads as paid. */
+      status = admin
+        ? '<button class="bstatus unpaid" data-request="'+_bEsc(it.id)+'">Request paid</button>'
+        : '<span class="bstatus unpaid">Not paid</span>';
     }
 
     // Only the owner may delete outright; an admin's own pending item is still theirs to withdraw.
@@ -371,17 +371,19 @@ async function addBudgetItem(){
     return;
   }
   const by = (user && user.email) || "";   // who filed this expense
-  // The owner's own entries need nobody's sign-off; everyone else's wait.
-  const status = isOwner() ? "approved" : "pending";
+  /* Nothing enters the budget on its own say-so — every expense waits for the
+     owner, including one the owner filed. Keeps the record honest and means
+     the flow looks the same no matter who is signed in. */
   const item = { id: "b" + Date.now() + Math.floor(Math.random()*1000),
-                 where, amount, proof, category, msg, by, status,
+                 where, amount, proof, category, msg, by, status: "pending",
                  paid:false, payReq:null, at: Date.now() };
   try{
     await fb.setDoc(budgetRef(), { items: [ ...(budgetData.items||[]), item ] }, { merge:true });
     $("#inBudgetWhere").value = ""; $("#inBudgetAmt").value = ""; $("#inBudgetProof").value = "";
     if($("#inBudgetCat")) $("#inBudgetCat").value = "";
     if($("#inBudgetMsg")) $("#inBudgetMsg").value = "";
-    showToast(status==="approved" ? "Expense added \u2726" : "Sent to the owner for approval \u2726");
+    showToast(isOwner() ? "Added \u2014 approve it below to publish \u2726"
+                        : "Sent to the owner for approval \u2726");
   }catch(e){ console.error(e); showToast("Couldn't add — check permissions"); }
 }
 
@@ -443,13 +445,11 @@ async function patchBudgetItem(id, fn, okMsg){
   }catch(e){ console.error(e); showToast("Couldn't update — check permissions"); }
 }
 
-// Owner-only direct toggle. Admins go through the request flow instead.
+/* Owner-only, and only ever to UNDO a payment — marking something paid always
+   goes through a request so the proof link is captured. */
 async function toggleBudgetPaid(id){
-  if(!isOwner()){ showToast("Only the owner can mark an expense paid"); return; }
-  const cur = (budgetData.items||[]).find(x=> x.id===id);
-  const nowPaid = !(cur && cur.paid);
-  await patchBudgetItem(id, it=> ({ ...it, paid: !it.paid, payReq:null }),
-                        nowPaid ? "Marked paid \u2726" : "Marked not paid");
+  if(!isOwner()){ showToast("Only the owner can change a payment"); return; }
+  await patchBudgetItem(id, it=> ({ ...it, paid:false, payReq:null }), "Marked not paid");
 }
 
 async function deleteBudgetItem(id, quiet){
