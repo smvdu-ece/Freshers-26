@@ -33,7 +33,7 @@ function userRole(email){
   if(SENIOR_RE.test(e) || EXTRA_SENIORS.includes(e)) return "senior";
   return "fresher";
 }
-const GOAL = 1740;
+const GOAL = 1699;
 /* ---- Version A: direct UPI + manual verify (no gateway) ---- */
 const UPI_ID    = "7654201815@upi";                 // <-- the UPI ID that RECEIVES the money
 const UPI_NAME  = "Freshers-26";                    // name shown in the payer's UPI app
@@ -93,8 +93,10 @@ function repaint(){
   $("#barLeft").textContent = mine>=GOAL ? (mine>GOAL ? money(mine-GOAL)+" extra \u2726" : "Goal reached \u2726") : money(GOAL-mine)+" to go";
   $("#doneBadge").style.display = mine>=GOAL ? "flex" : "none";
   $("#extraBtn").style.display = mine>=GOAL ? "none" : "";   // hide "Pay a custom amount" once goal is reached
-  // ₹260 "go gold" chip — only when full ₹1740 is already approved (1740 + 260 = 2000)
-  const c260=$("#chip260"); if(c260) c260.style.display = (mine>=GOAL && mine<2000) ? "" : "none";
+  // Top-up chips: ₹199 completes 1500 → 1699 (goal), ₹301 completes 1699 → 2000 (gold).
+  // Each only appears in the window where paying it lands exactly on that milestone.
+  const c199=$("#chip199"); if(c199) c199.style.display = (mine>=GOAL-199 && mine<GOAL) ? "" : "none";
+  const c301=$("#chip301"); if(c301) c301.style.display = (mine>=GOAL && mine<2000) ? "" : "none";
   // Total Raised = senior contributions + juniors (approved freshers × REG_FEE)
   const juniorTotalAmt = (typeof juniorRegs !== "undefined" ? juniorRegs.length : 0) * REG_FEE;
   const combinedRaised = total + juniorTotalAmt;
@@ -1125,7 +1127,7 @@ function wantPay(amt, fixed){
   } else {
     $("#amtSection").style.display = "";       // custom -> show amount entry
     $("#inAmt").value = "";
-    is260 = false;
+    isMini = false;
     document.querySelectorAll(".chip").forEach(x=>x.classList.remove("on"));
     $("#payTo").style.display = "none";        // hide QR/button until valid amount entered
   }
@@ -1140,11 +1142,11 @@ $("#contribBtn").onclick = ()=>{
 };
 // Custom amount -> show the amount box first
 $("#extraBtn").onclick   = ()=> wantPay(0, false);
-$("#inAmt").addEventListener("input", ()=>{ is260=false; document.querySelectorAll(".chip").forEach(x=>x.classList.remove("on")); updatePayBtn(); });
+$("#inAmt").addEventListener("input", ()=>{ isMini=false; document.querySelectorAll(".chip").forEach(x=>x.classList.remove("on")); updatePayBtn(); });
 document.querySelectorAll(".chip").forEach(c=>c.onclick=()=>{
   document.querySelectorAll(".chip").forEach(x=>x.classList.remove("on"));
   c.classList.add("on");
-  is260 = (c.dataset.amt === "260");   // ₹260 is the only valid sub-500 amount, chip-only
+  isMini = MINI_AMTS.indexOf(Number(c.dataset.amt)) > -1;   // sub-500 top-ups, chip-only
   $("#inAmt").value=c.dataset.amt; updatePayBtn();
 });
 function upiLink(amt){
@@ -1153,21 +1155,22 @@ function upiLink(amt){
        + (amt>0 ? "&am=" + amt : "")
        + "&cu=INR&tn=" + encodeURIComponent("Freshers26");
 }
-let is260 = false;   // true when the ₹260 chip is the active selection
+const MINI_AMTS = [199, 301];   // the only amounts allowed below ₹500, and only via their chip
+let isMini = false;   // true when a top-up chip is the active selection
 function updatePayBtn(){
   const amt = Number($("#inAmt").value)||0;
   $("#payAmtLbl").textContent = money(amt);
   const a = $("#openUpi"); if(a) a.setAttribute("href", upiLink(amt));
   const img = $("#upiQr"); if(img) img.src = "https://api.qrserver.com/v1/create-qr-code/?size=240x240&margin=0&data=" + encodeURIComponent(upiLink(amt));
   // custom mode: only reveal the QR once a VALID amount is entered
-  // valid = ₹500+  OR  exactly ₹260 via the chip
+  // valid = ₹500+  OR  a top-up amount via its chip
   if($("#amtSection").style.display !== "none"){
-    const valid = (amt>=500) || (is260 && amt===260);
+    const valid = (amt>=500) || (isMini && MINI_AMTS.indexOf(amt) > -1);
     $("#payTo").style.display = valid ? "" : "none";
-    // live warning when amount is entered but below ₹500 (and not the ₹260 chip case)
+    // live warning when amount is entered but below ₹500 (and not a top-up chip case)
     const warn = $("#amtWarn");
     if(warn){
-      const showWarn = amt>0 && amt<500 && !(is260 && amt===260);
+      const showWarn = amt>0 && amt<500 && !(isMini && MINI_AMTS.indexOf(amt) > -1);
       warn.style.display = showWarn ? "block" : "none";
     }
   }
@@ -1212,7 +1215,7 @@ function submitPayment(amt, utr){
   if(amt<1){ showToast("Enter an amount"); $("#inAmt").focus(); return; }
   const customMode = $("#amtSection").style.display !== "none";
   if(customMode && amt < 500){
-    if(!(is260 && amt===260)){ showToast("Minimum contribution is \u20b9500"); $("#inAmt").focus(); return; }
+    if(!(isMini && MINI_AMTS.indexOf(amt) > -1)){ showToast("Minimum contribution is \u20b9500"); $("#inAmt").focus(); return; }
   }
   utr = (utr||"").trim();
   if(!/^[a-zA-Z0-9]{3,}$/.test(utr)){ showToast("Enter a valid UPI Ref No. / UTR"); $("#inUtr").focus(); return; }
