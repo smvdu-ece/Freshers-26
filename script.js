@@ -92,7 +92,7 @@ function repaint(){
   $("#barPct").textContent = Math.round(pct) + "% complete";
   $("#barLeft").textContent = mine>=GOAL ? (mine>GOAL ? money(mine-GOAL)+" extra \u2726" : "Goal reached \u2726") : money(GOAL-mine)+" to go";
   $("#doneBadge").style.display = mine>=GOAL ? "flex" : "none";
-  $("#extraBtn").style.display = mine>=GOAL ? "none" : "";   // hide "Pay a custom amount" once goal is reached
+  $("#extraBtn").style.display = "";   // always available — past the goal it's the only way to add more
   // Top-up chips: ₹199 completes 1500 → 1699 (goal), ₹301 completes 1699 → 2000 (gold).
   // Each only appears in the window where paying it lands exactly on that milestone.
   const c199=$("#chip199"); if(c199) c199.style.display = (mine>=GOAL-199 && mine<GOAL) ? "" : "none";
@@ -1156,6 +1156,9 @@ function upiLink(amt){
        + "&cu=INR&tn=" + encodeURIComponent("Freshers26");
 }
 const MINI_AMTS = [199, 301];   // the only amounts allowed below ₹500, and only via their chip
+/* Once someone's APPROVED total has cleared the goal the ₹500 floor no longer
+   applies — they've done their bit, so any top-up they want to make is fine. */
+function goalCleared(){ return !!user && (data[user.email]||0) >= GOAL; }
 let isMini = false;   // true when a top-up chip is the active selection
 function updatePayBtn(){
   const amt = Number($("#inAmt").value)||0;
@@ -1165,12 +1168,12 @@ function updatePayBtn(){
   // custom mode: only reveal the QR once a VALID amount is entered
   // valid = ₹500+  OR  a top-up amount via its chip
   if($("#amtSection").style.display !== "none"){
-    const valid = (amt>=500) || (isMini && MINI_AMTS.indexOf(amt) > -1);
+    const valid = (amt>=500) || goalCleared() || (isMini && MINI_AMTS.indexOf(amt) > -1);
     $("#payTo").style.display = valid ? "" : "none";
     // live warning when amount is entered but below ₹500 (and not a top-up chip case)
     const warn = $("#amtWarn");
     if(warn){
-      const showWarn = amt>0 && amt<500 && !(isMini && MINI_AMTS.indexOf(amt) > -1);
+      const showWarn = amt>0 && amt<500 && !goalCleared() && !(isMini && MINI_AMTS.indexOf(amt) > -1);
       warn.style.display = showWarn ? "block" : "none";
     }
   }
@@ -1214,18 +1217,29 @@ function submitPayment(amt, utr){
   if(!user){ closeM(payOverlay); showGate(); showToast("Please login first"); return; }
   if(amt<1){ showToast("Enter an amount"); $("#inAmt").focus(); return; }
   const customMode = $("#amtSection").style.display !== "none";
-  if(customMode && amt < 500){
+  if(customMode && amt < 500 && !goalCleared()){
     if(!(isMini && MINI_AMTS.indexOf(amt) > -1)){ showToast("Minimum contribution is \u20b9500"); $("#inAmt").focus(); return; }
   }
   utr = (utr||"").trim();
-  if(!/^[a-zA-Z0-9]{3,}$/.test(utr)){ showToast("Enter a valid UPI Ref No. / UTR"); $("#inUtr").focus(); return; }
+  // Letters, digits, spaces and - _ / so "cash", "Cash - paid to Sujit" etc. all work.
+  if(!/^[a-zA-Z0-9][a-zA-Z0-9 _\-\/]{2,49}$/.test(utr)){
+    showToast("Enter a UPI Ref No. / UTR, or \"cash\""); $("#inUtr").focus(); return;
+  }
   if(!LIVE){
     closeM(payOverlay); $("#inUtr").value="";
     showToast("Submitted for verification (preview)");
     return;
   }
-  // store as a pending submission, keyed by the UTR so the same ref can't create duplicates
-  fb.setDoc(fb.doc(fb.db,"pending",utr), {
+  /* Keyed by the UTR so the same reference can't be submitted twice. Free text
+     is NOT unique — two people writing "cash" would collide on one doc id, and
+     the second write would be refused as an update to someone else's row — so
+     anything that isn't a genuine-looking reference gets a per-person suffix.
+     Slashes are stripped either way: they aren't legal in a document id. */
+  const looksLikeRef = /^[a-zA-Z0-9]{6,}$/.test(utr) && /[0-9]/.test(utr);
+  const docId = looksLikeRef ? utr
+    : (utr.replace(/[^a-zA-Z0-9 _-]/g,"").replace(/\s+/g,"-").slice(0,40)
+       + "-" + user.email.split("@")[0] + "-" + Date.now());
+  fb.setDoc(fb.doc(fb.db,"pending",docId), {
     email: user.email, name: user.name,
     amount: amt, utr: utr,
     status: "pending", at: fb.serverTimestamp()
