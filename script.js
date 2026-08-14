@@ -1284,7 +1284,7 @@ function refreshAdminUI(){
   else { btn.style.display = "none"; if(unsubPending){ unsubPending(); unsubPending=null; } }
 }
 let adminTab = "pending";
-let optStatus = {};   // utr -> optimistic status, applied instantly on tap until the server confirms
+let optStatus = {};   // doc id -> optimistic status, applied instantly on tap until the server confirms
 function syncAdminTabs(){
   document.querySelectorAll(".atab").forEach(b=> b.classList.toggle("on", b.dataset.tab===adminTab));
 }
@@ -1296,12 +1296,15 @@ if($("#adminSearch")) $("#adminSearch").oninput = renderAdmin;
 function subscribePending(){
   if(!LIVE || !fb || unsubPending) return;
   unsubPending = fb.onSnapshot(fb.collection(fb.db,"pending"), snap=>{
-    const rows = []; snap.forEach(d=> rows.push(d.data()));
+    /* Keep the document id alongside the data. It used to equal the UTR, but a
+       free-text ref like "cash" gets a suffixed id, so approve/reject must
+       address the doc by its real id, never by r.utr. */
+    const rows = []; snap.forEach(d=> rows.push(Object.assign({ id: d.id }, d.data())));
     allSubs = rows;
     // drop optimistic overrides the server has now confirmed
-    for(const utr in optStatus){
-      const real = rows.find(r=> r.utr === utr);
-      if(real && (real.status||"pending") === optStatus[utr]) delete optStatus[utr];
+    for(const id in optStatus){
+      const real = rows.find(r=> r.id === id);
+      if(real && (real.status||"pending") === optStatus[id]) delete optStatus[id];
     }
     renderAdmin();
   }, err=>console.error("pending snapshot", err));
@@ -1309,7 +1312,7 @@ function subscribePending(){
 function renderAdmin(){
   const box = $("#adminList");
   const term = (($("#adminSearch") && $("#adminSearch").value) || "").trim().toLowerCase();
-  const eff = r => optStatus[r.utr] || r.status || "pending";
+  const eff = r => optStatus[r.id] || r.status || "pending";
   const isPending = r => eff(r) === "pending";
 
   // tab counts
@@ -1333,7 +1336,7 @@ function renderAdmin(){
   }
   box.innerHTML = "";
   rows.forEach(r=>{
-    const st = optStatus[r.utr] || r.status || "pending";
+    const st = optStatus[r.id] || r.status || "pending";
     const el = document.createElement("div");
     el.className = "admin-row";
     el.innerHTML =
@@ -1346,15 +1349,15 @@ function renderAdmin(){
     el.querySelector(".meta").textContent = r.email + " \u00b7 UTR " + r.utr;
     const msgIn = el.querySelector(".msg-in");
     if(r.note) msgIn.value = r.note;
-    el.querySelector(".ap").onclick = ()=>{ const note=msgIn.value; optStatus[r.utr]="approved"; renderAdmin(); approvePending(r.utr, note); };
-    el.querySelector(".rj").onclick = ()=>{ const note=msgIn.value; optStatus[r.utr]="rejected"; renderAdmin(); rejectPending(r.utr, note); };
+    el.querySelector(".ap").onclick = ()=>{ const note=msgIn.value; optStatus[r.id]="approved"; renderAdmin(); approvePending(r.id, note); };
+    el.querySelector(".rj").onclick = ()=>{ const note=msgIn.value; optStatus[r.id]="rejected"; renderAdmin(); rejectPending(r.id, note); };
     box.appendChild(el);
   });
 }
-function approvePending(utr, note){
+function approvePending(id, note){
   let email = null;
   fb.runTransaction(fb.db, async (t)=>{
-    const pRef = fb.doc(fb.db,"pending",utr);
+    const pRef = fb.doc(fb.db,"pending",id);
     const pSnap = await t.get(pRef);
     if(!pSnap.exists()) return;
     const p = pSnap.data();
@@ -1366,18 +1369,18 @@ function approvePending(utr, note){
     t.set(cRef, {
       email: p.email, name: p.name,
       amount: prev + (Number(p.amount)||0),
-      lastPaymentId: "utr:" + utr,
+      lastPaymentId: "utr:" + (p.utr || id),
       updatedAt: fb.serverTimestamp()
     }, { merge:true });
     t.update(pRef, { status:"approved", note:(note||"").trim(), approvedAt: fb.serverTimestamp() });
   })
     .then(()=>{ showToast("Approved \u2726"); })   // sheet updates only via the Sync button
-    .catch(e=>{ delete optStatus[utr]; renderAdmin(); showToast("Approve failed: " + (e.code||e.message)); console.error(e); });
+    .catch(e=>{ delete optStatus[id]; renderAdmin(); showToast("Approve failed: " + (e.code||e.message)); console.error(e); });
 }
-function rejectPending(utr, note){
+function rejectPending(id, note){
   let email = null;
   fb.runTransaction(fb.db, async (t)=>{
-    const pRef = fb.doc(fb.db,"pending",utr);
+    const pRef = fb.doc(fb.db,"pending",id);
     const pSnap = await t.get(pRef);
     if(!pSnap.exists()) return;
     const p = pSnap.data();
@@ -1392,7 +1395,7 @@ function rejectPending(utr, note){
     t.update(pRef, { status:"rejected", note:(note||"").trim(), rejectedAt: fb.serverTimestamp() });
   })
     .then(()=>{ showToast("Rejected"); })   // sheet updates only via the Sync button
-    .catch(e=>{ delete optStatus[utr]; renderAdmin(); showToast("Reject failed: " + (e.code||e.message)); console.error(e); });
+    .catch(e=>{ delete optStatus[id]; renderAdmin(); showToast("Reject failed: " + (e.code||e.message)); console.error(e); });
 }
 
 /* ---------- Google Sheets sync ---------- */
