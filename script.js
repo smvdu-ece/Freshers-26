@@ -45,6 +45,9 @@ const OWNER_EMAIL  = "25bec079@smvdu.ac.in"; // only the owner can create/remove
    add waits for the owner like any other pending expense. */
 const BUDGET_ADMINS = ["kumarsujit73775@gmail.com"];
 const REG_FEE      = 400;     // who can verify & approve payments
+/* reCAPTCHA v3 site key for App Check. Public by design — the SECRET key
+   lives only in the Firebase console and must never appear here. */
+const RECAPTCHA_SITE_KEY = "6LeNs4gtAAAAAKy5umBdUeaqy8GxmFWnVN5KqTkU";
 const SHEET_URL    = "https://script.google.com/macros/s/AKfycbxbATnFbmAk_g-HFBsA9vCEO49BVKPolD1J3kbNwfbxV6_7lMBiBydxuOg3pDsf46Tu/exec";  // Google Apps Script Web App URL
 const SHEET_SECRET = "freshers26";                  // must match SECRET in the Apps Script
 /* ---- Budget usage lives in Firebase (Firestore doc: budget/main).
@@ -1245,7 +1248,15 @@ function submitPayment(amt, utr){
     status: "pending", at: fb.serverTimestamp()
   })
     .then(()=>{ closeM(payOverlay); $("#inUtr").value=""; showToast("Submitted \u2726 — it'll show on the bar once verified"); })
-    .catch(e=>{ showToast("Couldn't submit: " + (e.code||e.message)); console.error(e); });
+    .catch(e=>{
+      /* permission-denied has two very different causes: the account isn't
+         allowed to create a pending doc, or this exact UTR already exists
+         (a create then reads as an update, which only the admin may do). */
+      const msg = (e.code === "permission-denied")
+        ? "That reference has already been submitted, or this account isn't allowed to submit."
+        : ("Couldn't submit: " + (e.code||e.message));
+      showToast(msg); console.error(e);
+    });
 }
 $("#submitUtr").onclick = ()=>{
   submitPayment(Number($("#inAmt").value)||0, $("#inUtr").value);
@@ -1434,6 +1445,22 @@ async function initFirebase(){
     const authMod = await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js");
     const fsMod   = await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js");
     const app = appMod.initializeApp(FIREBASE_CONFIG);
+
+    /* App Check — attaches a reCAPTCHA v3 attestation to every Firebase
+       request, so requests from outside this page are rejected once
+       enforcement is switched on in the Firebase console.
+       Wrapped in its own try/catch on purpose: if the reCAPTCHA script is
+       blocked (ad-blocker, offline, college firewall) the site must still
+       load. While App Check is UNENFORCED that costs nothing; once you
+       enforce, those users would be refused by Firebase either way. */
+    try{
+      const acMod = await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-app-check.js");
+      acMod.initializeAppCheck(app, {
+        provider: new acMod.ReCaptchaV3Provider(RECAPTCHA_SITE_KEY),
+        isTokenAutoRefreshEnabled: true
+      });
+    }catch(e){ console.warn("App Check unavailable", e); }
+
     // Force long-polling so reads/writes work on restrictive college / Wi-Fi networks
     const db = fsMod.initializeFirestore(app, { experimentalForceLongPolling: true });
     fb = { auth: authMod.getAuth(app), db, ...authMod, ...fsMod };
