@@ -48,7 +48,7 @@ const REG_FEE      = 400;     // who can verify & approve payments
 /* reCAPTCHA v3 site key for App Check. Public by design — the SECRET key
    lives only in the Firebase console and must never appear here. */
 const RECAPTCHA_SITE_KEY = "6LeNs4gtAAAAAKy5umBdUeaqy8GxmFWnVN5KqTkU";
-const SHEET_URL    = "https://script.google.com/macros/s/AKfycbxbATnFbmAk_g-HFBsA9vCEO49BVKPolD1J3kbNwfbxV6_7lMBiBydxuOg3pDsf46Tu/exec";  // Google Apps Script Web App URL
+const SHEET_URL    = "https://script.google.com/macros/s/AKfycbyXSZFyJU2duxOEjlAQCDZj5vyV3nz68pmCHaGx3wKcfkhDbT4T7b-XOYEBRINqH1sq/exec";  // Google Apps Script Web App URL
 const SHEET_SECRET = "freshers26";                  // must match SECRET in the Apps Script
 /* ---- Budget usage lives in Firebase (Firestore doc: budget/main).
    Admins edit it on the site — set total, add/remove expenses. Everyone sees it live. ---- */
@@ -550,7 +550,7 @@ async function removeBudgetCategory(name){
 /* Push the WHOLE expense list to the Sheet in one request.
    The Apps Script wipes and rewrites the Expenses tab from this array,
    so deletes and edits reconcile and rows can never duplicate. */
-function syncBudgetToSheet(){
+async function syncBudgetToSheet(){
   if(!isAdmin()) return;
   if(!SHEET_URL){ showToast("Sheet URL not set"); return; }
   const items = budgetApprovedItems().map(it=>({
@@ -558,10 +558,11 @@ function syncBudgetToSheet(){
     amount: Number(it.amount)||0, proof: it.proof||"", msg: it.msg||"", by: it.by||"",
     paid: !!it.paid, at: Number(it.at)||0
   }));
+  const idToken = await sheetToken();
   fetch(SHEET_URL, {
     method:"POST", mode:"no-cors",
     headers:{ "Content-Type":"text/plain;charset=utf-8" },
-    body: JSON.stringify({ secret: SHEET_SECRET, type:"expense", items })
+    body: JSON.stringify({ secret: SHEET_SECRET, idToken, type:"expense", items })
   }).catch(e=>console.error("budget sheet sync", e));
   showToast("Syncing " + items.length + " expense(s) to the sheet\u2026");
 }
@@ -1003,8 +1004,9 @@ async function syncRegSheet(email){
   try{
     const snap=await fb.getDoc(fb.doc(fb.db,"registrations26",email)); if(!snap.exists()) return;
     const d=snap.data()||{};
+    const idToken = await sheetToken();
     fetch(SHEET_URL,{method:"POST",mode:"no-cors",headers:{"Content-Type":"text/plain;charset=utf-8"},
-      body:JSON.stringify({secret:SHEET_SECRET,type:"registration",name:d.name||"",entryNo:d.roll||"",email:d.email||"",phone:d.phone||"",amount:d.amount||REG_FEE,utr:d.utr||"",photoData:d.photoData||"",status:d.status||"pending"})
+      body:JSON.stringify({secret:SHEET_SECRET,idToken,type:"registration",name:d.name||"",entryNo:d.roll||"",email:d.email||"",phone:d.phone||"",amount:d.amount||REG_FEE,utr:d.utr||"",photoData:d.photoData||"",status:d.status||"pending"})
     }).catch(e=>console.error("reg sheet sync",e));
   }catch(e){console.error("syncRegSheet",e);}
 }
@@ -1410,8 +1412,19 @@ function rejectPending(id, note){
 }
 
 /* ---------- Google Sheets sync ---------- */
-function syncSheet(email){
+/* The Apps Script no longer trusts SHEET_SECRET on its own — the secret ships
+   in this file, so anyone could read it and POST to the endpoint. Instead we
+   attach the signed-in user's Firebase ID token; the Apps Script verifies it
+   with Google and refuses anything that isn't an admin. */
+async function sheetToken(){
+  try{
+    return (fb && fb.auth && fb.auth.currentUser)
+      ? await fb.auth.currentUser.getIdToken() : "";
+  }catch(e){ console.error("id token", e); return ""; }
+}
+async function syncSheet(email){
   if(!SHEET_URL || !fb || !email) return;
+  const idToken = await sheetToken();
   fb.getDocs(fb.query(fb.collection(fb.db,"pending"), fb.where("email","==",email))).then(snap=>{
     const subs = []; let anyName = "";
     snap.forEach(d=>{ const v=d.data()||{}; if(v.name) anyName = v.name; if(v.status==="approved") subs.push(v); });
@@ -1426,7 +1439,7 @@ function syncSheet(email){
     fetch(SHEET_URL, {
       method: "POST", mode: "no-cors",
       headers: { "Content-Type": "text/plain;charset=utf-8" },
-      body: JSON.stringify({ secret: SHEET_SECRET, name, email, payments, total })
+      body: JSON.stringify({ secret: SHEET_SECRET, idToken, name, email, payments, total })
     }).catch(e=>console.error("sheet sync", e));
   }).catch(e=>console.error("sheet read", e));
 }
