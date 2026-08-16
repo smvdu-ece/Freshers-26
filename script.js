@@ -48,7 +48,7 @@ const REG_FEE      = 400;     // who can verify & approve payments
 /* reCAPTCHA v3 site key for App Check. Public by design — the SECRET key
    lives only in the Firebase console and must never appear here. */
 const RECAPTCHA_SITE_KEY = "6LeNs4gtAAAAAKy5umBdUeaqy8GxmFWnVN5KqTkU";
-const SHEET_URL    = "https://script.google.com/macros/s/AKfycbyXSZFyJU2duxOEjlAQCDZj5vyV3nz68pmCHaGx3wKcfkhDbT4T7b-XOYEBRINqH1sq/exec";  // Google Apps Script Web App URL
+const SHEET_URL    = "https://script.google.com/macros/s/AKfycbyUEchNaIvJUMoJCwEinpPU2ovOY5Z4CzgGkPafb4ntobQ2RoVKz6cRPcXp7ibNBYVn/exec";  // Google Apps Script Web App URL
 const SHEET_SECRET = "freshers26";                  // must match SECRET in the Apps Script
 /* ---- Budget usage lives in Firebase (Firestore doc: budget/main).
    Admins edit it on the site — set total, add/remove expenses. Everyone sees it live. ---- */
