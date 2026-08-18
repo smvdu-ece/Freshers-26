@@ -877,3 +877,8 @@ button.bstatus.reject:hover{background:rgba(224,86,86,.1)}
 .breq-form input:focus{border-color:var(--gold);outline:none}
 .breq-actions{display:flex;gap:8px}
 .breq-actions .bbtn{flex:1;margin:0;padding:9px 12px;font-size:12px}
+/* ---------- budget: editable amount on the mark-paid form ---------- */
+.breq-lbl{font-family:'Cinzel',serif;font-size:9.5px;letter-spacing:1.4px;text-transform:uppercase;color:var(--gold-soft);margin-bottom:-2px}
+.breq-form input[type=number]{width:100%;background:#0c0c0e;border:1px solid var(--line);color:var(--ink);padding:9px 11px;border-radius:6px;font-family:'Jost';font-size:13px}
+.breq-form input[type=number]:focus{border-color:var(--gold);outline:none}
+.bamt-change{color:var(--gold);font-weight:600}

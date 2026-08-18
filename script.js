@@ -350,8 +350,11 @@ function renderBudget(){
     // Details of a pending payment request — admins only, since it's internal
     let reqBox = '';
     if(req && admin && !paid){
+      const rAmt = Number(req.amount) || 0;
+      const changed = rAmt > 0 && rAmt !== (Number(it.amount)||0);
       reqBox = '<div class="breq"><b>Payment requested</b>'
              + (req.by ? ' by '+_bEsc(req.by) : '')
+             + (changed ? '<br><span class="bamt-change">Amount: '+money(it.amount)+' \u2192 '+money(rAmt)+'</span>' : '')
              + (req.proof ? '<br>Proof: <a href="'+_bEsc(req.proof)+'" target="_blank" rel="noopener">'+_bEsc(req.proof)+'</a>' : '')
              + (req.msg ? '<br>'+_bEsc(req.msg) : '')
              + '</div>';
@@ -361,6 +364,8 @@ function renderBudget(){
     let form = '';
     if(payFormFor === it.id){
       form = '<div class="breq-form">'
+           + '<label class="breq-lbl">Amount actually paid (\u20b9)</label>'
+           + '<input type="number" id="reqAmt" min="1" step="1" value="'+(Number(it.amount)||0)+'">'
            + '<input type="text" id="reqProof" placeholder="Proof link (required)" value="'+_bEsc(it.proof||"")+'">'
            + '<input type="text" id="reqMsg" maxlength="200" placeholder="'+(owner?'Note about this payment (optional)':'Message for the owner (optional)')+'">'
            + '<div class="breq-actions">'
@@ -449,7 +454,9 @@ async function approvePayment(id){
     const r = it.payReq || {};
     return { ...it,
       paid: true,
-      proof: r.proof || it.proof || "",          // the request's proof replaces the old one
+      // the request's figures replace the estimate that was filed originally
+      amount: (Number(r.amount) > 0) ? Number(r.amount) : it.amount,
+      proof: r.proof || it.proof || "",
       msg:   r.msg   || it.msg   || "",
       payReq: null };
   }, "Payment approved \u2726");
@@ -471,19 +478,23 @@ function openPayRequest(id){
 async function submitPayRequest(id){
   const item = (budgetData.items||[]).find(x=> x.id===id);
   if(!canRequestPay(item)){ showToast("Only whoever added this expense can request payment"); return; }
-  const proofEl = $("#reqProof"), msgEl = $("#reqMsg");
+  const proofEl = $("#reqProof"), msgEl = $("#reqMsg"), amtEl = $("#reqAmt");
   const proof = proofEl ? proofEl.value.trim() : "";
   const msg   = msgEl ? msgEl.value.trim().slice(0,200) : "";
+  /* The listed amount is an estimate; this is what was actually paid. Falls back
+     to the original if the field is missing, so nothing can zero out an item. */
+  const amount = amtEl ? Number(amtEl.value) : Number(item.amount)||0;
+  if(!(amount > 0)){ showToast("Enter the amount that was actually paid"); return; }
   if(!proof){ showToast(isOwner() ? "Add the payment proof link" : "Add a proof link so the owner can verify it"); return; }
   const who = (user && user.email) || "";
   payFormFor = null;
   if(isOwner()){
     // The approver is already here — no point queuing a request to themselves.
-    await patchBudgetItem(id, it=> ({ ...it, paid:true, proof, msg: msg || it.msg || "", payReq:null }),
+    await patchBudgetItem(id, it=> ({ ...it, paid:true, amount, proof, msg: msg || it.msg || "", payReq:null }),
                           "Marked paid \u2726");
     return;
   }
-  await patchBudgetItem(id, it=> ({ ...it, payReq: { by: who, proof, msg, at: Date.now() } }),
+  await patchBudgetItem(id, it=> ({ ...it, payReq: { by: who, amount, proof, msg, at: Date.now() } }),
                         "Sent to the owner for approval \u2726");
 }
 
