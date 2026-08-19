@@ -1549,7 +1549,11 @@ function renderVenueGallery(){
   if(vgViewer){ vgViewer.dispose(); vgViewer = null; }
 
   if(sl.kind === "photo"){
-    stage.innerHTML = '<img class="vg-img" src="'+sl.src+'" alt="'+_bEsc(sl.caption)+'" loading="lazy">'
+    /* Name the missing file rather than showing a broken-image icon — the
+       usual cause is simply that it hasn't been uploaded to Files/ yet. */
+    stage.innerHTML = '<img class="vg-img" src="'+sl.src+'" alt="'+_bEsc(sl.caption)+'" loading="lazy"'
+                    + ' onerror="this.parentNode.innerHTML=\'<div class=&quot;vg-missing&quot;><b>Photo not found</b>'
+                    + 'Upload it to <code>'+sl.src+'</code></div>\'">'
                     + '<span class="vg-cap">'+_bEsc(sl.caption)+'</span>';
   } else if(vgOpened[vgIndex]){
     openPano(stage, sl.sphere);
