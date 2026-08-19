@@ -5,7 +5,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;500;600;700&family=Great+Vibes&family=Jost:wght@300;400;500;600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=34">
+<link rel="stylesheet" href="style.css?v=35">
 
 <!-- ═══════════════════════════════════════════════════════
      LOGIN GATE — full-page wall until authenticated
@@ -253,19 +253,19 @@
       </span>
       <h3>Venue</h3>
       <span class="dchip gold">The Sanjeevani Resort</span>
+
+      <!-- Venue gallery: 2 photos + 2 interactive 360° views. Manual only. -->
+      <div class="venue-gallery">
+        <div class="vg-stage" id="vgStage"></div>
+        <button class="vg-btn prev" id="vgPrev" aria-label="Previous">&lsaquo;</button>
+        <button class="vg-btn next" id="vgNext" aria-label="Next">&rsaquo;</button>
+        <div class="vg-dots" id="vgDots"></div>
+      </div>
+
       <a class="venue-addr" href="https://maps.app.goo.gl/D7rby5juPugfYQ9WA" target="_blank" rel="noopener">
-        WWVX+XCX, Kakrial (Village &amp; Post), Tehsil Reasi, Katra, Jammu and Kashmir 182320
-        <span class="venue-addr-cue">Open in Maps &rsaquo;</span>
+        <span class="venue-pin">📍</span>WWVX+XCX, Kakrial (Village &amp; Post), Tehsil Reasi, Katra, Jammu and Kashmir 182320
       </a>
     </div>
-  </div>
-
-  <!-- Venue gallery: 2 photos + 2 interactive 360° views. Manual only. -->
-  <div class="venue-gallery reveal d2">
-    <div class="vg-stage" id="vgStage"></div>
-    <button class="vg-btn prev" id="vgPrev" aria-label="Previous">&lsaquo;</button>
-    <button class="vg-btn next" id="vgNext" aria-label="Next">&rsaquo;</button>
-    <div class="vg-dots" id="vgDots"></div>
   </div>
 </section>
 
@@ -509,5 +509,5 @@
 
 <div class="toast" id="toast"></div>
 
-<script src="script.js?v=34"></script>
+<script src="script.js?v=35"></script>
 <script src="privacy.js?v=16"></script>
