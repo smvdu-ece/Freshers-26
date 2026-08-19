@@ -1431,51 +1431,132 @@ function rejectPending(id, note){
    stay drag-to-look interactive. Both pano IDs were taken from the
    share links for The Sanjeevani Resort. `preview` is Google's own
    still of the same sphere, shown until the user opts in — that
-   keeps two Maps iframes from loading on every page view.
+   keeps two WebGL contexts from spinning up on every page view.
 ══════════════════════════════════════════════════════════════════ */
+const PANO_BASE_1 = "https://lh3.googleusercontent.com/gpms-cs-s/AFP8RcP8u_yEh7bcq8P3HdUrQ7DOii4vU4emZfQzPaTqjoi_wPEjRBW5z8c38Fx2AlFubiAN1Q241DsFrbFN2QAfL7ZKowSMpxSXzGP0w3zzH4QnNGyNVgTZElKdA2fLk5BflWdtFSA";
+const PANO_BASE_2 = "https://lh3.googleusercontent.com/gpms-cs-s/AFP8RcOmnM0FukBLoHOCoNOZxR0XWZF1Z3D7LRUIOZFJ_-aTNJG_YPOoaigk64uH7A93n4pNqmdS0M_-Js9QC9rdRbKFxnQVy9VClEmrG7WKjtCjCpKWwzG9iDYAB8OYJftr2V6-TxUb7g";
+
 const VENUE_SLIDES = [
   { kind:"photo", src:"Files/venue1.JPG", caption:"The Sanjeevani Resort" },
   { kind:"photo", src:"Files/venue2.JPG", caption:"The Sanjeevani Resort" },
-  { kind:"pano",
-    pano:"CIHM0ogKEICAgID4qI_lXA",
-    link:"https://maps.app.goo.gl/KUGuUY48wQEJW34x5",
-    preview:"https://lh3.googleusercontent.com/gpms-cs-s/AFP8RcP8u_yEh7bcq8P3HdUrQ7DOii4vU4emZfQzPaTqjoi_wPEjRBW5z8c38Fx2AlFubiAN1Q241DsFrbFN2QAfL7ZKowSMpxSXzGP0w3zzH4QnNGyNVgTZElKdA2fLk5BflWdtFSA=w1200-h675-k-no",
-    caption:"360° view" },
-  { kind:"pano",
-    pano:"CIHM0ogKEICAgID4qK_tpQE",
-    link:"https://maps.app.goo.gl/tRrRHYbWtxJencQy6",
-    preview:"https://lh3.googleusercontent.com/gpms-cs-s/AFP8RcOmnM0FukBLoHOCoNOZxR0XWZF1Z3D7LRUIOZFJ_-aTNJG_YPOoaigk64uH7A93n4pNqmdS0M_-Js9QC9rdRbKFxnQVy9VClEmrG7WKjtCjCpKWwzG9iDYAB8OYJftr2V6-TxUb7g=w1200-h675-k-no",
-    caption:"360° view" }
+  /* `sphere` is the full equirectangular frame (2:1); `preview` is the same
+     sphere flattened, shown as the still until the viewer is opened. Both come
+     from Google's photo CDN — only the size suffix differs. */
+  { kind:"pano", sphere:PANO_BASE_1+"=w4096-h2048",
+                 preview:PANO_BASE_1+"=w1200-h675-k-no", caption:"360° view" },
+  { kind:"pano", sphere:PANO_BASE_2+"=w4096-h2048",
+                 preview:PANO_BASE_2+"=w1200-h675-k-no", caption:"360° view" }
 ];
 
-/* Google Maps Embed API key. Leave "" and the 360° slides still work as a
-   preview image that opens the full view in Maps on tap — only the inline
-   drag-to-look viewer needs the key. To enable it: Cloud Console -> enable
-   "Maps Embed API", then paste a key restricted to that API. */
-const MAPS_EMBED_KEY = "";
-
 let vgIndex = 0, vgOpened = {};   // vgOpened: which pano slides the user has activated
+let vgViewer = null;              // the live three.js viewer, if one is open
+
+/* Load three.js once, on demand. Nothing is fetched unless someone actually
+   opens a 360° view, so page weight is unchanged for everyone else. */
+let threeReady = null;
+function loadThree(){
+  if(threeReady) return threeReady;
+  threeReady = new Promise((res, rej)=>{
+    if(window.THREE) return res(window.THREE);
+    const sc = document.createElement("script");
+    sc.src = "https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js";
+    sc.onload  = ()=> res(window.THREE);
+    sc.onerror = ()=> rej(new Error("three.js failed to load"));
+    document.head.appendChild(sc);
+  });
+  return threeReady;
+}
+
+/* Equirectangular viewer: the panorama is painted on the INSIDE of a sphere
+   with the camera at its centre. That projection is what makes it read as a
+   real 360° view rather than a stretched flat photo. Drag to look, scroll to zoom. */
+async function openPano(host, url){
+  host.innerHTML = '<div class="vg-loading">Loading 360° view\u2026</div>';
+  let THREE;
+  try{ THREE = await loadThree(); }
+  catch(e){ host.innerHTML = '<div class="vg-loading">Could not load the 360° viewer.</div>'; return; }
+
+  const scene  = new THREE.Scene();
+  const camera = new THREE.PerspectiveCamera(70, host.clientWidth/host.clientHeight, 1, 1100);
+  const renderer = new THREE.WebGLRenderer({ antialias:true });
+  renderer.setPixelRatio(window.devicePixelRatio);
+  renderer.setSize(host.clientWidth, host.clientHeight);
+
+  const geo = new THREE.SphereGeometry(500, 60, 40);
+  geo.scale(-1, 1, 1);   // flip inside-out so the texture faces the camera
+
+  const loader = new THREE.TextureLoader();
+  loader.setCrossOrigin("anonymous");
+  loader.load(url, function(tex){
+    host.innerHTML = "";
+    host.appendChild(renderer.domElement);
+    scene.add(new THREE.Mesh(geo, new THREE.MeshBasicMaterial({ map: tex })));
+
+    let lon = 0, lat = 0, down = false, px = 0, py = 0, plon = 0, plat = 0, fov = 70;
+    const el = renderer.domElement;
+    el.style.cursor = "grab";
+
+    const start = (x,y)=>{ down = true; px = x; py = y; plon = lon; plat = lat; el.style.cursor = "grabbing"; };
+    const move  = (x,y)=>{ if(!down) return; lon = (px-x)*0.12 + plon; lat = (y-py)*0.12 + plat; };
+    const end   = ()=>{ down = false; el.style.cursor = "grab"; };
+
+    el.addEventListener("mousedown", e=>{ e.preventDefault(); start(e.clientX, e.clientY); });
+    el.addEventListener("mousemove", e=> move(e.clientX, e.clientY));
+    window.addEventListener("mouseup", end);
+    // Touch drag must not scroll the page while someone is looking around.
+    el.addEventListener("touchstart", e=>{ start(e.touches[0].clientX, e.touches[0].clientY); }, {passive:true});
+    el.addEventListener("touchmove",  e=>{ e.preventDefault(); move(e.touches[0].clientX, e.touches[0].clientY); }, {passive:false});
+    el.addEventListener("touchend", end, {passive:true});
+    el.addEventListener("wheel", e=>{ e.preventDefault();
+      fov = Math.max(25, Math.min(90, fov + e.deltaY*0.05));
+      camera.fov = fov; camera.updateProjectionMatrix(); }, {passive:false});
+
+    let alive = true;
+    (function render(){
+      if(!alive) return;
+      requestAnimationFrame(render);
+      lat = Math.max(-85, Math.min(85, lat));
+      const phi = THREE.MathUtils.degToRad(90 - lat), th = THREE.MathUtils.degToRad(lon);
+      camera.lookAt(new THREE.Vector3(500*Math.sin(phi)*Math.cos(th), 500*Math.cos(phi), 500*Math.sin(phi)*Math.sin(th)));
+      renderer.render(scene, camera);
+    })();
+
+    const onResize = ()=>{
+      if(!host.clientWidth) return;
+      camera.aspect = host.clientWidth/host.clientHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(host.clientWidth, host.clientHeight);
+    };
+    window.addEventListener("resize", onResize);
+
+    // Free the GPU memory when the slide changes, or each visit leaks a context.
+    vgViewer = { dispose(){ alive = false;
+      window.removeEventListener("resize", onResize);
+      window.removeEventListener("mouseup", end);
+      tex.dispose(); geo.dispose(); renderer.dispose(); } };
+  },
+  undefined,
+  function(){ host.innerHTML = '<div class="vg-loading">Could not load this 360° view.</div>'; });
+}
+
 
 function renderVenueGallery(){
   const stage = $("#vgStage"), dots = $("#vgDots");
   if(!stage) return;
   const sl = VENUE_SLIDES[vgIndex];
 
+  // Tear down any viewer from the slide we are leaving.
+  if(vgViewer){ vgViewer.dispose(); vgViewer = null; }
+
   if(sl.kind === "photo"){
     stage.innerHTML = '<img class="vg-img" src="'+sl.src+'" alt="'+_bEsc(sl.caption)+'" loading="lazy">'
                     + '<span class="vg-cap">'+_bEsc(sl.caption)+'</span>';
-  } else if(vgOpened[vgIndex] && MAPS_EMBED_KEY){
-    stage.innerHTML = '<iframe class="vg-frame" loading="lazy" allowfullscreen '
-                    + 'referrerpolicy="no-referrer-when-downgrade" '
-                    + 'src="https://www.google.com/maps/embed/v1/streetview?key='
-                    + encodeURIComponent(MAPS_EMBED_KEY) + '&pano=' + encodeURIComponent(sl.pano) + '"></iframe>';
+  } else if(vgOpened[vgIndex]){
+    openPano(stage, sl.sphere);
   } else {
-    // Preview + call to action. Without a key the button opens Maps instead.
-    const cta = MAPS_EMBED_KEY
-      ? '<button class="vg-360" data-open360="1">↻ Look around</button>'
-      : '<a class="vg-360" href="'+_bEsc(sl.link)+'" target="_blank" rel="noopener">↻ Open 360° view</a>';
     stage.innerHTML = '<img class="vg-img" src="'+_bEsc(sl.preview)+'" alt="360 degree view of the venue" loading="lazy">'
-                    + '<span class="vg-badge">360°</span>' + cta;
+                    + '<span class="vg-badge">360°</span>'
+                    + '<button class="vg-360" data-open360="1">↻ Look around</button>';
   }
 
   if(dots){
@@ -1508,7 +1589,8 @@ function vgGo(step){
     vgGo(e.key === "ArrowRight" ? 1 : -1);
   });
 
-  // Swipe. Ignored inside the iframe, which handles its own drag.
+  // Swipe between slides. The 360 viewer stops these on its own canvas,
+  // so dragging to look around never changes slide.
   let x0 = null;
   stage.addEventListener("touchstart", e=>{ x0 = e.touches[0].clientX; }, {passive:true});
   stage.addEventListener("touchend", e=>{
