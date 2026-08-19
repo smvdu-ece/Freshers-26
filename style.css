@@ -882,3 +882,28 @@ button.bstatus.reject:hover{background:rgba(224,86,86,.1)}
 .breq-form input[type=number]{width:100%;background:#0c0c0e;border:1px solid var(--line);color:var(--ink);padding:9px 11px;border-radius:6px;font-family:'Jost';font-size:13px}
 .breq-form input[type=number]:focus{border-color:var(--gold);outline:none}
 .bamt-change{color:var(--gold);font-weight:600}
+
+/* ---------- venue details + 360 gallery ---------- */
+.dchip.gold{border-color:var(--gold);color:var(--gold);background:rgba(212,175,55,.08)}
+.venue-addr{display:block;margin-top:14px;max-width:340px;font-size:13px;line-height:1.65;color:var(--muted);text-decoration:none;transition:.2s}
+.venue-addr:hover{color:var(--ink)}
+.venue-addr-cue{display:block;margin-top:7px;font-family:'Cinzel',serif;font-size:10px;letter-spacing:1.6px;text-transform:uppercase;color:var(--gold-soft)}
+.venue-gallery{position:relative;max-width:860px;margin:34px auto 0;border:1px solid var(--line);border-radius:12px;overflow:hidden;background:#0c0c0e}
+.vg-stage{position:relative;aspect-ratio:16/9;width:100%;display:flex;align-items:center;justify-content:center}
+.vg-img{width:100%;height:100%;object-fit:cover;display:block}
+.vg-frame{width:100%;height:100%;border:0;display:block}
+.vg-cap{position:absolute;left:16px;bottom:16px;font-family:'Cinzel',serif;font-size:10px;letter-spacing:1.6px;text-transform:uppercase;color:var(--ink);background:rgba(10,10,12,.7);padding:6px 12px;border-radius:20px}
+.vg-badge{position:absolute;top:14px;left:14px;font-family:'Cinzel',serif;font-size:10px;letter-spacing:1.4px;padding:5px 11px;border-radius:20px;background:rgba(10,10,12,.72);border:1px solid var(--gold);color:var(--gold)}
+.vg-360{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);display:inline-flex;align-items:center;gap:8px;font-family:'Cinzel',serif;font-size:11px;letter-spacing:1.6px;text-transform:uppercase;text-decoration:none;cursor:pointer;padding:12px 22px;border-radius:30px;border:1px solid var(--gold);background:rgba(10,10,12,.78);color:var(--gold);transition:.2s}
+.vg-360:hover{background:var(--gold);color:#0c0c0e}
+.vg-btn{position:absolute;top:50%;transform:translateY(-50%);width:40px;height:40px;border-radius:50%;border:1px solid var(--line);background:rgba(10,10,12,.72);color:var(--ink);font-size:22px;line-height:1;cursor:pointer;z-index:3;transition:.2s}
+.vg-btn:hover{border-color:var(--gold);color:var(--gold)}
+.vg-btn.prev{left:12px}
+.vg-btn.next{right:12px}
+.vg-dots{display:flex;justify-content:center;gap:8px;padding:12px 0 14px;background:#0c0c0e}
+.vg-dot{width:7px;height:7px;padding:0;border-radius:50%;border:none;background:var(--line);cursor:pointer;transition:.2s}
+.vg-dot.on{background:var(--gold);transform:scale(1.35)}
+@media(max-width:700px){
+  .vg-btn{width:34px;height:34px;font-size:18px}
+  .venue-addr{max-width:none}
+}

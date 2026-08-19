@@ -1422,6 +1422,103 @@ function rejectPending(id, note){
     .catch(e=>{ delete optStatus[id]; renderAdmin(); showToast("Reject failed: " + (e.code||e.message)); console.error(e); });
 }
 
+/* ══════════════════════════════════════════════════════════════════
+   VENUE GALLERY — 2 photos + 2 interactive 360° views.
+   Manual only: no autoplay, no timers. Advances on arrows, dots,
+   arrow keys and swipe.
+
+   The 360° slides embed Google's own photosphere viewer, so they
+   stay drag-to-look interactive. Both pano IDs were taken from the
+   share links for The Sanjeevani Resort. `preview` is Google's own
+   still of the same sphere, shown until the user opts in — that
+   keeps two Maps iframes from loading on every page view.
+══════════════════════════════════════════════════════════════════ */
+const VENUE_SLIDES = [
+  { kind:"photo", src:"Files/venue1.JPG", caption:"The Sanjeevani Resort" },
+  { kind:"photo", src:"Files/venue2.JPG", caption:"The Sanjeevani Resort" },
+  { kind:"pano",
+    pano:"CIHM0ogKEICAgID4qI_lXA",
+    link:"https://maps.app.goo.gl/KUGuUY48wQEJW34x5",
+    preview:"https://lh3.googleusercontent.com/gpms-cs-s/AFP8RcP8u_yEh7bcq8P3HdUrQ7DOii4vU4emZfQzPaTqjoi_wPEjRBW5z8c38Fx2AlFubiAN1Q241DsFrbFN2QAfL7ZKowSMpxSXzGP0w3zzH4QnNGyNVgTZElKdA2fLk5BflWdtFSA=w1200-h675-k-no",
+    caption:"360° view" },
+  { kind:"pano",
+    pano:"CIHM0ogKEICAgID4qK_tpQE",
+    link:"https://maps.app.goo.gl/tRrRHYbWtxJencQy6",
+    preview:"https://lh3.googleusercontent.com/gpms-cs-s/AFP8RcOmnM0FukBLoHOCoNOZxR0XWZF1Z3D7LRUIOZFJ_-aTNJG_YPOoaigk64uH7A93n4pNqmdS0M_-Js9QC9rdRbKFxnQVy9VClEmrG7WKjtCjCpKWwzG9iDYAB8OYJftr2V6-TxUb7g=w1200-h675-k-no",
+    caption:"360° view" }
+];
+
+/* Google Maps Embed API key. Leave "" and the 360° slides still work as a
+   preview image that opens the full view in Maps on tap — only the inline
+   drag-to-look viewer needs the key. To enable it: Cloud Console -> enable
+   "Maps Embed API", then paste a key restricted to that API. */
+const MAPS_EMBED_KEY = "";
+
+let vgIndex = 0, vgOpened = {};   // vgOpened: which pano slides the user has activated
+
+function renderVenueGallery(){
+  const stage = $("#vgStage"), dots = $("#vgDots");
+  if(!stage) return;
+  const sl = VENUE_SLIDES[vgIndex];
+
+  if(sl.kind === "photo"){
+    stage.innerHTML = '<img class="vg-img" src="'+sl.src+'" alt="'+_bEsc(sl.caption)+'" loading="lazy">'
+                    + '<span class="vg-cap">'+_bEsc(sl.caption)+'</span>';
+  } else if(vgOpened[vgIndex] && MAPS_EMBED_KEY){
+    stage.innerHTML = '<iframe class="vg-frame" loading="lazy" allowfullscreen '
+                    + 'referrerpolicy="no-referrer-when-downgrade" '
+                    + 'src="https://www.google.com/maps/embed/v1/streetview?key='
+                    + encodeURIComponent(MAPS_EMBED_KEY) + '&pano=' + encodeURIComponent(sl.pano) + '"></iframe>';
+  } else {
+    // Preview + call to action. Without a key the button opens Maps instead.
+    const cta = MAPS_EMBED_KEY
+      ? '<button class="vg-360" data-open360="1">↻ Look around</button>'
+      : '<a class="vg-360" href="'+_bEsc(sl.link)+'" target="_blank" rel="noopener">↻ Open 360° view</a>';
+    stage.innerHTML = '<img class="vg-img" src="'+_bEsc(sl.preview)+'" alt="360 degree view of the venue" loading="lazy">'
+                    + '<span class="vg-badge">360°</span>' + cta;
+  }
+
+  if(dots){
+    dots.innerHTML = VENUE_SLIDES.map((s,i)=>
+      '<button class="vg-dot'+(i===vgIndex?' on':'')+'" data-vg="'+i+'" aria-label="Slide '+(i+1)+'"></button>').join("");
+    dots.querySelectorAll(".vg-dot").forEach(b=>
+      b.onclick = ()=>{ vgIndex = Number(b.dataset.vg); renderVenueGallery(); });
+  }
+  const ob = stage.querySelector("[data-open360]");
+  if(ob) ob.onclick = ()=>{ vgOpened[vgIndex] = true; renderVenueGallery(); };
+}
+
+function vgGo(step){
+  vgIndex = (vgIndex + step + VENUE_SLIDES.length) % VENUE_SLIDES.length;
+  renderVenueGallery();
+}
+
+(function initVenueGallery(){
+  const stage = $("#vgStage"); if(!stage) return;
+  renderVenueGallery();
+  const p = $("#vgPrev"), n = $("#vgNext");
+  if(p) p.onclick = ()=> vgGo(-1);
+  if(n) n.onclick = ()=> vgGo(1);
+
+  // Arrow keys, but only while the gallery is on screen
+  document.addEventListener("keydown", e=>{
+    if(e.key !== "ArrowLeft" && e.key !== "ArrowRight") return;
+    const r = stage.getBoundingClientRect();
+    if(r.top > window.innerHeight || r.bottom < 0) return;
+    vgGo(e.key === "ArrowRight" ? 1 : -1);
+  });
+
+  // Swipe. Ignored inside the iframe, which handles its own drag.
+  let x0 = null;
+  stage.addEventListener("touchstart", e=>{ x0 = e.touches[0].clientX; }, {passive:true});
+  stage.addEventListener("touchend", e=>{
+    if(x0 === null) return;
+    const dx = e.changedTouches[0].clientX - x0;
+    if(Math.abs(dx) > 45) vgGo(dx < 0 ? 1 : -1);
+    x0 = null;
+  }, {passive:true});
+})();
+
 /* ---------- Google Sheets sync ---------- */
 /* The Apps Script no longer trusts SHEET_SECRET on its own — the secret ships
    in this file, so anyone could read it and POST to the endpoint. Instead we
