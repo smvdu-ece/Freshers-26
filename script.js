@@ -1540,13 +1540,23 @@ async function openPano(host, url){
 }
 
 
-function renderVenueGallery(){
-  const stage = $("#vgStage"), dots = $("#vgDots");
+/* The frame takes its shape from the first venue photo, so the slideshow is
+   exactly as tall as venue1.JPG rather than a fixed 16:9 crop. Measured once
+   from the real file; the 360° slides then match it. */
+let vgRatio = null;
+function applyVgRatio(img){
+  if(vgRatio || !img.naturalWidth) return;
+  vgRatio = img.naturalWidth + " / " + img.naturalHeight;
+  const st = $("#vgStage"); if(st) st.style.aspectRatio = vgRatio;
+}
+
+function renderVenueGallery(){  const stage = $("#vgStage"), dots = $("#vgDots");
   if(!stage) return;
   const sl = VENUE_SLIDES[vgIndex];
 
   // Tear down any viewer from the slide we are leaving.
   if(vgViewer){ vgViewer.dispose(); vgViewer = null; }
+  if(vgRatio) stage.style.aspectRatio = vgRatio;
 
   if(sl.kind === "photo"){
     /* Name the missing file rather than showing a broken-image icon — the
@@ -1569,6 +1579,11 @@ function renderVenueGallery(){
     dots.querySelectorAll(".vg-dot").forEach(b=>
       b.onclick = ()=>{ vgIndex = Number(b.dataset.vg); renderVenueGallery(); });
   }
+  const firstImg = stage.querySelector(".vg-img");
+  if(firstImg && sl.kind === "photo"){
+    if(firstImg.complete) applyVgRatio(firstImg);
+    else firstImg.addEventListener("load", ()=> applyVgRatio(firstImg), {once:true});
+  }
   const ob = stage.querySelector("[data-open360]");
   if(ob) ob.onclick = ()=>{ vgOpened[vgIndex] = true; renderVenueGallery(); };
 }
@@ -1577,6 +1592,22 @@ function vgGo(step){
   vgIndex = (vgIndex + step + VENUE_SLIDES.length) % VENUE_SLIDES.length;
   renderVenueGallery();
 }
+
+/* The card as a whole opens the venue in Maps. Clicks inside the gallery are
+   ignored so the arrows, dots and 360° drag keep working, and the address link
+   is left to behave as a normal link. */
+(function initVenueCard(){
+  const card = $("#venueCard"); if(!card) return;
+  const MAPS = "https://maps.app.goo.gl/D7rby5juPugfYQ9WA";
+  const open = ()=> window.open(MAPS, "_blank", "noopener");
+  card.addEventListener("click", e=>{
+    if(e.target.closest(".venue-gallery") || e.target.closest("a")) return;
+    open();
+  });
+  card.addEventListener("keydown", e=>{
+    if(e.key === "Enter" || e.key === " "){ e.preventDefault(); open(); }
+  });
+})();
 
 (function initVenueGallery(){
   const stage = $("#vgStage"); if(!stage) return;
