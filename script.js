@@ -1585,7 +1585,9 @@ function renderVenueGallery(){  const stage = $("#vgStage"), dots = $("#vgDots")
     else firstImg.addEventListener("load", ()=> applyVgRatio(firstImg), {once:true});
   }
   const ob = stage.querySelector("[data-open360]");
-  if(ob) ob.onclick = ()=>{ vgOpened[vgIndex] = true; renderVenueGallery(); };
+  /* stopPropagation so the card-wide Maps handler can never intercept this. */
+  if(ob) ob.onclick = (e)=>{ e.preventDefault(); e.stopPropagation();
+                             vgOpened[vgIndex] = true; renderVenueGallery(); };
 }
 
 function vgGo(step){
