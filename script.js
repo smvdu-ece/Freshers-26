@@ -172,16 +172,15 @@ $("#contribStat").onclick   = ()=>{ $("#paySearch").value=""; setPayFilter("all"
 $("#yourStat").onclick = ()=>{ openM($("#mySubsOverlay")); renderMySubs(); };
 
 /* ---------- budget usage (stored in Firebase: doc budget/main) ---------- */
-let budgetData = { items: [], categories: [], legacy: [] };  // live snapshot
+let budgetData = { items: [], categories: [] };  // live snapshot of doc budget/main
 let budgetFilter = "__all";       // which category chip is selected in the list below
 let payFormFor = null;            // id of the item whose "request paid" form is open
 /* Items filed before approvals existed have no status — treat them as approved
    so nothing that was already live silently disappears. */
 function isApproved(it){ return !it || it.status !== "pending"; }
-function allBudgetItems(){ return (budgetData.items||[]).concat(budgetData.legacy||[]); }
-function budgetApprovedItems(){ return allBudgetItems().filter(isApproved); }
+function budgetApprovedItems(){ return (budgetData.items||[]).filter(isApproved); }
 /* Pending expenses are internal: admins see them, contributors don't. */
-function budgetVisibleItems(){ return isBudgetAdmin() ? allBudgetItems() : budgetApprovedItems(); }
+function budgetVisibleItems(){ return isBudgetAdmin() ? (budgetData.items||[]) : budgetApprovedItems(); }
 function isOwner(){ return !!user && user.email === OWNER_EMAIL; }
 function isBudgetAdmin(){ return isAdmin() || (!!user && BUDGET_ADMINS.indexOf(user.email) > -1); }
 /* Only whoever filed the expense may ask for it to be marked paid — they are
@@ -197,38 +196,19 @@ let unsubBudget = null;
 let totalRaised = 0;              // combined raised (seniors + juniors), used by Budget Usage modal
 let seniorRaised = 0;             // 2025-2029 batch contributions only
 function _bEsc(s){ return String(s==null?"":s).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
-/* budget/main holds only the category list now. Each expense is its own
-   document in budget/main/items, which is what lets the Firestore rules
-   police a single expense: who owns it, and which fields may change.
-   While they lived in one array, any budget admin who could write the
-   array could rewrite anyone else's expense. */
 function budgetRef(){ return fb.doc(fb.db, "budget", "main"); }
-function itemsRef(){ return fb.collection(fb.db, "budget", "main", "items"); }
-function itemRef(id){ return fb.doc(fb.db, "budget", "main", "items", id); }
-
-let unsubItems = null;
 
 function subscribeBudget(){
   if(!LIVE || !fb){ renderBudget(); return; }
   if(unsubBudget) return;                       // already listening
-
-  // categories
   unsubBudget = fb.onSnapshot(budgetRef(), snap=>{
     const d = snap.exists() ? (snap.data()||{}) : {};
-    budgetData.categories = Array.isArray(d.categories) ? d.categories : [];
-    /* Items filed before the migration may still be sitting in the array.
-       Show them so nothing vanishes, but they are read-only until moved. */
-    budgetData.legacy = Array.isArray(d.items) ? d.items : [];
+    budgetData = {
+      items: Array.isArray(d.items) ? d.items : [],
+      categories: Array.isArray(d.categories) ? d.categories : []
+    };
     renderBudget();
   }, err=>{ console.error("budget sub", err); });
-
-  // expenses
-  unsubItems = fb.onSnapshot(itemsRef(), snap=>{
-    const rows = []; snap.forEach(d=> rows.push(Object.assign({ id: d.id }, d.data())));
-    rows.sort((a,b)=> (Number(a.at)||0) - (Number(b.at)||0));
-    budgetData.items = rows;
-    renderBudget();
-  }, err=>{ console.error("items sub", err); });
 }
 
 /* Every category to offer: the owner-defined list, plus any category already
@@ -296,8 +276,6 @@ function renderBudget(){
   $("#budgetAdmin").style.display = admin ? "block" : "none";
   const syncBtn = $("#syncBudgetBtn");
   if(syncBtn) syncBtn.style.display = payAdmin ? "" : "none";
-  const mg = $("#migrateBudgetBtn");
-  if(mg) mg.style.display = (isOwner() && (budgetData.legacy||[]).length) ? "" : "none";
   renderCatOptions();
   renderCatAdmin();
   renderBudgetFilters();
@@ -445,8 +423,7 @@ async function addBudgetItem(){
                  where, amount, proof, category, msg, by, status: "pending",
                  paid:false, payReq:null, at: Date.now() };
   try{
-    const { id: newId, ...body } = item;
-    await fb.setDoc(itemRef(newId), body);
+    await fb.setDoc(budgetRef(), { items: [ ...(budgetData.items||[]), item ] }, { merge:true });
     $("#inBudgetWhere").value = ""; $("#inBudgetAmt").value = ""; $("#inBudgetProof").value = "";
     if($("#inBudgetCat")) $("#inBudgetCat").value = "";
     if($("#inBudgetMsg")) $("#inBudgetMsg").value = "";
@@ -465,7 +442,7 @@ async function approveBudgetItem(id){
    since the proof was accepted under the approval being withdrawn. */
 async function unapproveBudgetItem(id){
   if(!isOwner()) return;
-  const it = allBudgetItems().find(x=> x.id===id);
+  const it = (budgetData.items||[]).find(x=> x.id===id);
   const wasPaid = it && it.paid;
   if(!confirm('Send "' + (it ? it.where : "this expense") + '" back to pending?'
      + (wasPaid ? " It is currently marked paid — that will be cleared." : ""))) return;
@@ -475,7 +452,7 @@ async function unapproveBudgetItem(id){
 
 async function rejectBudgetItem(id){
   if(!isOwner()) return;
-  const it = allBudgetItems().find(x=> x.id===id);
+  const it = (budgetData.items||[]).find(x=> x.id===id);
   if(!confirm('Reject "' + (it ? it.where : "this expense") + '"? It will be removed from the list.')) return;
   await deleteBudgetItem(id, true);
 }
@@ -501,14 +478,14 @@ async function declinePayment(id){
 
 /* ---------- budget-admin requests ---------- */
 function openPayRequest(id){
-  const it = allBudgetItems().find(x=> x.id===id);
+  const it = (budgetData.items||[]).find(x=> x.id===id);
   if(!canRequestPay(it)){ showToast("Only whoever added this expense can request payment"); return; }
   payFormFor = id;
   renderBudget();
 }
 
 async function submitPayRequest(id){
-  const item = allBudgetItems().find(x=> x.id===id);
+  const item = (budgetData.items||[]).find(x=> x.id===id);
   if(!canRequestPay(item)){ showToast("Only whoever added this expense can request payment"); return; }
   const proofEl = $("#reqProof"), msgEl = $("#reqMsg"), amtEl = $("#reqAmt");
   const proof = proofEl ? proofEl.value.trim() : "";
@@ -533,11 +510,9 @@ async function submitPayRequest(id){
 /* ---------- shared writers ---------- */
 // One place that reads the list, swaps a single item and writes it back.
 async function patchBudgetItem(id, fn, okMsg){
-  const cur = allBudgetItems().find(x=> x.id===id);
-  if(!cur) return;
-  const { id: _drop, ...body } = fn(cur);
+  const next = (budgetData.items||[]).map(it=> it.id===id ? fn(it) : it);
   try{
-    await fb.setDoc(itemRef(id), body, { merge:true });
+    await fb.setDoc(budgetRef(), { items: next }, { merge:true });
     if(okMsg) showToast(okMsg);
   }catch(e){ console.error(e); showToast("Couldn't update — check permissions"); }
 }
@@ -550,14 +525,15 @@ async function toggleBudgetPaid(id){
 }
 
 async function deleteBudgetItem(id, quiet){
-  const it = allBudgetItems().find(x=> x.id===id);
+  const it = (budgetData.items||[]).find(x=> x.id===id);
   const mine = it && it.by && user && it.by === user.email && !isApproved(it);
   if(!isOwner() && !(isBudgetAdmin() && mine)){
     showToast("Only the owner can remove an approved expense");
     return;
   }
+  const next = (budgetData.items||[]).filter(x=> x.id !== id);
   try{
-    await fb.deleteDoc(itemRef(id));
+    await fb.setDoc(budgetRef(), { items: next }, { merge:true });
     showToast(quiet ? "Expense rejected" : "Expense removed");
   }catch(e){ console.error(e); showToast("Couldn't remove — check permissions"); }
 }
@@ -615,7 +591,6 @@ $("#budgetBtn").onclick = ()=>{ openM($("#budgetOverlay")); renderBudget(); subs
 const _ns = $("#needStat"); if(_ns) _ns.onclick = ()=>{ openM($("#budgetOverlay")); renderBudget(); subscribeBudget(); };
 $("#addBudgetItem").onclick = addBudgetItem;
 const _sb = $("#syncBudgetBtn"); if(_sb) _sb.onclick = syncBudgetToSheet;
-const _mg = $("#migrateBudgetBtn"); if(_mg) _mg.onclick = migrateBudgetItems;
 const _ac = $("#addCatBtn"); if(_ac) _ac.onclick = addBudgetCategory;
 const _nc = $("#inNewCat"); if(_nc) _nc.addEventListener("keydown", e=>{ if(e.key==="Enter"){ e.preventDefault(); addBudgetCategory(); } });
 const _bo = $("#budgetOverlay"); if(_bo) _bo.addEventListener("click", e=>{ if(e.target===_bo) closeM(_bo); });
