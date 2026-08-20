@@ -43,7 +43,16 @@ const OWNER_EMAIL  = "25bec079@smvdu.ac.in"; // only the owner can create/remove
 /* Budget admins may file expense requests and nothing else: no contributions
    panel, no registrations, no payment requests, no sheet sync. Everything they
    add waits for the owner like any other pending expense. */
-const BUDGET_ADMINS = ["kumarsujit73775@gmail.com"];
+/* Keep this list identical to isBudgetAdmin() in the Firestore rules — this one
+   only decides what the UI shows; the rules decide what actually gets written. */
+const BUDGET_ADMINS = [
+  "kumarsujit73775@gmail.com",
+  "25bec031@smvdu.ac.in",
+  "25bec038@smvdu.ac.in",
+  "25bec075@smvdu.ac.in",
+  "25bec021@smvdu.ac.in",
+  "25bec063@smvdu.ac.in"
+];
 const REG_FEE      = 400;     // who can verify & approve payments
 /* reCAPTCHA v3 site key for App Check. Public by design — the SECRET key
    lives only in the Firebase console and must never appear here. */
