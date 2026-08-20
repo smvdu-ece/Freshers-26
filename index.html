@@ -5,7 +5,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;500;600;700&family=Great+Vibes&family=Jost:wght@300;400;500;600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=43">
+<link rel="stylesheet" href="style.css?v=45">
 
 <!-- ═══════════════════════════════════════════════════════
      LOGIN GATE — full-page wall until authenticated
@@ -239,11 +239,15 @@
         <button class="vg-btn prev" id="vgPrev" aria-label="Previous">&lsaquo;</button>
         <button class="vg-btn next" id="vgNext" aria-label="Next">&rsaquo;</button>
         <div class="vg-dots" id="vgDots"></div>
-      </div>
 
-      <a class="venue-addr" href="https://maps.app.goo.gl/D7rby5juPugfYQ9WA" target="_blank" rel="noopener">
-        <span class="venue-pin">📍</span>WWVX+XCX, Kakrial (Village &amp; Post), Tehsil Reasi, Katra, Jammu and Kashmir 182320
-      </a>
+        <!-- Stage: a plinth attached to the foot of the slideshow, carrying
+             the address. Inside .venue-gallery so it shares its width and
+             sits flush with the image. -->
+        <a class="vg-plinth" href="https://maps.app.goo.gl/D7rby5juPugfYQ9WA" target="_blank" rel="noopener">
+          <span class="venue-pin">📍</span>
+          <span class="vg-plinth-text">WWVX+XCX, Kakrial (Village &amp; Post), Tehsil Reasi, Katra, Jammu and Kashmir 182320</span>
+        </a>
+      </div>
     </div>
   </div>
 </section>
@@ -488,5 +492,5 @@
 
 <div class="toast" id="toast"></div>
 
-<script src="script.js?v=43"></script>
+<script src="script.js?v=45"></script>
 <script src="privacy.js?v=16"></script>
