@@ -1595,22 +1595,6 @@ function vgGo(step){
   renderVenueGallery();
 }
 
-/* The card as a whole opens the venue in Maps. Clicks inside the gallery are
-   ignored so the arrows, dots and 360° drag keep working, and the address link
-   is left to behave as a normal link. */
-(function initVenueCard(){
-  const card = $("#venueCard"); if(!card) return;
-  const MAPS = "https://maps.app.goo.gl/D7rby5juPugfYQ9WA";
-  const open = ()=> window.open(MAPS, "_blank", "noopener");
-  card.addEventListener("click", e=>{
-    if(e.target.closest(".venue-gallery") || e.target.closest("a")) return;
-    open();
-  });
-  card.addEventListener("keydown", e=>{
-    if(e.key === "Enter" || e.key === " "){ e.preventDefault(); open(); }
-  });
-})();
-
 (function initVenueGallery(){
   const stage = $("#vgStage"); if(!stage) return;
   renderVenueGallery();
@@ -1633,7 +1617,11 @@ function vgGo(step){
   stage.addEventListener("touchend", e=>{
     if(x0 === null) return;
     const dx = e.changedTouches[0].clientX - x0;
-    if(Math.abs(dx) > 45) vgGo(dx < 0 ? 1 : -1);
+    /* Swipe only moves between photos. On a 360° slide a horizontal drag means
+       "look around", so changing slide there would fight the viewer — use the
+       arrows instead. */
+    const onPano = VENUE_SLIDES[vgIndex].kind === "pano";
+    if(!onPano && Math.abs(dx) > 45) vgGo(dx < 0 ? 1 : -1);
     x0 = null;
   }, {passive:true});
 })();

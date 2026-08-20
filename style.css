@@ -951,3 +951,13 @@ button.bstatus.reject:hover{background:rgba(224,86,86,.1)}
 @media(max-width:700px){
   .venue-card .venue-addr{font-size:13.5px}
 }
+/* ---------- venue: no tap highlight, only the address is a link ---------- */
+/* Mobile Safari/Chrome paint a blue box over anything tappable. The gallery is
+   interactive but is not a link, so suppress it there. */
+.venue-card,.venue-card *{-webkit-tap-highlight-color:transparent}
+.venue-card,.venue-card .venue-gallery,.venue-card .vg-stage,.venue-card .vg-img{cursor:default}
+.venue-card .vg-btn,.venue-card .vg-dot,.venue-card .vg-360{cursor:pointer}
+.venue-card .venue-addr{cursor:pointer;text-decoration:none}
+.venue-card .venue-addr:hover{color:var(--gold-soft)}
+/* stop the image itself being draggable/selectable on long-press */
+.venue-card .vg-img{-webkit-user-drag:none;user-select:none}
