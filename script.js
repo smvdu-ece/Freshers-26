@@ -849,7 +849,11 @@ async function submitReg(){
   if(!user) return;
   const name=(document.getElementById("regName").value||"").trim();
   const phone=(document.getElementById("regPhone").value||"").trim();
-  const utr=(document.getElementById("regUtr").value||"").trim();
+  /* #regUtr no longer exists when the fee is off — the stub replaced that
+     half of the ticket. Reading .value off null threw here, before the
+     try/catch, so the submit button appeared to do nothing at all. */
+  const utrEl=document.getElementById("regUtr");
+  const utr=((utrEl && utrEl.value)||"").trim();
   if(!name){ showToast("Enter your full name"); return; }
   if(!/^[6-9]\d{9}$/.test(phone)){ showToast("Enter a valid 10-digit phone number"); return; }
   // Nothing to pay, so nothing to reference.
