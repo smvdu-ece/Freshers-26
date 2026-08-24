@@ -53,11 +53,12 @@ const BUDGET_ADMINS = [
   "25bec021@smvdu.ac.in",
   "25bec063@smvdu.ac.in"
 ];
-const REG_FEE      = 400;     // who can verify & approve payments
+const REG_FEE      = 0;       // juniors register free; 0 hides the whole payment half
+const FEE_ENABLED  = REG_FEE > 0;   // one switch: set REG_FEE back above 0 to restore it
 /* reCAPTCHA v3 site key for App Check. Public by design — the SECRET key
    lives only in the Firebase console and must never appear here. */
 const RECAPTCHA_SITE_KEY = "6LeNs4gtAAAAAKy5umBdUeaqy8GxmFWnVN5KqTkU";
-const SHEET_URL    = "https://script.google.com/macros/s/AKfycbzEQxCf6gCQovhC65ZRNg58v-7PXOP-o0vCZQ8bI7XGcwIMeG4q5tTk4A54ojlrIhbD/exec";  // Google Apps Script Web App URL
+const SHEET_URL    = "https://script.google.com/macros/s/AKfycbwYyQsLGoUxbVC_9BcfrJk2cFH7lbbdMQK03zQplRVMJur1wtAA7oq-puwXuwp5fXR4/exec";  // Google Apps Script Web App URL
 const SHEET_SECRET = "freshers26";                  // must match SECRET in the Apps Script
 /* ---- Budget usage lives in Firebase (Firestore doc: budget/main).
    Admins edit it on the site — set total, add/remove expenses. Everyone sees it live. ---- */
@@ -753,7 +754,7 @@ function initRegQr(){
       a.href=u; a.download="freshers26-entry-fee-qr.png";
       document.body.appendChild(a); a.click(); a.remove();
       setTimeout(()=>URL.revokeObjectURL(u),1500);
-      showToast("QR downloaded — scan to pay \u20b9400");
+      showToast("QR downloaded \u2014 scan to pay "+money(REG_FEE));
     }).catch(()=>window.open(url,"_blank"));
   };
 }
@@ -812,6 +813,17 @@ async function loadRegStatus(){
   refreshRegAdminUI();
 }
 
+/* With no fee there is nothing to scan or reference, so the QR, the download
+   button and the UTR field come out rather than sitting there showing \u20b90. */
+(function applyFeeMode(){
+  if(FEE_ENABLED) return;
+  const right = document.querySelector(".reg-right");  if(right) right.style.display = "none";
+  const tear  = document.querySelector(".reg-tear");   if(tear)  tear.style.display  = "none";
+  const sub   = document.querySelector("#fresher-reg .sec-sub");
+  if(sub) sub.textContent = "You\u2019re the new ECE family. Fill in your details to register \u2014 it\u2019s free.";
+  const dr = document.getElementById("rdAmountRow"); if(dr) dr.style.display = "none";
+})();
+
 async function submitReg(){
   if(!user) return;
   const name=(document.getElementById("regName").value||"").trim();
@@ -819,7 +831,8 @@ async function submitReg(){
   const utr=(document.getElementById("regUtr").value||"").trim();
   if(!name){ showToast("Enter your full name"); return; }
   if(!/^[6-9]\d{9}$/.test(phone)){ showToast("Enter a valid 10-digit phone number"); return; }
-  if(utr.trim().length < 3){ showToast("Enter a payment reference or \"cash\""); return; }
+  // Nothing to pay, so nothing to reference.
+  if(FEE_ENABLED && utr.trim().length < 3){ showToast("Enter a payment reference or \"cash\""); return; }
   if(!regPhotoData){ showToast("Please upload your photo first"); return; }
   const btn=document.getElementById("regBtn"); btn.disabled=true; btn.textContent="Submitting\u2026";
   const m=user.email.match(/^(26bec\d+)@smvdu\.ac\.in$/i);
@@ -912,7 +925,7 @@ function openRegDetails(d){
   const s=d.status||"pending";
   const b=document.getElementById("rdStatus");
   if(b){b.textContent=s==="approved"?"Approved \u2713":s==="rejected"?"Rejected":"Pending Approval";b.className="reg-badge "+s;}
-  [["rdName",d.name],["rdRoll",d.roll],["rdEmail",d.email||user.email],["rdPhone",d.phone],["rdAmount","\u20b9"+(d.amount||400)],["rdUtr",d.utr]].forEach(([id,v])=>{const el=document.getElementById(id);if(el)el.textContent=v||"\u2014";});
+  [["rdName",d.name],["rdRoll",d.roll],["rdEmail",d.email||user.email],["rdPhone",d.phone],["rdAmount","\u20b9"+(d.amount??REG_FEE)],["rdUtr",d.utr]].forEach(([id,v])=>{const el=document.getElementById(id);if(el)el.textContent=v||"\u2014";});
   const cRow=document.getElementById("rdCommentRow"),cEl=document.getElementById("rdComment");
   if(d.adminComment){if(cEl)cEl.textContent=d.adminComment;if(cRow)cRow.style.display="";}else{if(cRow)cRow.style.display="none";}
   const img=document.getElementById("rdPhotoImg"),init=document.getElementById("rdPhotoInitial");
@@ -969,7 +982,7 @@ function renderRegAdmin(){
           &nbsp;<span class="reg-badge ${st}">${st.charAt(0).toUpperCase()+st.slice(1)}</span>
         </div>
       </div>
-      <div class="meta">${_esc(r.email)} &middot; ${_esc(r.roll||"")} &middot; &#8377;${r.amount||400} &middot; UTR: ${_esc(r.utr||"—")}</div>
+      <div class="meta">${_esc(r.email)} &middot; ${_esc(r.roll||"")} &middot; &#8377;${r.amount??REG_FEE} &middot; UTR: ${_esc(r.utr||"—")}</div>
       <div class="meta" style="margin-top:2px">Phone: ${_esc(r.phone||"—")}</div>
       ${r.adminComment?`<div class="meta" style="color:var(--gold-soft);margin-top:4px;font-style:italic">Note: ${_esc(r.adminComment)}</div>`:""}
       <input class="msg-in ra-comment-in" type="text" maxlength="120"
@@ -1026,7 +1039,7 @@ async function syncRegSheet(email){
     const d=snap.data()||{};
     const idToken = await sheetToken();
     fetch(SHEET_URL,{method:"POST",mode:"no-cors",headers:{"Content-Type":"text/plain;charset=utf-8"},
-      body:JSON.stringify({secret:SHEET_SECRET,idToken,type:"registration",name:d.name||"",entryNo:d.roll||"",email:d.email||"",phone:d.phone||"",amount:d.amount||REG_FEE,utr:d.utr||"",photoData:d.photoData||"",status:d.status||"pending"})
+      body:JSON.stringify({secret:SHEET_SECRET,idToken,type:"registration",name:d.name||"",entryNo:d.roll||"",email:d.email||"",phone:d.phone||"",amount:(d.amount??REG_FEE),utr:d.utr||"",photoData:d.photoData||"",status:d.status||"pending"})
     }).catch(e=>console.error("reg sheet sync",e));
   }catch(e){console.error("syncRegSheet",e);}
 }
@@ -1086,7 +1099,7 @@ function renderJuniors(){
     info.appendChild(nm); info.appendChild(em);
 
     const amt=document.createElement("div"); amt.className="jr-amt gold-text";
-    amt.textContent=money(r.amount||REG_FEE);
+    amt.textContent=money(r.amount??REG_FEE);
 
     el.appendChild(photo); el.appendChild(info); el.appendChild(amt);
     box.appendChild(el);

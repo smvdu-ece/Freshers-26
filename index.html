@@ -5,7 +5,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;500;600;700&family=Great+Vibes&family=Jost:wght@300;400;500;600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=47">
+<link rel="stylesheet" href="style.css?v=48">
 
 <!-- ═══════════════════════════════════════════════════════
      LOGIN GATE — full-page wall until authenticated
@@ -128,7 +128,7 @@
 <section id="fresher-reg" style="display:none">
   <div class="eyebrow reveal">ECE · 2K26</div>
   <h2 class="sec-title gold-text reveal d1">Register for Freshers'26</h2>
-  <p class="sec-sub reveal d2">You're the new ECE family. Fill in your details and complete the ₹400 registration fee.</p>
+  <p class="sec-sub reveal d2">You're the new ECE family. Fill in your details and complete the registration.</p>
   <div class="divider"><span class="l"></span><span class="d"></span><span class="l"></span></div>
 
   <!-- ── Ticket form ── -->
@@ -179,9 +179,9 @@
         <div class="reg-right">
           <div class="reg-fee-row">
             <span class="reg-fee-label">Entry Fee</span>
-            <span class="reg-fee-amt gold-text">₹400</span>
+            <span class="reg-fee-amt gold-text">₹0</span>
           </div>
-          <img id="regQr" class="reg-qr" alt="UPI QR — ₹400 entry fee">
+          <img id="regQr" class="reg-qr" alt="UPI QR — entry fee">
           <button class="btn ghost reg-dl-btn" id="regDownloadQr" type="button">
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
             Download QR
@@ -453,7 +453,7 @@
     <div class="reg-det-row"><span class="rdr-k">Entry No.</span><span class="rdr-v" id="rdRoll">-</span></div>
     <div class="reg-det-row"><span class="rdr-k">Email</span><span class="rdr-v" id="rdEmail">-</span></div>
     <div class="reg-det-row"><span class="rdr-k">Phone</span><span class="rdr-v" id="rdPhone">-</span></div>
-    <div class="reg-det-row"><span class="rdr-k">Amount</span><span class="rdr-v" id="rdAmount">-</span></div>
+    <div class="reg-det-row" id="rdAmountRow"><span class="rdr-k">Amount</span><span class="rdr-v" id="rdAmount">-</span></div>
     <div class="reg-det-row"><span class="rdr-k">UTR</span><span class="rdr-v" id="rdUtr">-</span></div>
     <div class="reg-det-row" id="rdCommentRow" style="display:none">
       <span class="rdr-k">Note</span>
@@ -492,5 +492,5 @@
 
 <div class="toast" id="toast"></div>
 
-<script src="script.js?v=47"></script>
+<script src="script.js?v=48"></script>
 <script src="privacy.js?v=16"></script>
