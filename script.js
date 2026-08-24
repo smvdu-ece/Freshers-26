@@ -58,7 +58,7 @@ const FEE_ENABLED  = REG_FEE > 0;   // one switch: set REG_FEE back above 0 to r
 /* reCAPTCHA v3 site key for App Check. Public by design — the SECRET key
    lives only in the Firebase console and must never appear here. */
 const RECAPTCHA_SITE_KEY = "6LeNs4gtAAAAAKy5umBdUeaqy8GxmFWnVN5KqTkU";
-const SHEET_URL    = "https://script.google.com/macros/s/AKfycbwYyQsLGoUxbVC_9BcfrJk2cFH7lbbdMQK03zQplRVMJur1wtAA7oq-puwXuwp5fXR4/exec";  // Google Apps Script Web App URL
+const SHEET_URL    = "https://script.google.com/macros/s/AKfycbzEQxCf6gCQovhC65ZRNg58v-7PXOP-o0vCZQ8bI7XGcwIMeG4q5tTk4A54ojlrIhbD/exec";  // Google Apps Script Web App URL
 const SHEET_SECRET = "freshers26";                  // must match SECRET in the Apps Script
 /* ---- Budget usage lives in Firebase (Firestore doc: budget/main).
    Admins edit it on the site — set total, add/remove expenses. Everyone sees it live. ---- */
@@ -815,13 +815,34 @@ async function loadRegStatus(){
 
 /* With no fee there is nothing to scan or reference, so the QR, the download
    button and the UTR field come out rather than sitting there showing \u20b90. */
+/* No fee, so the QR / UTR half of the ticket has nothing to hold. Rather than
+   hiding it and leaving the ticket lopsided, that half becomes what a stub
+   actually is: the tear-off part, with ADMIT ONE, the year and a barcode. */
 (function applyFeeMode(){
   if(FEE_ENABLED) return;
-  const right = document.querySelector(".reg-right");  if(right) right.style.display = "none";
-  const tear  = document.querySelector(".reg-tear");   if(tear)  tear.style.display  = "none";
-  const sub   = document.querySelector("#fresher-reg .sec-sub");
-  if(sub) sub.textContent = "You\u2019re the new ECE family. Fill in your details to register \u2014 it\u2019s free.";
-  const dr = document.getElementById("rdAmountRow"); if(dr) dr.style.display = "none";
+  const sub = document.querySelector("#fresher-reg .sec-sub");
+  if(sub) sub.textContent = "You\u2019re the new ECE family. Fill in your details to claim your pass \u2014 it\u2019s free.";
+  ["rdAmountRow","rdUtrRow"].forEach(id=>{ const el=document.getElementById(id); if(el) el.style.display="none"; });
+
+  const right = document.querySelector(".reg-right");
+  if(!right) return;
+  right.classList.add("reg-stub");
+  right.innerHTML =
+      '<div class="stub-rot">Admit One</div>'
+    + '<div class="stub-mid">'
+    +   '<div class="stub-kicker">F\u00eate des Freshers</div>'
+    +   '<div class="stub-year">2K26</div>'
+    +   '<div class="stub-rule"></div>'
+    +   '<div class="stub-bars" aria-hidden="true"></div>'
+    +   '<div class="stub-no">No. <span id="stubRoll">\u2014</span></div>'
+    + '</div>';
+
+  // The stub shows the entry number once it is filled in from the signed-in email.
+  const roll = document.getElementById("regRoll"), out = document.getElementById("stubRoll");
+  const syncRoll = ()=>{ if(out) out.textContent = (roll && roll.value.trim()) || "\u2014"; };
+  syncRoll();
+  setTimeout(syncRoll, 800);
+  setTimeout(syncRoll, 2500);
 })();
 
 async function submitReg(){

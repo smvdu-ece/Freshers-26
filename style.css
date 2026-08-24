@@ -1003,3 +1003,47 @@ button.bstatus.reject:hover{background:rgba(224,86,86,.1)}
   .vg-plinth{padding:14px 16px;font-size:12.5px}
   .venue-card .vg-dots{padding:8px 0 6px}
 }
+/* ---------- registration: the free-entry stub ---------- */
+/* With no fee to collect, the right half becomes a real tear-off stub. */
+.reg-stub{
+  position:relative;flex:1;padding:26px 18px;
+  display:flex;align-items:center;justify-content:center;gap:0;
+  background:
+    repeating-linear-gradient(135deg,rgba(212,175,55,.05) 0 2px,transparent 2px 9px),
+    var(--panel);
+}
+.stub-rot{
+  position:absolute;left:10px;top:50%;
+  transform:translateY(-50%) rotate(180deg);writing-mode:vertical-rl;
+  font-family:'Cinzel',serif;font-size:.6rem;letter-spacing:.34em;text-transform:uppercase;
+  color:rgba(212,175,55,.75);
+}
+.stub-mid{display:flex;flex-direction:column;align-items:center;gap:9px;text-align:center}
+.stub-kicker{
+  font-family:'Cinzel',serif;font-size:.6rem;letter-spacing:.24em;
+  text-transform:uppercase;color:var(--muted);
+}
+.stub-year{
+  font-family:'Cinzel',serif;font-size:2.6rem;font-weight:700;line-height:1;
+  color:var(--gold);letter-spacing:.06em;
+}
+.stub-rule{width:54px;height:1px;background:linear-gradient(90deg,transparent,var(--gold),transparent)}
+/* barcode drawn with gradient stops — no image to load or go missing */
+.stub-bars{
+  width:132px;height:46px;
+  background:repeating-linear-gradient(90deg,
+    var(--ink) 0 2px, transparent 2px 4px,
+    var(--ink) 4px 5px, transparent 5px 9px,
+    var(--ink) 9px 12px, transparent 12px 14px);
+  opacity:.82;
+}
+.stub-no{
+  font-family:'Jost',sans-serif;font-size:.72rem;letter-spacing:.12em;
+  text-transform:uppercase;color:var(--muted);
+}
+.stub-no span{color:var(--gold-soft)}
+@media(max-width:700px){
+  .reg-stub{padding:22px 14px}
+  .stub-year{font-size:2.1rem}
+  .stub-bars{width:112px;height:38px}
+}
