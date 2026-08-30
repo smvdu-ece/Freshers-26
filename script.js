@@ -10,7 +10,7 @@ const FIREBASE_CONFIG = {
 
 const ALLOWED_DOMAINS = ["smvdu.ac.in"];
 const SENIOR_RE  = /^25bec0[^@]+@smvdu\.ac\.in$/i;
-const FRESHER_RE = /^26bec[^@]+@smvdu\.ac\.in$/i;
+const FRESHER_RE = /^25btece[^@]+@smvdu\.ac\.in$/i;
 const EXTRA_SENIORS  = ["sujitsingh8389@gmail.com",
                         "kumarsujit73775@gmail.com"];
 const EXTRA_FRESHERS = ["25f2001633@ds.study.iitm.ac.in"];
@@ -42,7 +42,7 @@ const REG_FEE      = 0;
 const FEE_ENABLED  = REG_FEE > 0;
 const RECAPTCHA_SITE_KEY = "6LeNs4gtAAAAAKy5umBdUeaqy8GxmFWnVN5KqTkU";
 const SHEET_URL    = "https://script.google.com/macros/s/AKfycbz3Sbgb6LRmr4fh8WFHjXCqezUnkrQH8M7h4fTPY0EncC7Q20Wq48IXzOCN5uWj_6SV/exec";
-const SHEET_SECRET = "freshers26";                  // must match SECRET in the Apps Script
+const SHEET_SECRET = "freshers26";
 
 const LIVE = !!FIREBASE_CONFIG.apiKey;
 let user = null;
@@ -700,7 +700,7 @@ function populateRegForm(){
   const ri=document.getElementById("regRoll"),ei=document.getElementById("regEmail");
   if(ei) ei.value=user.email;
   if(ri){
-    const m=user.email.match(/^(26bec\d+)@smvdu\.ac\.in$/i);
+    const m=user.email.match(/^(25btece\d+)@smvdu\.ac\.in$/i);
     ri.value=m?m[1].toUpperCase():user.email.split("@")[0].toUpperCase();
   }
   initRegQr();
@@ -752,7 +752,7 @@ async function submitReg(){
   if(FEE_ENABLED && utr.trim().length < 3){ showToast("Enter a payment reference or \"cash\""); return; }
   if(!regPhotoData){ showToast("Please upload your photo first"); return; }
   const btn=document.getElementById("regBtn"); btn.disabled=true; btn.textContent="Submitting\u2026";
-  const m=user.email.match(/^(26bec\d+)@smvdu\.ac\.in$/i);
+  const m=user.email.match(/^(25btece\d+)@smvdu\.ac\.in$/i);
   const roll=m?m[1].toUpperCase():user.email.split("@")[0].toUpperCase();
   try{
     const payload={email:user.email,name,phone,roll,utr,amount:REG_FEE,photoData:regPhotoData,status:"pending"};
