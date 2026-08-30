@@ -1,4 +1,3 @@
-<!-- Fiesta de Bienvenida — ECE Freshers Site -->
 <meta charset="utf-8">
 <meta name="viewport" content="width=880">
 <title>Fête des Freshers · ECE</title>
@@ -7,9 +6,6 @@
 <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;500;600;700&family=Great+Vibes&family=Jost:wght@300;400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="style.css?v=50">
 
-<!-- ═══════════════════════════════════════════════════════
-     LOGIN GATE — full-page wall until authenticated
-     ══════════════════════════════════════════════════════ -->
 <script>document.documentElement.classList.add("gate-open");</script>
 
 <div class="gate" id="gateOverlay">
@@ -35,7 +31,6 @@
 
 <div class="preview-banner" id="previewBanner">⚠ Preview mode — add your Firebase config to enable real login &amp; the live bar.</div>
 
-<!-- NAV -->
 <nav class="nav">
   <div class="brand"><img class="logo" src="Files/smvdu_logo.png" alt="SMVDU"> ECE · FRESHERS</div>
   <div class="nav-links" id="navLinks">
@@ -51,7 +46,6 @@
   </div>
 </nav>
 
-<!-- HERO -->
 <header class="hero">
   <div class="photo-frame">
     <picture>
@@ -71,7 +65,6 @@
   <div class="scroll-cue">Scroll ↓</div>
 </header>
 
-<!-- RECAP / GALLERY -->
 <section id="recap">
   <div class="eyebrow reveal">Memories</div>
   <h2 class="sec-title gold-text reveal d1">Freshers'25 — The Welcome</h2>
@@ -85,7 +78,6 @@
   </div>
 </section>
 
-<!-- CONTRIBUTE -->
 <section id="contribute">
   <div class="eyebrow reveal">Light Up '26</div>
   <h2 class="sec-title gold-text reveal d1">Contribute to Freshers'26</h2>
@@ -123,15 +115,12 @@
   </div>
 </section>
 
-
-<!-- FRESHER REGISTRATION (shown for 26bec + authorised emails) -->
 <section id="fresher-reg" style="display:none">
   <div class="eyebrow reveal">ECE · 2K26</div>
   <h2 class="sec-title gold-text reveal d1">Register for Freshers'26</h2>
   <p class="sec-sub reveal d2">You're the new ECE family. Fill in your details and complete the registration.</p>
   <div class="divider"><span class="l"></span><span class="d"></span><span class="l"></span></div>
 
-  <!-- ── Ticket form ── -->
   <div id="regFormWrap" class="reveal d1">
     <div class="reg-ticket">
       <div class="reg-ticket-header">
@@ -143,7 +132,6 @@
       </div>
       <div class="reg-ticket-body">
 
-        <!-- LEFT: photo + name + phone -->
         <div class="reg-left">
           <div class="reg-photo-ring" id="regPhotoRing">
             <img id="regPhotoImg" src="" alt="" style="display:none">
@@ -172,10 +160,8 @@
           </div>
         </div>
 
-        <!-- TEAR -->
         <div class="reg-tear"></div>
 
-        <!-- RIGHT: QR + UTR -->
         <div class="reg-right">
           <div class="reg-fee-row">
             <span class="reg-fee-label">Entry Fee</span>
@@ -198,7 +184,6 @@
     </div>
   </div>
 
-  <!-- ── Post-submission card ── -->
   <div id="regDone" style="display:none">
     <div class="reg-submitted-card" id="regSubmittedCard">
       <div class="rsc-left">
@@ -218,14 +203,12 @@
     </div>
   </div>
 
-  <!-- ── Admin buttons (hidden until isRegAdmin) ── -->
   <div style="text-align:center;margin-top:24px">
     <button class="btn ghost" id="regAdminBtn" style="display:none">View Registrations</button>
   </div>
 </section>
 
 
-<!-- DETAILS -->
 <section id="details">
   <div class="eyebrow reveal">The Destination</div>
   <h2 class="sec-title gold-text reveal d1">Venue</h2>
@@ -240,9 +223,6 @@
         <button class="vg-btn next" id="vgNext" aria-label="Next">&rsaquo;</button>
         <div class="vg-dots" id="vgDots"></div>
 
-        <!-- Stage: a plinth attached to the foot of the slideshow, carrying
-             the address. Inside .venue-gallery so it shares its width and
-             sits flush with the image. -->
         <a class="vg-plinth" href="https://maps.app.goo.gl/D7rby5juPugfYQ9WA" target="_blank" rel="noopener">
           <span class="venue-pin">📍</span>
           <span class="vg-plinth-text">WWVX+XCX, Kakrial (Village &amp; Post), Tehsil Reasi, Katra, Jammu and Kashmir 182320</span>
@@ -252,7 +232,6 @@
   </div>
 </section>
 
-<!-- REG 26 -->
 <section id="reg26">
   <div class="ticket reveal">
     <div class="ticket-body">
@@ -286,7 +265,6 @@
 
 </div>
 
-<!-- PAY MODAL -->
 <div class="overlay" id="payOverlay">
   <div class="modal">
     <span class="x" data-close>×</span>
@@ -322,7 +300,6 @@
   </div>
 </div>
 
-<!-- ADMIN VERIFY MODAL -->
 <div class="overlay" id="adminOverlay">
   <div class="modal" style="max-width:560px">
     <span class="x" data-close>×</span>
@@ -338,7 +315,6 @@
   </div>
 </div>
 
-<!-- YOUR SUBMISSIONS MODAL -->
 <div class="overlay" id="mySubsOverlay">
   <div class="modal" style="max-width:480px">
     <span class="x" data-close>×</span>
@@ -348,7 +324,6 @@
   </div>
 </div>
 
-<!-- PAYMENTS LIST MODAL -->
 <div class="overlay" id="payListOverlay">
   <div class="modal" style="max-width:520px">
     <span class="x" data-close>×</span>
@@ -368,7 +343,6 @@
   </div>
 </div>
 
-<!-- BUDGET USAGE MODAL -->
 <div class="overlay" id="budgetOverlay">
   <div class="modal" style="max-width:720px">
     <span class="x" data-close>×</span>
@@ -382,20 +356,17 @@
     </div>
     <div class="budget-bar"><div class="budget-bar-fill" id="budgetBarFill"></div></div>
 
-    <!-- admin-only controls (add an expense; mark paid from the list below) -->
     <div class="budget-admin" id="budgetAdmin" style="display:none">
       <input id="inBudgetWhere" type="text" placeholder="Purpose (e.g. Decorations, Sound system)">
       <div class="ba-row">
         <input id="inBudgetAmt" type="number" min="1" placeholder="Amount (₹)">
         <input id="inBudgetProof" type="text" placeholder="Proof link (optional)">
       </div>
-      <!-- options are filled from budget/main -> categories by renderCatOptions() -->
       <select id="inBudgetCat"><option value="">Category (required)</option></select>
       <input id="inBudgetMsg" type="text" maxlength="200" placeholder="Message / note (optional) — shown under this expense">
       <button class="bbtn solid" id="addBudgetItem" type="button">+ Add expense</button>
       <button class="bbtn wide" id="syncBudgetBtn" type="button">Sync expenses to Sheet</button>
 
-      <!-- owner-only: create the categories everyone else picks from -->
       <div class="cat-admin" id="catAdmin" style="display:none">
         <div class="cat-admin-label">Categories</div>
         <div class="ba-row">
@@ -413,7 +384,6 @@
 </div>
 
 
-<!-- REG ADMIN OVERLAY -->
 <div class="overlay" id="regAdminOverlay">
   <div class="modal" style="max-width:580px">
     <span class="x" data-close>×</span>
@@ -437,7 +407,6 @@
   </div>
 </div>
 
-<!-- REG DETAILS OVERLAY (student view) -->
 <div class="overlay" id="regDetailsOverlay">
   <div class="modal" style="max-width:420px">
     <span class="x" data-close>×</span>
@@ -463,7 +432,6 @@
 </div>
 
 
-<!-- JUNIORS CONTRIBUTIONS OVERLAY -->
 <div class="overlay" id="juniorOverlay">
   <div class="modal" style="max-width:520px">
     <span class="x" data-close>×</span>
@@ -478,7 +446,6 @@
 </div>
 
 
-<!-- TOTAL RAISED BREAKDOWN OVERLAY -->
 <div class="overlay" id="raisedOverlay">
   <div class="modal" style="max-width:420px">
     <span class="x" data-close>×</span>

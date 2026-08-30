@@ -1,9 +1,3 @@
-/* ============================================================
-   FIESTA DE FRESHERS — Google login + live contributions
-   ------------------------------------------------------------
-   ALLOWED_DOMAINS = only these email domains may sign in.
-   Firebase config below enables the live, shared bar.
-   ============================================================ */
 const FIREBASE_CONFIG = {
   apiKey: "AIzaSyBS6g593Tzr8c-w3NNe5ej4erIAXzA15oo",
   authDomain: "freshers-26.firebaseapp.com",
@@ -13,16 +7,13 @@ const FIREBASE_CONFIG = {
   appId: "1:566795663580:web:4147de852c048261b49c19",
   measurementId: "G-VDRX1RRYJE"
 };
-// ── Allowed email patterns ─────────────────────────────────────────
-// 25bec0…@smvdu.ac.in   → senior (2025 batch) — sees contribution section
-// 26bec…@smvdu.ac.in    → fresher (2026 batch) — sees registration section
-const ALLOWED_DOMAINS = ["smvdu.ac.in"];   // kept for hd hint in Google provider
+
+const ALLOWED_DOMAINS = ["smvdu.ac.in"];
 const SENIOR_RE  = /^25bec0[^@]+@smvdu\.ac\.in$/i;
 const FRESHER_RE = /^26bec[^@]+@smvdu\.ac\.in$/i;
-// Manually-authorised emails outside the batch patterns:
 const EXTRA_SENIORS  = ["sujitsingh8389@gmail.com",
-                        "kumarsujit73775@gmail.com"];         // log in as senior
-const EXTRA_FRESHERS = ["25f2001633@ds.study.iitm.ac.in"];     // log in as junior
+                        "kumarsujit73775@gmail.com"];
+const EXTRA_FRESHERS = ["25f2001633@ds.study.iitm.ac.in"];
 function emailAllowed(email){
   const e=(email||"").toLowerCase().trim();
   return SENIOR_RE.test(e) || FRESHER_RE.test(e)
@@ -34,17 +25,11 @@ function userRole(email){
   return "fresher";
 }
 const GOAL = 1699;
-/* ---- Version A: direct UPI + manual verify (no gateway) ---- */
-const UPI_ID    = "7654201815@upi";                 // <-- the UPI ID that RECEIVES the money
-const UPI_NAME  = "Freshers-26";                    // name shown in the payer's UPI app
+const UPI_ID    = "7654201815@upi";
+const UPI_NAME  = "Freshers-26";
 const ADMIN_EMAILS = ["25bec079@smvdu.ac.in"];
-const REG_ADMIN    = "25bec079@smvdu.ac.in"; // approves registrations (same as contribution admin)
-const OWNER_EMAIL  = "25bec079@smvdu.ac.in"; // only the owner can create/remove budget categories
-/* Budget admins may file expense requests and nothing else: no contributions
-   panel, no registrations, no payment requests, no sheet sync. Everything they
-   add waits for the owner like any other pending expense. */
-/* Keep this list identical to isBudgetAdmin() in the Firestore rules — this one
-   only decides what the UI shows; the rules decide what actually gets written. */
+const REG_ADMIN    = "25bec079@smvdu.ac.in";
+const OWNER_EMAIL  = "25bec079@smvdu.ac.in";
 const BUDGET_ADMINS = [
   "kumarsujit73775@gmail.com",
   "25bec031@smvdu.ac.in",
@@ -53,26 +38,21 @@ const BUDGET_ADMINS = [
   "25bec021@smvdu.ac.in",
   "25bec063@smvdu.ac.in"
 ];
-const REG_FEE      = 0;       // juniors register free; 0 hides the whole payment half
-const FEE_ENABLED  = REG_FEE > 0;   // one switch: set REG_FEE back above 0 to restore it
-/* reCAPTCHA v3 site key for App Check. Public by design — the SECRET key
-   lives only in the Firebase console and must never appear here. */
+const REG_FEE      = 0;
+const FEE_ENABLED  = REG_FEE > 0;
 const RECAPTCHA_SITE_KEY = "6LeNs4gtAAAAAKy5umBdUeaqy8GxmFWnVN5KqTkU";
-const SHEET_URL    = "https://script.google.com/macros/s/AKfycbz3Sbgb6LRmr4fh8WFHjXCqezUnkrQH8M7h4fTPY0EncC7Q20Wq48IXzOCN5uWj_6SV/exec";  // Google Apps Script Web App URL
+const SHEET_URL    = "https://script.google.com/macros/s/AKfycbz3Sbgb6LRmr4fh8WFHjXCqezUnkrQH8M7h4fTPY0EncC7Q20Wq48IXzOCN5uWj_6SV/exec";
 const SHEET_SECRET = "freshers26";                  // must match SECRET in the Apps Script
-/* ---- Budget usage lives in Firebase (Firestore doc: budget/main).
-   Admins edit it on the site — set total, add/remove expenses. Everyone sees it live. ---- */
 
 const LIVE = !!FIREBASE_CONFIG.apiKey;
-let user = null;            // { email, name }
-let data = {};              // email -> amount  (live snapshot or preview memory)
-let payFilter = "all";      // payments list filter: all/gold/full/partial/pending/paid
+let user = null;
+let data = {};
+let payFilter = "all";
 let payMethod = "UPI";
 let fb = null, unsub = null;
 let myPending = 0, unsubMyPending = null, mySubs = [];
 let remainingAmt = GOAL, allSubs = [];
 
-/* ---------- helpers ---------- */
 const $ = s => document.querySelector(s);
 const payOverlay = $("#payOverlay"), adminOverlay = $("#adminOverlay"), toast = $("#toast");
 function money(n){ return "\u20b9" + Number(n||0).toLocaleString("en-IN"); }
@@ -80,16 +60,13 @@ function showToast(m){ toast.textContent = m; toast.classList.add("show"); setTi
 function openM(o){ o.classList.add("show"); }
 function closeM(o){ o.classList.remove("show"); }
 function msg(t,cls){ const m=$("#loginMsg"); if(m){ m.textContent=t||""; m.className="lmsg "+(cls||""); } }
-/* domainOK replaced by emailAllowed — see top of file */
 document.querySelectorAll("[data-close]").forEach(x=>x.onclick=()=>{ const o=x.closest(".overlay"); if(o) o.classList.remove("show"); });
 [payOverlay,adminOverlay,document.getElementById("mySubsOverlay"),document.getElementById("payListOverlay")].forEach(o=>o&&o.addEventListener("click",e=>{ if(e.target===o) closeM(o); }));
 
-/* ---------- mobile hamburger menu ---------- */
 const navLinks = document.getElementById("navLinks"), hamburger = document.getElementById("hamburger");
 hamburger.onclick = ()=>{ navLinks.classList.toggle("open"); hamburger.classList.toggle("open"); };
 navLinks.querySelectorAll("a").forEach(a=> a.onclick=()=>{ navLinks.classList.remove("open"); hamburger.classList.remove("open"); });
 
-/* ---------- paint the bar + stats ---------- */
 function repaint(){
   let total=0, count=0;
   for(const k in data){ const a=data[k]||0; total += a; if(a>0) count++; }
@@ -105,18 +82,14 @@ function repaint(){
   $("#barPct").textContent = Math.round(pct) + "% complete";
   $("#barLeft").textContent = mine>=GOAL ? (mine>GOAL ? money(mine-GOAL)+" extra \u2726" : "Goal reached \u2726") : money(GOAL-mine)+" to go";
   $("#doneBadge").style.display = mine>=GOAL ? "flex" : "none";
-  $("#extraBtn").style.display = "";   // always available — past the goal it's the only way to add more
-  // Top-up chips: ₹199 completes 1500 → 1699 (goal), ₹301 completes 1699 → 2000 (gold).
-  // Each only appears in the window where paying it lands exactly on that milestone.
+  $("#extraBtn").style.display = "";
   const c199=$("#chip199"); if(c199) c199.style.display = (mine>=GOAL-199 && mine<GOAL) ? "" : "none";
   const c301=$("#chip301"); if(c301) c301.style.display = (mine>=GOAL && mine<2000) ? "" : "none";
-  // Total Raised = senior contributions + juniors (approved freshers × REG_FEE)
   const juniorTotalAmt = (typeof juniorRegs !== "undefined" ? juniorRegs.length : 0) * REG_FEE;
   const combinedRaised = total + juniorTotalAmt;
-  seniorRaised = total;                 // 2025-2029 batch only
+  seniorRaised = total;
   $("#totalRaised").textContent = money(combinedRaised);
-  totalRaised = combinedRaised;         // share with the Budget Usage modal
-  // feed the raised-breakdown overlay
+  totalRaised = combinedRaised;
   const _rs=$("#raisedSeniors"),_rj=$("#raisedJuniors"),_rg=$("#raisedGrand");
   if(_rs)_rs.textContent=money(total);
   if(_rj)_rj.textContent=money(juniorTotalAmt);
@@ -134,7 +107,6 @@ function repaint(){
   if($("#payListOverlay").classList.contains("show")) renderPayments();
 }
 
-/* ---------- payments roster ---------- */
 const NAMES = ["AAYUSH MONDAL","ABHIJEET GOYAL","ABHINANDAN KUMAR","ABHIRAJ BADHAN","ADITI SINGH","ADITYA ATHMIA","ADITYA KUMAR","ADITYA SHARMA","ADITYA SONKAR","ADVAIT KHAJURIA","AJAY KUMAR","AJAY KUMAR","AKASH KUMAR","AKSHAT SHIRSHWAR","ALISHA GANDOTRA","ALOK KUMAR","AMICHAND KUMHAR","AMIT SHARMA","ANANAYA BHAGAT","ANIKET KUMAR","ANKIT GANGWAR","ANKIT KUMAR SINGH","ANKIT VERMA","ANSH ANDOTRA","ANUBHAV SHARMA","ARYAN CHATURVEDI","ARYAN VERMA","ASHISH RANJAN","AVNISH RAJ","AYUSH SINGH YADAV","AYUSHMAN SINGH","BANTI KUMAR","CHAITANYA SHARMA","CHENNOJU HARSHITH KUMAR","CHINTALA RAM CHARAN TEJA","DEEPAK KUMAR","DHIRAJ KUMAR","DIPIKA SINHA","DIVYA RANI","HARSH RAJ","HARSH RAJ","JATIN SHARMA","KARTIK CHAUHAN","KRISHNA KRISHNANSHU BALI","LAKSHYA SACHDEVA","MANISH BAGOTIA","MANSI","MD GULAM MURSHID","MILIND WAGDRE","MOHD YUSUF IMRAN","MRIGAANKA BHAGAT","NITIN KUMAR","PATTIMI HEMANTHKUMAR","PIYUSH KUMAR","PIYUSH KUMAR","PRAGATI VERMA","PRAGYA SINGH","PRANAV KALOTRA","PRIYANSHU SHARMA","RAGHAV TIWARI","RAJ HARSH KUMAR","RAKESH KUMAR","RAMLEEN KAUR RANA","RITU RAJ","SAKSH SHARMA","SAMBHAV GUPTA","SAMEER KUMAR YADAV","SANDEEP KUMAR YADAV","SANJAN KUMAR","SARVAJEET SONKAR","SAURAV SINGH RAWAT","SHALWI KUMARI","SHANTANU PANDA","SHAURYA VEER ARORA","SHIVAM KUMAR","SHUBHAM KASHAV","SONAM","SOURYA GUPTA","SUJIT KUMAR","SUMIT RAJ","SUMIT VERMA","SURAJ BHARGAV","TANISH SHARMA","UTKARSH CHANDRAVANSHI","VANSH ABROL","VANSH PRATAP SINGH","VIDHAN PRAKASH SAIN","VINAMRATA","VISHNU KUMAR DIXIT","YOGESH"];
 const EXCLUDE = [1,46,84];
 const ROSTER = [];
@@ -172,21 +144,14 @@ const _raisedStat=$("#raisedStat"); if(_raisedStat) _raisedStat.onclick=()=>{ re
 $("#contribStat").onclick   = ()=>{ $("#paySearch").value=""; setPayFilter("all"); openM($("#payListOverlay")); };
 $("#yourStat").onclick = ()=>{ openM($("#mySubsOverlay")); renderMySubs(); };
 
-/* ---------- budget usage (stored in Firebase: doc budget/main) ---------- */
-let budgetData = { items: [], categories: [] };  // live snapshot of doc budget/main
-let budgetFilter = "__all";       // which category chip is selected in the list below
-let payFormFor = null;            // id of the item whose "request paid" form is open
-/* Items filed before approvals existed have no status — treat them as approved
-   so nothing that was already live silently disappears. */
+let budgetData = { items: [], categories: [] };
+let budgetFilter = "__all";
+let payFormFor = null;
 function isApproved(it){ return !it || it.status !== "pending"; }
 function budgetApprovedItems(){ return (budgetData.items||[]).filter(isApproved); }
-/* Pending expenses are internal: admins see them, contributors don't. */
 function budgetVisibleItems(){ return isBudgetAdmin() ? (budgetData.items||[]) : budgetApprovedItems(); }
 function isOwner(){ return !!user && user.email === OWNER_EMAIL; }
 function isBudgetAdmin(){ return isAdmin() || (!!user && BUDGET_ADMINS.indexOf(user.email) > -1); }
-/* Only whoever filed the expense may ask for it to be marked paid — they are
-   the one holding the receipt. Items filed before `by` was recorded have no
-   owner to fall back on, so the owner picks those up. */
 function canRequestPay(it){
   if(!it || it.paid || !isApproved(it) || it.payReq) return false;
   if(!isBudgetAdmin()) return false;
@@ -194,14 +159,14 @@ function canRequestPay(it){
   return it.by ? it.by === me : isOwner();
 }
 let unsubBudget = null;
-let totalRaised = 0;              // combined raised (seniors + juniors), used by Budget Usage modal
-let seniorRaised = 0;             // 2025-2029 batch contributions only
+let totalRaised = 0;
+let seniorRaised = 0;
 function _bEsc(s){ return String(s==null?"":s).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 function budgetRef(){ return fb.doc(fb.db, "budget", "main"); }
 
 function subscribeBudget(){
   if(!LIVE || !fb){ renderBudget(); return; }
-  if(unsubBudget) return;                       // already listening
+  if(unsubBudget) return;
   unsubBudget = fb.onSnapshot(budgetRef(), snap=>{
     const d = snap.exists() ? (snap.data()||{}) : {};
     budgetData = {
@@ -212,8 +177,6 @@ function subscribeBudget(){
   }, err=>{ console.error("budget sub", err); });
 }
 
-/* Every category to offer: the owner-defined list, plus any category already
-   used by an item (so nothing disappears if a category is later removed). */
 function budgetCatList(){
   const out = (budgetData.categories||[]).map(c=>String(c||"").trim()).filter(Boolean);
   budgetVisibleItems().forEach(it=>{
@@ -229,11 +192,9 @@ function renderCatOptions(){
   const cats = budgetCatList();
   sel.innerHTML = '<option value="">Category (required)</option>'
     + cats.map(c=> '<option value="'+_bEsc(c)+'">'+_bEsc(c)+'</option>').join("");
-  if(cats.indexOf(cur) > -1) sel.value = cur;   // keep what the admin had picked
+  if(cats.indexOf(cur) > -1) sel.value = cur;
 }
 
-/* Owner-only chips for removing a category. Removing one never touches the
-   expenses already filed under it \u2014 they keep their category text. */
 function renderCatAdmin(){
   const box = $("#catAdmin"); if(!box) return;
   box.style.display = isOwner() ? "block" : "none";
@@ -258,7 +219,7 @@ function renderBudgetFilters(){
   const items = budgetVisibleItems();
   const hasUncat = items.some(it=> !String(it.category||"").trim());
   const keys = ["__all"].concat(budgetCatList()).concat(hasUncat ? ["__none"] : []);
-  if(keys.indexOf(budgetFilter) < 0) budgetFilter = "__all";   // selected category vanished
+  if(keys.indexOf(budgetFilter) < 0) budgetFilter = "__all";
   if(!items.length){ wrap.innerHTML = ""; return; }
   wrap.innerHTML = keys.map(k=>{
     const label = k==="__all" ? "All" : (k==="__none" ? "Uncategorised" : k);
@@ -271,8 +232,8 @@ function renderBudgetFilters(){
 
 function renderBudget(){
   const list  = $("#budgetList");
-  const admin = isBudgetAdmin();   // may file an expense request
-  const payAdmin = isAdmin();      // may also request/approve payments and sync
+  const admin = isBudgetAdmin();
+  const payAdmin = isAdmin();
   const owner = isOwner();
   $("#budgetAdmin").style.display = admin ? "block" : "none";
   const syncBtn = $("#syncBudgetBtn");
@@ -281,15 +242,13 @@ function renderBudget(){
   renderCatAdmin();
   renderBudgetFilters();
 
-  /* Only approved expenses count towards the public numbers. A pending one
-     hasn't been agreed yet, so it must not move the needle for contributors. */
   const approved  = budgetApprovedItems();
   const needed    = approved.reduce((t,it)=> t + (Number(it.amount)||0), 0);
   const used      = approved.reduce((t,it)=> t + (it.paid ? (Number(it.amount)||0) : 0), 0);
   const remaining = totalRaised - used;
 
   $("#budgetNeeded").textContent = needed>0 ? money(needed) : "\u20b9-";
-  const tn = $("#totalNeed"); if(tn) tn.textContent = needed>0 ? money(needed) : "\u20b9-";  // mirror on the contribution card
+  const tn = $("#totalNeed"); if(tn) tn.textContent = needed>0 ? money(needed) : "\u20b9-";
   $("#budgetTotal").textContent  = money(totalRaised);
   $("#budgetUsed").textContent   = money(used);
   $("#budgetLeft").textContent   = money(remaining);
@@ -309,9 +268,6 @@ function renderBudget(){
       ? '<a class="bproof" href="'+_bEsc(it.proof)+'" target="_blank" rel="noopener">Proof ›</a>'
       : '<span class="bproof none">—</span>';
 
-    /* The status cell says something different to each of the three audiences:
-       the owner gets the decision buttons, a budget admin gets the request
-       button, everyone else gets a plain read-only label. */
     let status;
     if(pending){
       status = owner
@@ -328,21 +284,15 @@ function renderBudget(){
           + '<button class="bstatus reject" data-paydecline="'+_bEsc(it.id)+'">Decline</button>'
         : '<span class="bstatus pending">Payment requested</span>';
     } else {
-      /* Same form for both, but the owner's submission applies straight away
-         while an admin's becomes a request. Either way a proof link is
-         attached before anything reads as paid. */
       status = canRequestPay(it)
         ? '<button class="bstatus unpaid" data-request="'+_bEsc(it.id)+'">'+(owner?'Mark paid':'Request paid')+'</button>'
         : '<span class="bstatus unpaid">Not paid</span>';
     }
 
-    /* An approval isn't final — the owner can pull anything back to pending,
-       which also clears any payment on it. */
     if(owner && !pending){
       status += '<button class="bstatus reject" data-unapprove="'+_bEsc(it.id)+'">Unapprove</button>';
     }
 
-    // Only the owner may delete outright; an admin's own pending item is still theirs to withdraw.
     const canDelete = owner || (admin && pending && it.by && user && it.by === user.email);
     const del = canDelete ? '<button class="bdel" data-id="'+_bEsc(it.id)+'" title="Remove">×</button>' : '<span></span>';
 
@@ -350,14 +300,9 @@ function renderBudget(){
     const note = it.msg ? '<div class="bnote">'+_bEsc(it.msg)+'</div>' : '';
     const flag = pending ? '<span class="bflag">Pending</span>' : '';
 
-    /* Add `admin &&` to both lines below to hide the filer's email from non-admins.
-       bby-col is its own grid cell left of the amount (desktop); bby-inline sits
-       with the chips on narrow screens. The empty span still has to be printed or
-       rows without an email would shift a column left. */
     const byCol    = '<span class="bby bby-col">'+(it.by ? _bEsc(it.by) : '')+'</span>';
     const byInline = it.by ? '<span class="bby bby-inline">by '+_bEsc(it.by)+'</span>' : '';
 
-    // Details of a pending payment request — admins only, since it's internal
     let reqBox = '';
     if(req && admin && !paid){
       const rAmt = Number(req.amount) || 0;
@@ -370,7 +315,6 @@ function renderBudget(){
              + '</div>';
     }
 
-    // Inline form, shown in place when this admin clicked "Request paid"
     let form = '';
     if(payFormFor === it.id){
       form = '<div class="breq-form">'
@@ -416,10 +360,7 @@ async function addBudgetItem(){
     showToast(budgetCatList().length ? "Pick a category" : "No categories yet \u2014 ask the owner to add one");
     return;
   }
-  const by = (user && user.email) || "";   // who filed this expense
-  /* Nothing enters the budget on its own say-so — every expense waits for the
-     owner, including one the owner filed. Keeps the record honest and means
-     the flow looks the same no matter who is signed in. */
+  const by = (user && user.email) || "";
   const item = { id: "b" + Date.now() + Math.floor(Math.random()*1000),
                  where, amount, proof, category, msg, by, status: "pending",
                  paid:false, payReq:null, at: Date.now() };
@@ -433,14 +374,11 @@ async function addBudgetItem(){
   }catch(e){ console.error(e); showToast("Couldn't add — check permissions"); }
 }
 
-/* ---------- owner decisions ---------- */
 async function approveBudgetItem(id){
   if(!isOwner()) return;
   await patchBudgetItem(id, it=> ({ ...it, status:"approved" }), "Expense approved \u2726");
 }
 
-/* Undo an approval: back to pending, and any payment on it is dropped too,
-   since the proof was accepted under the approval being withdrawn. */
 async function unapproveBudgetItem(id){
   if(!isOwner()) return;
   const it = (budgetData.items||[]).find(x=> x.id===id);
@@ -464,7 +402,6 @@ async function approvePayment(id){
     const r = it.payReq || {};
     return { ...it,
       paid: true,
-      // the request's figures replace the estimate that was filed originally
       amount: (Number(r.amount) > 0) ? Number(r.amount) : it.amount,
       proof: r.proof || it.proof || "",
       msg:   r.msg   || it.msg   || "",
@@ -477,7 +414,6 @@ async function declinePayment(id){
   await patchBudgetItem(id, it=> ({ ...it, payReq:null }), "Payment request declined");
 }
 
-/* ---------- budget-admin requests ---------- */
 function openPayRequest(id){
   const it = (budgetData.items||[]).find(x=> x.id===id);
   if(!canRequestPay(it)){ showToast("Only whoever added this expense can request payment"); return; }
@@ -491,15 +427,12 @@ async function submitPayRequest(id){
   const proofEl = $("#reqProof"), msgEl = $("#reqMsg"), amtEl = $("#reqAmt");
   const proof = proofEl ? proofEl.value.trim() : "";
   const msg   = msgEl ? msgEl.value.trim().slice(0,200) : "";
-  /* The listed amount is an estimate; this is what was actually paid. Falls back
-     to the original if the field is missing, so nothing can zero out an item. */
   const amount = amtEl ? Number(amtEl.value) : Number(item.amount)||0;
   if(!(amount > 0)){ showToast("Enter the amount that was actually paid"); return; }
   if(!proof){ showToast(isOwner() ? "Add the payment proof link" : "Add a proof link so the owner can verify it"); return; }
   const who = (user && user.email) || "";
   payFormFor = null;
   if(isOwner()){
-    // The approver is already here — no point queuing a request to themselves.
     await patchBudgetItem(id, it=> ({ ...it, paid:true, amount, proof, msg: msg || it.msg || "", payReq:null }),
                           "Marked paid \u2726");
     return;
@@ -508,8 +441,6 @@ async function submitPayRequest(id){
                         "Sent to the owner for approval \u2726");
 }
 
-/* ---------- shared writers ---------- */
-// One place that reads the list, swaps a single item and writes it back.
 async function patchBudgetItem(id, fn, okMsg){
   const next = (budgetData.items||[]).map(it=> it.id===id ? fn(it) : it);
   try{
@@ -518,8 +449,6 @@ async function patchBudgetItem(id, fn, okMsg){
   }catch(e){ console.error(e); showToast("Couldn't update — check permissions"); }
 }
 
-/* Owner-only, and only ever to UNDO a payment — marking something paid always
-   goes through a request so the proof link is captured. */
 async function toggleBudgetPaid(id){
   if(!isOwner()){ showToast("Only the owner can change a payment"); return; }
   await patchBudgetItem(id, it=> ({ ...it, paid:false, payReq:null }), "Marked not paid");
@@ -539,7 +468,6 @@ async function deleteBudgetItem(id, quiet){
   }catch(e){ console.error(e); showToast("Couldn't remove — check permissions"); }
 }
 
-/* ---------- categories (owner only) ---------- */
 async function addBudgetCategory(){
   if(!isOwner()){ showToast("Only the owner can add categories"); return; }
   const inp = $("#inNewCat"); if(!inp) return;
@@ -568,9 +496,6 @@ async function removeBudgetCategory(name){
   }catch(e){ console.error(e); showToast("Couldn't remove \u2014 check permissions"); }
 }
 
-/* Push the WHOLE expense list to the Sheet in one request.
-   The Apps Script wipes and rewrites the Expenses tab from this array,
-   so deletes and edits reconcile and rows can never duplicate. */
 async function syncBudgetToSheet(){
   if(!isAdmin()) return;
   if(!SHEET_URL){ showToast("Sheet URL not set"); return; }
@@ -618,9 +543,6 @@ function renderMySubs(){
 }
 $("#paySearch").addEventListener("input", renderPayments);
 
-/* ---------- memories carousel ---------- */
-// Slides pull from Files/photo1.JPG ... photo26.JPG (uppercase .JPG).
-// Any file that doesn't exist is skipped automatically. Change 26 to add/remove.
 const MEMORIES = Array.from({length:26}, (_,i)=> "Files/photo" + (i+1) + ".JPG");
 (function(){
   const car=$("#memCarousel"), track=$("#memTrack"), dotsWrap=$("#memDots");
@@ -648,7 +570,6 @@ const MEMORIES = Array.from({length:26}, (_,i)=> "Files/photo" + (i+1) + ".JPG")
   let timer=setInterval(()=>go(1),4500);
   car.addEventListener("mouseenter",()=>clearInterval(timer));
   car.addEventListener("mouseleave",()=>{ clearInterval(timer); timer=setInterval(()=>go(1),4500); });
-  // swipe (touch) + drag (mouse)
   let sx=null;
   car.addEventListener("touchstart",e=>sx=e.touches[0].clientX,{passive:true});
   car.addEventListener("touchend",e=>{ if(sx===null)return; const dx=e.changedTouches[0].clientX-sx; if(Math.abs(dx)>40) go(dx<0?1:-1); sx=null; });
@@ -657,7 +578,6 @@ const MEMORIES = Array.from({length:26}, (_,i)=> "Files/photo" + (i+1) + ".JPG")
   refresh();
 })();
 
-/* ---------- user chip ---------- */
 function refreshUserUI(){
   const tag = $("#userTag");
   if(user){
@@ -673,9 +593,6 @@ function refreshUserUI(){
 }
 
 
-/* ══════════════════════════════════════════════════════════════════
-   LOGIN GATE — show / hide
-══════════════════════════════════════════════════════════════════ */
 const _gate = document.getElementById("gateOverlay");
 function showGate(){
   _gate.classList.remove("hidden");
@@ -687,10 +604,6 @@ function hideGate(){
 }
 function gateMsg(t,cls){ const m=document.getElementById("gateMsg"); if(m){ m.textContent=t||""; m.className="lmsg "+(cls||""); } }
 
-/* ══════════════════════════════════════════════════════════════════
-   ROLE — switch between contribution view (senior) and
-           registration view (fresher / special)
-══════════════════════════════════════════════════════════════════ */
 function applyRole(email){
   const role = userRole(email);
   const cSec    = document.getElementById("contribute");
@@ -698,18 +611,15 @@ function applyRole(email){
   const navLink = document.getElementById("contributeNavLink");
   const adminUser = isAdmin() || isRegAdmin();
   if(adminUser){
-    // Admin sees BOTH sections: contributions + registration admin panel
     if(cSec)    cSec.style.display = "";
     if(rSec)    rSec.style.display = "";
     if(navLink){ navLink.href="#contribute"; navLink.textContent="Contribute"; }
-    // Admin doesn't fill the registration form — hide form + done card,
-    // show only the section heading + "View Registrations" button.
     const _ff=document.getElementById("regFormWrap"); if(_ff)_ff.style.display="none";
     const _fd=document.getElementById("regDone"); if(_fd)_fd.style.display="none";
     const _sub=document.querySelector("#fresher-reg .sec-sub");
     if(_sub)_sub.textContent="Review and approve fresher registrations for Freshers'26.";
     subscribeJuniors();
-    refreshRegAdminUI();   // shows "View Registrations" admin button
+    refreshRegAdminUI();
   } else if(role==="senior"){
     if(cSec)    cSec.style.display = "";
     if(rSec)    rSec.style.display = "none";
@@ -725,20 +635,13 @@ function applyRole(email){
     if(navLink){ navLink.href="#fresher-reg"; navLink.textContent="Register"; }
     const hero=document.getElementById("heroCtaBtn");
     if(hero){ hero.setAttribute("href","#fresher-reg"); hero.textContent="Register for Freshers'26"; }
-    // Entry Ticket nav stays as Entry Ticket → the ticket section
     const et=document.getElementById("entryTicketNav");
     if(et){ et.setAttribute("href","#reg26"); et.textContent="Entry Ticket"; }
-    populateRegForm(); loadRegStatus(); /* loadRegStatus calls refreshRegAdminUI */
+    populateRegForm(); loadRegStatus();
   }
   hideGate();
 }
 
-/* ══════════════════════════════════════════════════════════════════
-   REGISTRATION FORM — freshers / special email only
-══════════════════════════════════════════════════════════════════ */
-/* ══════════════════════════════════════════════════════════════════
-   REGISTRATION — photo, QR, submit, admin
-══════════════════════════════════════════════════════════════════ */
 let regPhotoData = null;
 function isRegAdmin(){ return !!user && user.email === REG_ADMIN; }
 
@@ -794,7 +697,6 @@ function populateRegForm(){
   if(ni && !ni.value) ni.value=user.name||"";
   const init=document.getElementById("regPhotoInitial");
   if(init) init.textContent=(user.name||"?")[0].toUpperCase();
-  // Entry No. from email pattern
   const ri=document.getElementById("regRoll"),ei=document.getElementById("regEmail");
   if(ei) ei.value=user.email;
   if(ri){
@@ -813,11 +715,6 @@ async function loadRegStatus(){
   refreshRegAdminUI();
 }
 
-/* With no fee there is nothing to scan or reference, so the QR, the download
-   button and the UTR field come out rather than sitting there showing \u20b90. */
-/* No fee, so the QR / UTR half of the ticket has nothing to hold. Rather than
-   hiding it and leaving the ticket lopsided, that half becomes what a stub
-   actually is: the tear-off part, with ADMIT ONE, the year and a barcode. */
 (function applyFeeMode(){
   if(FEE_ENABLED) return;
   const sub = document.querySelector("#fresher-reg .sec-sub");
@@ -837,7 +734,6 @@ async function loadRegStatus(){
     +   '<div class="stub-no">No. <span id="stubRoll">\u2014</span></div>'
     + '</div>';
 
-  // The stub shows the entry number once it is filled in from the signed-in email.
   const roll = document.getElementById("regRoll"), out = document.getElementById("stubRoll");
   const syncRoll = ()=>{ if(out) out.textContent = (roll && roll.value.trim()) || "\u2014"; };
   syncRoll();
@@ -849,14 +745,10 @@ async function submitReg(){
   if(!user) return;
   const name=(document.getElementById("regName").value||"").trim();
   const phone=(document.getElementById("regPhone").value||"").trim();
-  /* #regUtr no longer exists when the fee is off — the stub replaced that
-     half of the ticket. Reading .value off null threw here, before the
-     try/catch, so the submit button appeared to do nothing at all. */
   const utrEl=document.getElementById("regUtr");
   const utr=((utrEl && utrEl.value)||"").trim();
   if(!name){ showToast("Enter your full name"); return; }
   if(!/^[6-9]\d{9}$/.test(phone)){ showToast("Enter a valid 10-digit phone number"); return; }
-  // Nothing to pay, so nothing to reference.
   if(FEE_ENABLED && utr.trim().length < 3){ showToast("Enter a payment reference or \"cash\""); return; }
   if(!regPhotoData){ showToast("Please upload your photo first"); return; }
   const btn=document.getElementById("regBtn"); btn.disabled=true; btn.textContent="Submitting\u2026";
@@ -883,7 +775,6 @@ function showSuccessPopup(){
   setTimeout(()=>{pop.style.transition="opacity .5s";pop.style.opacity="0";setTimeout(()=>pop.remove(),500);},2800);
 }
 
-/* Live listener — updates student badge when admin approves/rejects */
 let unsubMyReg=null;
 function subscribeMyReg(){
   if(unsubMyReg){ unsubMyReg(); unsubMyReg=null; }
@@ -891,7 +782,6 @@ function subscribeMyReg(){
   unsubMyReg=fb.onSnapshot(fb.doc(fb.db,"registrations26",user.email),snap=>{
     if(!snap.exists()) return;
     const d=snap.data();
-    // Full state refresh — showRegDone handles approved / pending / rejected
     showRegDone(d);
   },err=>console.error("my-reg snapshot",err));
 }
@@ -912,7 +802,6 @@ function showRegDone(d){
   window._myRegData=d;
   const card=document.getElementById("regSubmittedCard");
   if(card) card.onclick=()=>openRegDetails(d);
-  /* Any status → show Update button (re-opens form; submitting sends back for approval) */
   let rrbtn=document.getElementById("reregBtn");
   {
     if(!rrbtn){
@@ -936,7 +825,6 @@ function showRegDone(d){
         if(ii)ii.style.display="none";
       }
       populateRegForm();
-      // Show cancel × so they can back out without changing anything
       const cb=document.getElementById("regCancelBtn");
       if(cb){ cb.style.display=""; cb.onclick=()=>{ if(fw)fw.style.display="none"; if(rd)rd.style.display=""; cb.style.display="none"; }; }
       showToast("Edit your details and submit \u2014 it will go back for approval.");
@@ -963,7 +851,6 @@ function openRegDetails(d){
   if(o) o.addEventListener("click",e=>{if(e.target===o)closeM(o);});
 })();
 
-/* ── Reg Admin ── */
 let allRegs=[],unsubRegs=null,raTab="pending",raOpt={};
 function refreshRegAdminUI(){
   const btn=document.getElementById("regAdminBtn"),sb=document.getElementById("syncRegBtn");
@@ -998,7 +885,6 @@ function renderRegAdmin(){
   box.innerHTML="";
   rows.forEach(r=>{
     const st=eff(r),el=document.createElement("div"); el.className="admin-row";
-    // ⚠ Don't put base64 photoData in innerHTML — it breaks HTML parsing and disables buttons
     el.innerHTML=`
       <div class="top" style="display:flex;align-items:center;gap:10px">
         <div class="ra-photo-sm ra-photo-target"></div>
@@ -1018,7 +904,6 @@ function renderRegAdmin(){
         <button class="btn solid ap" type="button">Approve</button>
         <button class="btn ghost danger rj" type="button">Reject</button>
       </div>`;
-    // Set photo AFTER innerHTML (static class avoids invalid-selector crash)
     const photoEl=el.querySelector(".ra-photo-target");
     if(photoEl){
       const psrc=r.photoData||r.photoUrl;
@@ -1070,8 +955,6 @@ async function syncRegSheet(email){
 }
 function syncAllRegsToSheet(){
   if(!SHEET_URL){ showToast("Sheet URL not set"); return; }
-  // Push ALL registrations so approvals AND rejections both reconcile.
-  // The Apps Script writes approved ones and removes any that are no longer approved.
   const emails=Array.from(new Set(allRegs.map(r=>r.email).filter(Boolean)));
   if(!emails.length){ showToast("No registrations to sync yet"); return; }
   emails.forEach((em,i)=>setTimeout(()=>syncRegSheet(em),i*250));
@@ -1080,10 +963,6 @@ function syncAllRegsToSheet(){
 }
 
 
-/* ══════════════════════════════════════════════════════════════════
-   JUNIORS' CONTRIBUTIONS — approved fresher registrations,
-   visible to senior (25bec) students.
-══════════════════════════════════════════════════════════════════ */
 let juniorRegs=[], unsubJuniors=null;
 function subscribeJuniors(){
   if(!LIVE||!fb||unsubJuniors) return;
@@ -1092,7 +971,7 @@ function subscribeJuniors(){
     unsubJuniors=fb.onSnapshot(q,snap=>{
       const rows=[]; snap.forEach(d=>rows.push(d.data())); juniorRegs=rows;
       paintJuniorStat();
-      repaint();   // refresh combined Total Raised
+      repaint();
       if(document.getElementById("juniorOverlay")&&document.getElementById("juniorOverlay").classList.contains("show")) renderJuniors();
     },err=>console.error("juniors snapshot",err));
   }catch(e){ console.error("subscribeJuniors",e); }
@@ -1112,7 +991,6 @@ function renderJuniors(){
   sorted.forEach(r=>{
     const el=document.createElement("div"); el.className="jr-row";
 
-    // Photo (build as element — avoids invalid CSS selectors from digit-leading emails)
     const photo=document.createElement("div"); photo.className="jr-photo";
     const src=r.photoData||r.photoUrl;
     if(src){ photo.style.backgroundImage="url('"+src+"')"; }
@@ -1130,7 +1008,6 @@ function renderJuniors(){
     box.appendChild(el);
   });
 }
-/* Wire junior stat button — same top-level pattern as the working stats */
 const _juniorStatBtn = document.getElementById("juniorStat");
 if(_juniorStatBtn){
   _juniorStatBtn.onclick = function(){
@@ -1144,9 +1021,6 @@ if(_juniorOv){
   _juniorOv.addEventListener("click", function(e){ if(e.target===_juniorOv) closeM(_juniorOv); });
 }
 
-/* ══════════════════════════════════════════════════════════════════
-   GATE Google button — triggers Firebase sign-in from the gate page
-══════════════════════════════════════════════════════════════════ */
 document.getElementById("gateGoogleBtn").onclick = async ()=>{
   if(LIVE){
     if(!fb){ gateMsg("Still connecting \u2014 try again in a second.","err"); return; }
@@ -1165,51 +1039,46 @@ document.getElementById("gateGoogleBtn").onclick = async ()=>{
       document.getElementById("gateGoogleBtn").disabled=false;
     }
   } else {
-    // Preview: sign in as senior by default
     user={ email:"25bec001@smvdu.ac.in", name:"Demo Student" };
     applyRole(user.email); refreshUserUI(); subscribeMyPending(); repaint();
     showToast("Welcome, Demo Student! (preview — senior view)");
   }
 };
 
-/* ---------- login ---------- */
 $("#loginBtn").onclick = async ()=>{
   if(user){
-    if(LIVE && fb){ try{ await fb.signOut(fb.auth); }catch(e){} /* onAuthStateChanged → showGate */ }
+    if(LIVE && fb){ try{ await fb.signOut(fb.auth); }catch(e){} }
     else { user=null; showGate(); refreshUserUI(); subscribeMyPending(); repaint(); showToast("Logged out"); }
   } else { showGate(); }
 };
 
-/* ---------- pay ---------- */
 function wantPay(amt, fixed){
   if(!user){ showGate(); showToast("Please login first"); return; }
   if(fixed){
-    $("#amtSection").style.display = "none";   // fixed amount -> no amount entry
+    $("#amtSection").style.display = "none";
     $("#inAmt").value = amt;
-    $("#payTo").style.display = "";            // show QR/button straight away
+    $("#payTo").style.display = "";
   } else {
-    $("#amtSection").style.display = "";       // custom -> show amount entry
+    $("#amtSection").style.display = "";
     $("#inAmt").value = "";
     isMini = false;
     document.querySelectorAll(".chip").forEach(x=>x.classList.remove("on"));
-    $("#payTo").style.display = "none";        // hide QR/button until valid amount entered
+    $("#payTo").style.display = "none";
   }
   $("#inUtr").value = "";
   updatePayBtn(); openM(payOverlay);
 }
-// Full amount -> pay the remaining toward the goal, no amount entry
 $("#contribBtn").onclick = ()=>{
   if(!user){ showGate(); showToast("Please login first"); return; }
   if(remainingAmt > 0) wantPay(remainingAmt, true);
-  else wantPay(0, false);                      // goal met -> custom extra
+  else wantPay(0, false);
 };
-// Custom amount -> show the amount box first
 $("#extraBtn").onclick   = ()=> wantPay(0, false);
 $("#inAmt").addEventListener("input", ()=>{ isMini=false; document.querySelectorAll(".chip").forEach(x=>x.classList.remove("on")); updatePayBtn(); });
 document.querySelectorAll(".chip").forEach(c=>c.onclick=()=>{
   document.querySelectorAll(".chip").forEach(x=>x.classList.remove("on"));
   c.classList.add("on");
-  isMini = MINI_AMTS.indexOf(Number(c.dataset.amt)) > -1;   // sub-500 top-ups, chip-only
+  isMini = MINI_AMTS.indexOf(Number(c.dataset.amt)) > -1;
   $("#inAmt").value=c.dataset.amt; updatePayBtn();
 });
 function upiLink(amt){
@@ -1218,22 +1087,17 @@ function upiLink(amt){
        + (amt>0 ? "&am=" + amt : "")
        + "&cu=INR&tn=" + encodeURIComponent("Freshers26");
 }
-const MINI_AMTS = [199, 301];   // the only amounts allowed below ₹500, and only via their chip
-/* Once someone's APPROVED total has cleared the goal the ₹500 floor no longer
-   applies — they've done their bit, so any top-up they want to make is fine. */
+const MINI_AMTS = [199, 301];
 function goalCleared(){ return !!user && (data[user.email]||0) >= GOAL; }
-let isMini = false;   // true when a top-up chip is the active selection
+let isMini = false;
 function updatePayBtn(){
   const amt = Number($("#inAmt").value)||0;
   $("#payAmtLbl").textContent = money(amt);
   const a = $("#openUpi"); if(a) a.setAttribute("href", upiLink(amt));
   const img = $("#upiQr"); if(img) img.src = "https://api.qrserver.com/v1/create-qr-code/?size=240x240&margin=0&data=" + encodeURIComponent(upiLink(amt));
-  // custom mode: only reveal the QR once a VALID amount is entered
-  // valid = ₹500+  OR  a top-up amount via its chip
   if($("#amtSection").style.display !== "none"){
     const valid = (amt>=500) || goalCleared() || (isMini && MINI_AMTS.indexOf(amt) > -1);
     $("#payTo").style.display = valid ? "" : "none";
-    // live warning when amount is entered but below ₹500 (and not a top-up chip case)
     const warn = $("#amtWarn");
     if(warn){
       const showWarn = amt>0 && amt<500 && !goalCleared() && !(isMini && MINI_AMTS.indexOf(amt) > -1);
@@ -1254,7 +1118,6 @@ function downloadQR(){
   }).catch(()=>{ window.open(url, "_blank"); });
 }
 function initPayTo(){
-  // "Pay with UPI" deep link only works on phones — hide it on laptops (QR + download still shown)
   const isMobile = /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent);
   if(!isMobile){ const o=$("#openUpi"); if(o) o.style.display="none"; }
   updatePayBtn();
@@ -1284,7 +1147,6 @@ function submitPayment(amt, utr){
     if(!(isMini && MINI_AMTS.indexOf(amt) > -1)){ showToast("Minimum contribution is \u20b9500"); $("#inAmt").focus(); return; }
   }
   utr = (utr||"").trim();
-  // Letters, digits, spaces and - _ / so "cash", "Cash - paid to Sujit" etc. all work.
   if(!/^[a-zA-Z0-9][a-zA-Z0-9 _\-\/]{2,49}$/.test(utr)){
     showToast("Enter a UPI Ref No. / UTR, or \"cash\""); $("#inUtr").focus(); return;
   }
@@ -1293,11 +1155,6 @@ function submitPayment(amt, utr){
     showToast("Submitted for verification (preview)");
     return;
   }
-  /* Keyed by the UTR so the same reference can't be submitted twice. Free text
-     is NOT unique — two people writing "cash" would collide on one doc id, and
-     the second write would be refused as an update to someone else's row — so
-     anything that isn't a genuine-looking reference gets a per-person suffix.
-     Slashes are stripped either way: they aren't legal in a document id. */
   const looksLikeRef = /^[a-zA-Z0-9]{6,}$/.test(utr) && /[0-9]/.test(utr);
   const docId = looksLikeRef ? utr
     : (utr.replace(/[^a-zA-Z0-9 _-]/g,"").replace(/\s+/g,"-").slice(0,40)
@@ -1309,9 +1166,6 @@ function submitPayment(amt, utr){
   })
     .then(()=>{ closeM(payOverlay); $("#inUtr").value=""; showToast("Submitted \u2726 — it'll show on the bar once verified"); })
     .catch(e=>{
-      /* permission-denied has two very different causes: the account isn't
-         allowed to create a pending doc, or this exact UTR already exists
-         (a create then reads as an update, which only the admin may do). */
       const msg = (e.code === "permission-denied")
         ? "That reference has already been submitted, or this account isn't allowed to submit."
         : ("Couldn't submit: " + (e.code||e.message));
@@ -1322,7 +1176,6 @@ $("#submitUtr").onclick = ()=>{
   submitPayment(Number($("#inAmt").value)||0, $("#inUtr").value);
 };
 
-/* ---------- Firebase ---------- */
 function subscribe(){
   if(!LIVE || !fb) return;
   if(unsub) unsub();
@@ -1355,7 +1208,7 @@ function refreshAdminUI(){
   else { btn.style.display = "none"; if(unsubPending){ unsubPending(); unsubPending=null; } }
 }
 let adminTab = "pending";
-let optStatus = {};   // doc id -> optimistic status, applied instantly on tap until the server confirms
+let optStatus = {};
 function syncAdminTabs(){
   document.querySelectorAll(".atab").forEach(b=> b.classList.toggle("on", b.dataset.tab===adminTab));
 }
@@ -1367,12 +1220,8 @@ if($("#adminSearch")) $("#adminSearch").oninput = renderAdmin;
 function subscribePending(){
   if(!LIVE || !fb || unsubPending) return;
   unsubPending = fb.onSnapshot(fb.collection(fb.db,"pending"), snap=>{
-    /* Keep the document id alongside the data. It used to equal the UTR, but a
-       free-text ref like "cash" gets a suffixed id, so approve/reject must
-       address the doc by its real id, never by r.utr. */
     const rows = []; snap.forEach(d=> rows.push(Object.assign({ id: d.id }, d.data())));
     allSubs = rows;
-    // drop optimistic overrides the server has now confirmed
     for(const id in optStatus){
       const real = rows.find(r=> r.id === id);
       if(real && (real.status||"pending") === optStatus[id]) delete optStatus[id];
@@ -1386,14 +1235,12 @@ function renderAdmin(){
   const eff = r => optStatus[r.id] || r.status || "pending";
   const isPending = r => eff(r) === "pending";
 
-  // tab counts
   const pendCount = allSubs.filter(isPending).length;
   const prevCount = allSubs.length - pendCount;
   const ptab = $("#tabPending"), vtab = $("#tabPrevious");
   if(ptab) ptab.textContent = "Pending" + (pendCount ? (" ("+pendCount+")") : "");
   if(vtab) vtab.textContent = "Previous payments" + (prevCount ? (" ("+prevCount+")") : "");
 
-  // only show rows for the active tab; search filters within it
   let rows = allSubs.filter(r => adminTab === "previous" ? !isPending(r) : isPending(r));
   if(term) rows = rows.filter(r => (((r.name||"")+" "+(r.email||"")+" "+(r.utr||"")).toLowerCase()).indexOf(term) > -1);
   rows.sort((a,b)=> ((b.at&&b.at.seconds)||0) - ((a.at&&a.at.seconds)||0));
@@ -1433,7 +1280,7 @@ function approvePending(id, note){
     if(!pSnap.exists()) return;
     const p = pSnap.data();
     email = p.email;
-    if(p.status === "approved"){ t.update(pRef, { note:(note||"").trim() }); return; } // already credited
+    if(p.status === "approved"){ t.update(pRef, { note:(note||"").trim() }); return; }
     const cRef = fb.doc(fb.db,"contributions", p.email);
     const cSnap = await t.get(cRef);
     const prev = cSnap.exists() ? (Number(cSnap.data().amount)||0) : 0;
@@ -1445,7 +1292,7 @@ function approvePending(id, note){
     }, { merge:true });
     t.update(pRef, { status:"approved", note:(note||"").trim(), approvedAt: fb.serverTimestamp() });
   })
-    .then(()=>{ showToast("Approved \u2726"); })   // sheet updates only via the Sync button
+    .then(()=>{ showToast("Approved \u2726"); })
     .catch(e=>{ delete optStatus[id]; renderAdmin(); showToast("Approve failed: " + (e.code||e.message)); console.error(e); });
 }
 function rejectPending(id, note){
@@ -1457,7 +1304,7 @@ function rejectPending(id, note){
     const p = pSnap.data();
     email = p.email;
     if(p.status === "rejected"){ t.update(pRef, { note:(note||"").trim() }); return; }
-    if(p.status === "approved"){            // reverse a previous approval
+    if(p.status === "approved"){
       const cRef = fb.doc(fb.db,"contributions", p.email);
       const cSnap = await t.get(cRef);
       const prev = cSnap.exists() ? (Number(cSnap.data().amount)||0) : 0;
@@ -1465,41 +1312,25 @@ function rejectPending(id, note){
     }
     t.update(pRef, { status:"rejected", note:(note||"").trim(), rejectedAt: fb.serverTimestamp() });
   })
-    .then(()=>{ showToast("Rejected"); })   // sheet updates only via the Sync button
+    .then(()=>{ showToast("Rejected"); })
     .catch(e=>{ delete optStatus[id]; renderAdmin(); showToast("Reject failed: " + (e.code||e.message)); console.error(e); });
 }
 
-/* ══════════════════════════════════════════════════════════════════
-   VENUE GALLERY — 2 photos + 2 interactive 360° views.
-   Manual only: no autoplay, no timers. Advances on arrows, dots,
-   arrow keys and swipe.
-
-   The 360° slides embed Google's own photosphere viewer, so they
-   stay drag-to-look interactive. Both pano IDs were taken from the
-   share links for The Sanjeevani Resort. `preview` is Google's own
-   still of the same sphere, shown until the user opts in — that
-   keeps two WebGL contexts from spinning up on every page view.
-══════════════════════════════════════════════════════════════════ */
 const PANO_BASE_1 = "https://lh3.googleusercontent.com/gpms-cs-s/AFP8RcP8u_yEh7bcq8P3HdUrQ7DOii4vU4emZfQzPaTqjoi_wPEjRBW5z8c38Fx2AlFubiAN1Q241DsFrbFN2QAfL7ZKowSMpxSXzGP0w3zzH4QnNGyNVgTZElKdA2fLk5BflWdtFSA";
 const PANO_BASE_2 = "https://lh3.googleusercontent.com/gpms-cs-s/AFP8RcOmnM0FukBLoHOCoNOZxR0XWZF1Z3D7LRUIOZFJ_-aTNJG_YPOoaigk64uH7A93n4pNqmdS0M_-Js9QC9rdRbKFxnQVy9VClEmrG7WKjtCjCpKWwzG9iDYAB8OYJftr2V6-TxUb7g";
 
 const VENUE_SLIDES = [
   { kind:"photo", src:"Files/venue1.JPG", caption:"The Sanjeevani Resort" },
   { kind:"photo", src:"Files/venue2.JPG", caption:"The Sanjeevani Resort" },
-  /* `sphere` is the full equirectangular frame (2:1); `preview` is the same
-     sphere flattened, shown as the still until the viewer is opened. Both come
-     from Google's photo CDN — only the size suffix differs. */
   { kind:"pano", sphere:PANO_BASE_1+"=w4096-h2048",
                  preview:PANO_BASE_1+"=w1200-h675-k-no", caption:"360° view" },
   { kind:"pano", sphere:PANO_BASE_2+"=w4096-h2048",
                  preview:PANO_BASE_2+"=w1200-h675-k-no", caption:"360° view" }
 ];
 
-let vgIndex = 0, vgOpened = {};   // vgOpened: which pano slides the user has activated
-let vgViewer = null;              // the live three.js viewer, if one is open
+let vgIndex = 0, vgOpened = {};
+let vgViewer = null;
 
-/* Load three.js once, on demand. Nothing is fetched unless someone actually
-   opens a 360° view, so page weight is unchanged for everyone else. */
 let threeReady = null;
 function loadThree(){
   if(threeReady) return threeReady;
@@ -1514,9 +1345,6 @@ function loadThree(){
   return threeReady;
 }
 
-/* Equirectangular viewer: the panorama is painted on the INSIDE of a sphere
-   with the camera at its centre. That projection is what makes it read as a
-   real 360° view rather than a stretched flat photo. Drag to look, scroll to zoom. */
 async function openPano(host, url){
   host.innerHTML = '<div class="vg-loading">Loading 360° view\u2026</div>';
   let THREE;
@@ -1530,7 +1358,7 @@ async function openPano(host, url){
   renderer.setSize(host.clientWidth, host.clientHeight);
 
   const geo = new THREE.SphereGeometry(500, 60, 40);
-  geo.scale(-1, 1, 1);   // flip inside-out so the texture faces the camera
+  geo.scale(-1, 1, 1);
 
   const loader = new THREE.TextureLoader();
   loader.setCrossOrigin("anonymous");
@@ -1576,7 +1404,6 @@ async function openPano(host, url){
     };
     window.addEventListener("resize", onResize);
 
-    // Free the GPU memory when the slide changes, or each visit leaks a context.
     vgViewer = { dispose(){ alive = false;
       window.removeEventListener("resize", onResize);
       window.removeEventListener("mouseup", end);
@@ -1587,9 +1414,6 @@ async function openPano(host, url){
 }
 
 
-/* The frame takes its shape from the first venue photo, so the slideshow is
-   exactly as tall as venue1.JPG rather than a fixed 16:9 crop. Measured once
-   from the real file; the 360° slides then match it. */
 let vgRatio = null;
 function applyVgRatio(img){
   if(vgRatio || !img.naturalWidth) return;
@@ -1601,13 +1425,10 @@ function renderVenueGallery(){  const stage = $("#vgStage"), dots = $("#vgDots")
   if(!stage) return;
   const sl = VENUE_SLIDES[vgIndex];
 
-  // Tear down any viewer from the slide we are leaving.
   if(vgViewer){ vgViewer.dispose(); vgViewer = null; }
   if(vgRatio) stage.style.aspectRatio = vgRatio;
 
   if(sl.kind === "photo"){
-    /* Name the missing file rather than showing a broken-image icon — the
-       usual cause is simply that it hasn't been uploaded to Files/ yet. */
     stage.innerHTML = '<img class="vg-img" src="'+sl.src+'" alt="'+_bEsc(sl.caption)+'" loading="lazy"'
                     + ' onerror="this.parentNode.innerHTML=\'<div class=&quot;vg-missing&quot;><b>Photo not found</b>'
                     + 'Upload it to <code>'+sl.src+'</code></div>\'">'
@@ -1632,7 +1453,6 @@ function renderVenueGallery(){  const stage = $("#vgStage"), dots = $("#vgDots")
     else firstImg.addEventListener("load", ()=> applyVgRatio(firstImg), {once:true});
   }
   const ob = stage.querySelector("[data-open360]");
-  /* stopPropagation so the card-wide Maps handler can never intercept this. */
   if(ob) ob.onclick = (e)=>{ e.preventDefault(); e.stopPropagation();
                              vgOpened[vgIndex] = true; renderVenueGallery(); };
 }
@@ -1649,7 +1469,6 @@ function vgGo(step){
   if(p) p.onclick = ()=> vgGo(-1);
   if(n) n.onclick = ()=> vgGo(1);
 
-  // Arrow keys, but only while the gallery is on screen
   document.addEventListener("keydown", e=>{
     if(e.key !== "ArrowLeft" && e.key !== "ArrowRight") return;
     const r = stage.getBoundingClientRect();
@@ -1657,27 +1476,17 @@ function vgGo(step){
     vgGo(e.key === "ArrowRight" ? 1 : -1);
   });
 
-  // Swipe between slides. The 360 viewer stops these on its own canvas,
-  // so dragging to look around never changes slide.
   let x0 = null;
   stage.addEventListener("touchstart", e=>{ x0 = e.touches[0].clientX; }, {passive:true});
   stage.addEventListener("touchend", e=>{
     if(x0 === null) return;
     const dx = e.changedTouches[0].clientX - x0;
-    /* Swipe only moves between photos. On a 360° slide a horizontal drag means
-       "look around", so changing slide there would fight the viewer — use the
-       arrows instead. */
     const onPano = VENUE_SLIDES[vgIndex].kind === "pano";
     if(!onPano && Math.abs(dx) > 45) vgGo(dx < 0 ? 1 : -1);
     x0 = null;
   }, {passive:true});
 })();
 
-/* ---------- Google Sheets sync ---------- */
-/* The Apps Script no longer trusts SHEET_SECRET on its own — the secret ships
-   in this file, so anyone could read it and POST to the endpoint. Instead we
-   attach the signed-in user's Firebase ID token; the Apps Script verifies it
-   with Google and refuses anything that isn't an admin. */
 async function sheetToken(){
   try{
     return (fb && fb.auth && fb.auth.currentUser)
@@ -1707,7 +1516,6 @@ async function syncSheet(email){
 }
 function syncAllToSheet(){
   if(!SHEET_URL){ showToast("Set SHEET_URL in script.js first"); return; }
-  // Sync EVERYONE who has any submission so approvals AND rejections both reconcile.
   const emails = Array.from(new Set(allSubs.map(s=>s.email).filter(Boolean)));
   if(!emails.length){ showToast("Nothing to sync yet"); return; }
   emails.forEach((em,i)=> setTimeout(()=> syncSheet(em), i*250));
@@ -1721,13 +1529,6 @@ async function initFirebase(){
     const fsMod   = await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js");
     const app = appMod.initializeApp(FIREBASE_CONFIG);
 
-    /* App Check — attaches a reCAPTCHA v3 attestation to every Firebase
-       request, so requests from outside this page are rejected once
-       enforcement is switched on in the Firebase console.
-       Wrapped in its own try/catch on purpose: if the reCAPTCHA script is
-       blocked (ad-blocker, offline, college firewall) the site must still
-       load. While App Check is UNENFORCED that costs nothing; once you
-       enforce, those users would be refused by Firebase either way. */
     try{
       const acMod = await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-app-check.js");
       acMod.initializeAppCheck(app, {
@@ -1736,12 +1537,10 @@ async function initFirebase(){
       });
     }catch(e){ console.warn("App Check unavailable", e); }
 
-    // Force long-polling so reads/writes work on restrictive college / Wi-Fi networks
     const db = fsMod.initializeFirestore(app, { experimentalForceLongPolling: true });
     fb = { auth: authMod.getAuth(app), db, ...authMod, ...fsMod };
-    subscribeBudget();   // keep the budget live regardless of whether the modal is open
+    subscribeBudget();
 
-    // complete a redirect sign-in if we came back from one
     try{ await fb.getRedirectResult(fb.auth); }catch(e){ console.warn("redirect result", e); }
 
     fb.onAuthStateChanged(fb.auth, async u=>{
@@ -1749,8 +1548,6 @@ async function initFirebase(){
         const email=(u.email||"").toLowerCase();
         if(!emailAllowed(email)){
           await fb.signOut(fb.auth);
-          /* Name the account that was refused — otherwise a wrong-account sign-in
-             and a stale script.js look identical from the outside. */
           gateMsg("Not authorised: " + email + " \u2014 only approved SMVDU / IITM student emails are permitted.","err");
           user=null; showGate();
         } else {
@@ -1767,11 +1564,9 @@ async function initFirebase(){
   }
 }
 
-/* ---------- scroll reveal ---------- */
 const io = new IntersectionObserver(es=>es.forEach(e=>{ if(e.isIntersecting) e.target.classList.add("in"); }),{threshold:.12});
 document.querySelectorAll(".reveal:not(.in)").forEach(el=>io.observe(el));
 
-/* ---------- boot ---------- */
 if(LIVE){
   initFirebase();
 } else {
@@ -1780,12 +1575,6 @@ if(LIVE){
 refreshUserUI();
 repaint();
 
-/* ---------- image protection (casual-save deterrent) ---------- */
-/* Photos render in the browser, so they can never be made truly un-saveable
-   (DevTools / screenshots / the public GitHub repo all still expose them).
-   This just blocks the easy routes for ordinary visitors: right-click
-   "Save image" and dragging a photo out of the page. The UPI QR is excluded
-   on purpose so people can still download it to pay. */
 (function(){
   const isProtected = el => el && el.tagName === "IMG" && el.id !== "upiQr";
   document.addEventListener("contextmenu", e=>{ if(isProtected(e.target)) e.preventDefault(); });
